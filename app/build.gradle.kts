@@ -76,11 +76,11 @@ android {
     lint {
         // abortOnError is set once, in the root build.gradle.kts, for all three
         // modules. What is module-specific is the baseline, and this is the only
-        // module with lint errors: 363 of them, every one translation debt. The
+        // module with lint errors: 362 of them, every one translation debt. The
         // 67 warnings are in there too, so the report reads "no new issues"
         // rather than scrolling past known noise.
         //
-        //   204 MissingTranslation — the 14 locales inherited from upstream's
+        //   203 MissingTranslation — the 14 locales inherited from upstream's
         //       Weblate, most of them behind the English strings.
         //   146 ExtraTranslation, 50 UnusedResources and 10 MissingDefaultResource
         //       — the other side of the same debt. Deleting the local RSS,

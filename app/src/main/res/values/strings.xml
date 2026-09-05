@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">Readrops</string>
     <string name="add_feed">Add feed</string>
     <string name="settings">Settings</string>
@@ -174,7 +174,11 @@
     <string name="selected">(%1$s selected)</string>
     <string name="add_selected_feeds">Add %1$s selected feeds</string>
     <string name="enter_url">Enter an URL</string>
-    <string name="feed_already_exists">Feed already exists</string>
+    <!-- FreshRSS answers HTTP 400 for both "already subscribed" and "no feed
+         there", so this message names both. Untranslated on purpose: which of
+         the 14 inherited locales LeNews keeps is still an open product call,
+         and inventing translations would pre-empt it. -->
+    <string name="freshrss_feed_not_added" tools:ignore="MissingTranslation">FreshRSS could not add this feed: it is not a feed it can read, or it is already subscribed</string>
     <string name="error_image_download">An error occurred while downloading the image</string>
     <string name="enable_notifications">Enable notifications</string>
     <string name="account_notifications_disabled">Account notifications are currently disabled</string>

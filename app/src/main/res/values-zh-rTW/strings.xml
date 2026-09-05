@@ -119,7 +119,6 @@
     <string name="provide_full_url">請提供完整的 API URL</string>
     <string name="date">日期</string>
     <string name="provide_root_url">請輸入提供服務的 URL</string>
-    <string name="feed_already_exists">Feed 已經存在</string>
     <string name="enter_url">輸入一個 URL</string>
     <string name="account_notifications_disabled">帳戶通知當前處於停用狀態</string>
     <string name="enable_notifications">啟用通知</string>

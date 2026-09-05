@@ -1961,17 +1961,6 @@
 
     <issue
         id="MissingTranslation"
-        message="&quot;feed_already_exists&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;feed_already_exists&quot;>Feed already exists&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="177"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
         message="&quot;error_image_download&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
         errorLine1="    &lt;string name=&quot;error_image_download&quot;>An error occurred while downloading the image&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">

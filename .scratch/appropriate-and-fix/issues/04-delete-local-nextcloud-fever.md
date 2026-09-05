@@ -268,3 +268,61 @@ News, Fever and local feeds. They are upstream's, in upstream's name, and ticket
 this ticket owes is over `.kt`, and that one is clean — one rename was needed for
 it, a local variable `localFeedIds` in `FeedDao` that matched "localfeed" as a
 substring; it is `storedFeedIds` now, which is also what it means.
+
+### Review round (2026-09-06)
+
+Two findings from the Codex review, both about code the deletions left standing
+with the wrong account type in mind.
+
+**The notification actions wrote a column nothing reads.** `SyncBroadcastReceiver`
+answered the notification's mark-read and star buttons with
+`itemDao().updateReadState` / `updateStarState`, which set `Item.read` and
+`Item.starred`. Every remaining account type has `useSeparateState = true`: the
+timeline reads `ItemState`, and the sync uploads what is in `ItemStateChange`. So
+the buttons changed nothing the user could see and sent nothing to FreshRSS. The
+receiver now looks the account up and goes through `BaseRepository.setItemReadState`
+/ `setItemStarState`, the same two methods the timeline and the article screen
+use, which write both tables. The account id travels in the action intents, next
+to the article id that was already there; `SyncAnalyzer` only ever attaches
+actions to a single-account notification, which always carries one. The work also
+takes `goAsync()` now — it is three queries and a transaction rather than one
+update, and `onReceive` returning used to be the process's licence to die
+mid-write.
+
+The rewritten `SyncWorkerTest` had moved to a FreshRSS account but kept asserting
+`Item.read` and `Item.starred`, so it passed on the broken behaviour. It is
+honest now: the mock server's unread-ids call returns the one article the fixture
+delivers (`greader/items_unread_ids.json`, decimal `1625234531559678` for the
+hexadecimal `0005c62466ee28fe` in `items_1_item.json`), so the article has an
+`ItemState` row to change; after the two actions the test reads `ItemState` and
+the pending `ItemStateChange` rows; and a second synchronization has to put the
+article's id on an `edit-tag` request for `…/state/com.google/read` and another
+for `…/starred`. The three ids calls are now told apart by their `xt` parameter
+rather than all answered with the starred ids. Reverting the receiver alone makes
+the test fail, which is what it is for.
+
+**A rejected URL was reported as a duplicate.** The new-feed screen hands
+anything that is not an HTML page to FreshRSS as typed, which is right — the
+server is the one that knows what a feed is. But `GReaderError.newFeedMessage`
+mapped every HTTP 400 to "Feed already exists". FreshRSS's `subscription/edit`
+handler (`p/api/greader.php`, `subscriptionEdit`) reaches the same `badRequest()`
+from both branches of `ac=subscribe`: the URL is already subscribed, or
+`addFeed` threw because there was no feed to read there. `badRequest()` sends
+`400` with the body `Bad Request!` in both cases and logs the difference
+server-side only, so nothing in the response tells a client which happened. The
+ambiguous message is therefore the only honest one:
+`freshrss_feed_not_added`, "FreshRSS could not add this feed: it is not a feed it
+can read, or it is already subscribed". `feed_already_exists` is gone, from the
+English strings and from the seven locales that had translated it, so no dead
+resource is left behind; its one entry left the lint baseline with it, which is
+now 362 errors rather than 363. `updateFeedMessage` used to delegate to
+`newFeedMessage`; it delegates to `deleteFeedMessage` instead, because with
+`ac=edit` and `ac=unsubscribe` a 400 does have one meaning — the server does not
+know this feed. `GReaderErrorTest` in `app/src/test` pins the three mappings.
+
+Left out: the new string is marked `tools:ignore="MissingTranslation"`. Adding it
+to the 14 locales would mean inventing translations, and which locales LeNews
+keeps is still the open product call the lint baseline's comment describes.
+`feed_doesnt_exist` still reads "The feed %1$s doesn't exist on the server" and
+is still fetched without an argument, so it shows the placeholder; that wart
+predates this round and lives with the translations call.

@@ -129,11 +129,11 @@ class SyncWorker(
                 .setAutoCancel(true)
 
             notificationContent.item?.let { item ->
-                val itemId = item.id
-
+                // the actions write through the account's repository, so they need
+                // to know which account the article belongs to
                 notificationBuilder
-                    .addAction(getMarkReadAction(itemId))
-                    .addAction(getMarkFavoriteAction(itemId))
+                    .addAction(getMarkReadAction(item.id, notificationContent.accountId))
+                    .addAction(getMarkFavoriteAction(item.id, notificationContent.accountId))
             }
 
             notificationContent.largeIcon?.let { notificationBuilder.setLargeIcon(it) }
@@ -144,10 +144,11 @@ class SyncWorker(
         }
     }
 
-    private fun getMarkReadAction(itemId: Int): Action {
+    private fun getMarkReadAction(itemId: Int, accountId: Int): Action {
         val intent = Intent(applicationContext, SyncBroadcastReceiver::class.java).apply {
             action = SyncBroadcastReceiver.ACTION_MARK_READ
             putExtra(ITEM_ID_KEY, itemId)
+            putExtra(ACCOUNT_ID_KEY, accountId)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -166,10 +167,11 @@ class SyncWorker(
             .build()
     }
 
-    private fun getMarkFavoriteAction(itemId: Int): Action {
+    private fun getMarkFavoriteAction(itemId: Int, accountId: Int): Action {
         val intent = Intent(applicationContext, SyncBroadcastReceiver::class.java).apply {
             action = SyncBroadcastReceiver.ACTION_SET_FAVORITE
             putExtra(ITEM_ID_KEY, itemId)
+            putExtra(ACCOUNT_ID_KEY, accountId)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(

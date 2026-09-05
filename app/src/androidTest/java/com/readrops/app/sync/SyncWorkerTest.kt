@@ -35,6 +35,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.koin.test.KoinTest
 import org.koin.test.inject
+import java.net.URLDecoder
+import java.util.Collections
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -61,6 +63,9 @@ class SyncWorkerTest : KoinTest {
     private val notificationManager: NotificationManagerCompat by inject()
     private val mockServer = MockWebServer()
     private val context = ApplicationProvider.getApplicationContext<Context>()
+
+    // written from the MockWebServer dispatcher threads, read from the test thread
+    private val editTagRequests = Collections.synchronizedList(mutableListOf<String>())
 
     @get:Rule
     val rule = ReadropsTestRule()
@@ -98,14 +103,21 @@ class SyncWorkerTest : KoinTest {
         mockServer.shutdown()
         database.clearAllTables()
         notificationManager.cancelAll()
+        editTagRequests.clear()
     }
 
     /**
      * Answers the calls one synchronization makes, with a single new article.
+     *
+     * The article the notification is about is also the one id the unread ids call
+     * returns, so the synchronization gives it a row in ItemState, which is where a
+     * FreshRSS account keeps its read and starred state.
      */
     private fun greaderDispatcher(itemsResource: String) = object : Dispatcher() {
 
         override fun dispatch(request: RecordedRequest): MockResponse {
+            val url = request.requestUrl!!
+
             with(request.path!!) {
                 return when {
                     contains("tag/list") -> {
@@ -124,8 +136,23 @@ class SyncWorkerTest : KoinTest {
                         MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_empty.json"))
                     }
 
-                    contains("stream/items/ids") -> {
-                        MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_starred_ids.json"))
+                    // the three ids calls differ by what they ask the server to
+                    // leave out: nothing for the starred ids, the read articles for
+                    // the unread ids, the unread ones for the read ids
+                    contains("stream/items/ids") -> when (url.queryParameter("xt")) {
+                        GOOGLE_READ ->
+                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_unread_ids.json"))
+
+                        GOOGLE_UNREAD ->
+                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_no_ids.json"))
+
+                        else ->
+                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_starred_ids.json"))
+                    }
+
+                    contains("edit-tag") -> {
+                        editTagRequests += URLDecoder.decode(request.body.readUtf8(), "UTF-8")
+                        MockResponse().setResponseCode(200).setBody("OK")
                     }
 
                     else -> MockResponse().setResponseCode(404)
@@ -161,23 +188,53 @@ class SyncWorkerTest : KoinTest {
         assertTrue { result is ListenableWorker.Result.Success }
         assertTrue { result.outputData.getBoolean(SyncWorker.END_SYNC_KEY, false) }
 
-        with(notificationManager.activeNotifications.first()) {
+        val notification = with(notificationManager.activeNotifications.first()) {
             assertEquals(SyncWorker.SYNC_RESULT_NOTIFICATION_ID, id)
             assertEquals(
                 "FreshRSS @ GitHub",
                 this.notification.extras.getString(Notification.EXTRA_TITLE)
             )
 
-            notification.actions.forEach { it.actionIntent.send() }
+            this.notification
+        }
 
-            // wait for global scope to execute in SyncBroadcastReceiver
-            delay(1000L)
+        // the actions are added in this order, and are triggered one at a time
+        // because each one waits on the state the other wrote
+        val (markReadAction, starAction) = notification.actions
 
-            val feed = database.feedDao().selectFeeds(account.id).first()
-            val items = database.itemDao().selectItems(feed.id)
+        markReadAction.actionIntent.send()
+        delay(1000L) // wait for global scope to execute in SyncBroadcastReceiver
+        starAction.actionIntent.send()
+        delay(1000L)
 
-            assertTrue { items.first().isRead }
-            assertTrue { items.first().isStarred }
+        // a FreshRSS account keeps its read and starred state in ItemState, which is
+        // what the timeline reads; the Item row is not where the actions belong
+        val itemState = database.itemStateDao().selectItemState(account.id, ITEM_REMOTE_ID)
+        assertTrue { itemState.read }
+        assertTrue { itemState.starred }
+
+        // and both changes are queued for the next synchronization to upload
+        val feed = database.feedDao().selectFeeds(account.id).first()
+        val item = database.itemDao().selectItems(feed.id).first()
+        assertTrue { database.itemStateChangeDao().readStateChangeExists(item.id) }
+        assertTrue { database.itemStateChangeDao().starStateChangeExists(item.id) }
+
+        // the next synchronization uploads them
+        editTagRequests.clear()
+
+        val nextWorker =
+            TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
+                .setTags(listOf(SyncWorker.WORK_MANUAL))
+                .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
+                .build()
+
+        assertTrue { nextWorker.doWork() is ListenableWorker.Result.Success }
+
+        assertTrue {
+            editTagRequests.any { it.contains("a=$GOOGLE_READ") && it.contains(ITEM_REMOTE_ID) }
+        }
+        assertTrue {
+            editTagRequests.any { it.contains("a=$GOOGLE_STARRED") && it.contains(ITEM_REMOTE_ID) }
         }
     }
 
@@ -254,5 +311,16 @@ class SyncWorkerTest : KoinTest {
 
         assertTrue { autoResult is ListenableWorker.Result.Failure }
         assertFalse { autoResult.outputData.getBoolean(SyncWorker.SYNC_FAILURE_KEY, false) }
+    }
+
+    companion object {
+
+        // the one article in greader/items_1_item.json, as the unread ids call
+        // returns it: decimal 1625234531559678 is hexadecimal 0005c62466ee28fe
+        private const val ITEM_REMOTE_ID = "tag:google.com,2005:reader/item/0005c62466ee28fe"
+
+        private const val GOOGLE_READ = "user/-/state/com.google/read"
+        private const val GOOGLE_UNREAD = "user/-/state/com.google/unread"
+        private const val GOOGLE_STARRED = "user/-/state/com.google/starred"
     }
 }
