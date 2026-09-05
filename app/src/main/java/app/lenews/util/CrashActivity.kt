@@ -148,7 +148,7 @@ fun CrashScreen(stackTrace: String) {
             Column {
                 Button(
                     onClick = {
-                        uriHandler.openUri("https://github.com/readrops/Readrops/issues/new")
+                        uriHandler.openUri("https://github.com/jmnicolas90/LeNews/issues")
                         clipboardManager.setText(AnnotatedString(stackTrace))
                         displayToast(context)
                     },

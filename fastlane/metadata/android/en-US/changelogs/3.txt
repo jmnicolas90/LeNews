@@ -1,4 +1,0 @@
-- Add swipe background to main list items
-- Add preference to parse a fixed number of items when adding a local feed
-- Change feed/folders way to interact
-- Minor bug fixes and improvements

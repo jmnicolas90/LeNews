@@ -1,32 +1,30 @@
 ---
 name: Bug report
-about: Create a report to help us fix a bug
+about: Report something LeNews gets wrong
 title: "[Bug] "
 labels: ''
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**What happens**
+A clear and concise description of the wrong behaviour.
 
-**To Reproduce**
-Steps to reproduce the behavior:
+**What you expected instead**
+A clear and concise description of what should have happened.
+
+**Steps to reproduce**
 1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+2. Tap on '...'
+3. Scroll down to '...'
+4. See the problem
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+**Versions**
+ - FreshRSS version: [e.g. 1.26.0]
+ - LeNews version: [e.g. 0.1.0]
+ - Android version: [e.g. Android 15]
+ - Device: [e.g. Pixel 6]
+ - [ ] Stack trace copied from the crash screen and pasted below
 
-**Environment information (please complete the following information):**
- - Account type: [e.g. FreshRSS, Nextcloud News]
- - App version: [e.g. 2.0]
- - Android version: [e.g. Android 13, 14]
- - Device type: [e.g. One Plus 12, Samsung Galaxy S23]
- - Store: [e.g F-Droid, Play Store, standalone apk]
- - [ ] Stacktrace collected from crash screen
-
-**Additional context**
-Add any other context about the problem here.
+**Anything else**
+Logs, screenshots, or context that helps.

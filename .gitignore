@@ -126,12 +126,6 @@ Temporary Items
 
 \.idea/
 
-fastlane/Appfile
-
-fastlane/Fastfile
-
-Gemfile
-
 mapping/
 
 **/*.exec

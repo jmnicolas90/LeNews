@@ -1,4 +1,0 @@
- <ul>
-	<li>Accept null value for Nextcloud News feed attribute folderId #87</li>
-	<li>Fix local RSS url parsing</li>
-</ul>  

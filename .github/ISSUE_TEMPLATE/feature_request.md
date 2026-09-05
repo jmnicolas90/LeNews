@@ -1,20 +1,20 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
-title: "[Feature]"
+about: Suggest something LeNews should do
+title: "[Feature] "
 labels: ''
 assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**The problem**
+What is awkward or missing today, and when it gets in your way.
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+**What you would like instead**
+A clear and concise description of the behaviour you want.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**Alternatives you considered**
+Other ways of solving the same problem, and why they are worse.
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+**Anything else**
+Screenshots, mockups, or context that helps.

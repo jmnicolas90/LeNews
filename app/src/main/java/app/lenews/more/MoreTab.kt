@@ -14,10 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -57,14 +53,6 @@ object MoreTab : Tab, KoinComponent {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
-
-        var showDonationDialog by remember { mutableStateOf(false) }
-
-        if (showDonationDialog) {
-            DonationDialog(
-                onDismiss = { showDonationDialog = false }
-            )
-        }
 
         Surface(color = MaterialTheme.colorScheme.background) {
             Column(
@@ -166,16 +154,6 @@ object MoreTab : Tab, KoinComponent {
                     padding = MaterialTheme.spacing.mediumSpacing,
                     tint = MaterialTheme.colorScheme.primary,
                     onClick = { navigator.push(AboutLibrariesScreen()) }
-                )
-
-                SelectableIconText(
-                    icon = painterResource(id = R.drawable.ic_donation),
-                    text = stringResource(id = R.string.make_donation),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal),
-                    spacing = MaterialTheme.spacing.largeSpacing,
-                    padding = MaterialTheme.spacing.mediumSpacing,
-                    tint = MaterialTheme.colorScheme.primary,
-                    onClick = { showDonationDialog = true }
                 )
 
                 if (BuildConfig.DEBUG) {
