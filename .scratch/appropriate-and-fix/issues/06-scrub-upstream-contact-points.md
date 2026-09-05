@@ -145,14 +145,14 @@ thing without naming a service the fork does not use.
 ### Every remaining hit of the done-when grep
 
 `grep -ri "paypal\|weblate\|codecov\|f-droid\|play.google\|readrops.com\|readrops/Readrops"`,
-52 hits in 12 files, every one of them inside the allowed set:
+69 hits in 12 files (counted after this answer was written, which is itself the largest tracker hit), every one of them inside the allowed set:
 
 | file | hits | what they are |
 | --- | --- | --- |
 | `docs/research/upstream-since-fork.md` | 28 | ticket 10's findings, quoting upstream's repository |
-| `.scratch/appropriate-and-fix/map.md` | 5 | the map's own prose about the scrub |
+| `.scratch/.../06-scrub-upstream-contact-points.md` | 19 | this ticket, its question and this inventory |
+| `.scratch/appropriate-and-fix/map.md` | 6 | the map's own prose about the scrub |
 | `.scratch/.../03-executable-quality-gate.md` | 4 | the gate ticket, on why CI has no codecov |
-| `.scratch/.../06-scrub-upstream-contact-points.md` | 3 | this ticket |
 | `.scratch/.../05-rename-to-lenews.md` | 3 | ticket 05's inventory of what it left here |
 | `code-review-02-09-2026.md` | 2 | the review that started the map |
 | `CHANGELOG.md` | 2 | upstream's release history |
@@ -173,3 +173,8 @@ No hit in `app/`, `api/`, `db/`, `scripts/`, `.github/`, the build files or
 - What replaces `fastlane/metadata` — new screenshots and store text under the
   new name — stays where the map left it, under *Not yet specified*.
 - The 135 remaining `ExtraTranslation` orphans, which are the locales call's.
+
+### Review round (2026-09-06)
+
+Codex's one finding is the pending GitHub rename, not code: the crash screen's report action, the about screen's three links and the README's contact link all point at `https://github.com/jmnicolas90/LeNews`, which 404s until the repository is renamed. Nothing in the tree changes for that; the orchestrator retries the rename when the token allows it. The review also caught this inventory undercounting itself (52 instead of 69: the ticket's own answer is the largest tracker hit); corrected above.
+
