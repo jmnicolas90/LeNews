@@ -117,7 +117,7 @@ Eight stages, fail-fast, in this order. The individual invocations:
 | G4 Google guard | `./gradlew -q :app:checkNoGoogleDependencies :api:checkNoGoogleDependencies :db:checkNoGoogleDependencies` |
 | G5 debug APK | `./gradlew -q :app:assembleDebug` |
 | G6 release APK | `./gradlew -q :app:assembleRelease` |
-| G7 instrumented tests | `ANDROID_SERIAL=emulator-5554 ./gradlew -q :db:connectedDebugAndroidTest :app:connectedDebugAndroidTest` |
+| G7 instrumented tests | `ANDROID_SERIAL=emulator-5554 ./gradlew -q :db:connectedDebugAndroidTest :app:connectedDebugAndroidTest` — what G7 runs *after* its own boot wait and AVD-name check; see below before running it by hand |
 
 Every Gradle stage names all three modules explicitly rather than trusting an
 unqualified task name to reach them all: it costs a line and it means a red
@@ -153,6 +153,25 @@ Notes that save time:
   `--device` flag, because that is the one thing every tool in the chain
   honours — without it a `connectedAndroidTest` on this machine would install
   a debug build on the phone that is usually plugged in.
+- **The G7 line in the table is not a command to paste as it stands.** It is
+  what G7 runs *after* two steps of its own: waiting for `sys.boot_completed`
+  on `emulator-5554`, and asking that emulator's console which AVD is behind
+  the serial. Run by hand without them, `ANDROID_SERIAL=emulator-5554` will
+  install a debug build and run tests that wipe databases on whatever happens
+  to sit on that serial. So a hand run first checks that
+
+  ```
+  adb -s emulator-5554 emu avd name
+  ```
+
+  answers `bench-pixel6-aosp` — or, simpler, just runs `scripts/check.sh`,
+  which makes that check itself and refuses any other device without killing
+  it. Either way the test APKs stay installed on the device afterwards:
+  `gradle.properties` (line 15) sets
+  `android.injected.androidTest.leaveApksInstalledAfterRun=true`, so AGP skips
+  the uninstall it would otherwise do after the run. Finding `app.lenews` and
+  its test package still on the emulator after a green gate is expected, not a
+  leftover from a failure.
 - **On this machine the emulator cannot be started from inside an agent's Bash
   sandbox.** Either run the whole gate outside the sandbox, or start the
   emulator outside it first and let G7 find it on the serial:
@@ -185,8 +204,15 @@ Notes that save time:
   its findings; it is a helper for the review step of the ticket loop, nothing
   in `check.sh` calls it, and its verdict is advice, not a pass mark.
   `scripts/android-sdk-path.sh` just answers "where is the SDK" for the other
-  two, using Gradle's own precedence: `ANDROID_HOME`, then `ANDROID_SDK_ROOT`,
-  then `sdk.dir` in `local.properties`.
+  two, in the order AGP 8.10 itself uses (its `SdkLocator`): `sdk.dir` in
+  `local.properties` first, then `ANDROID_HOME`, then the deprecated
+  `ANDROID_SDK_ROOT`. **The script and AGP have to agree**: otherwise the gate
+  would look for `platforms;android-35` and the AVD in one SDK while Gradle
+  built against another, and G0 would pass or fail about a directory nothing
+  uses. That is the whole reason this lookup lives in one file. On this machine
+  there is no `local.properties`, so both fall through to `ANDROID_HOME`
+  (`/home/skynet/dev/android/sdk`); write a `local.properties` with a `sdk.dir`
+  and it wins, for the script exactly as for Gradle.
 
 ## Working conventions
 
@@ -229,8 +255,24 @@ every claim a permalink into FreshRSS source. The facts a session trips over:
 - **An article's identity is a 64-bit integer**, FreshRSS's `_entry.id`, unique
   by primary key and stable across content updates. It comes back **hex** from
   `stream/contents` (as `tag:google.com,2005:reader/item/<16 hex digits>`) and
-  **decimal** from `stream/items/ids`; both forms are accepted on write. Key
-  articles by the decimal form.
+  **decimal** from `stream/items/ids`; both forms are accepted on write.
+  **What the code stores today is the long form.** `GReaderItemsAdapter` keeps
+  the `id` string `stream/contents` sent, and `GReaderItemsIdsAdapter` converts
+  the decimal that `stream/items/ids` sent back into that same
+  `tag:google.com,2005:reader/item/<hex>` shape, so both paths put that string
+  into `Item.remote_id` — and `ItemState`, which is where read and starred
+  state actually lives (see below), joins on `remote_id` verbatim, as a string.
+  `docs/research/freshrss-greader-api.md` (ticket 09) recommends the **decimal
+  integer** as the safer key: it is what the server parses every input down to,
+  and it is a number rather than a 48-character string repeated in two tables.
+  Switching is not a one-line change — it touches the schema, both adapters and
+  every stored row at once — so it belongs to ticket 12's article-store model,
+  and until that lands the long form is what the tree uses. The rule in the
+  meantime: **mixing the two forms breaks the read-state join.** An
+  `Item.remote_id` in one form and an `ItemState.remote_id` in the other never
+  match, and the article silently shows up with no read and no starred state.
+  Fixtures, tests and any partial change must therefore keep one form
+  throughout.
 - **Re-delivery is normal, not a failure.** `ot` is inclusive and is compared
   to discovery time or last-modified time, not to the publication date
   (`id >= ot·10⁶` OR `lastModified >= ot`), so the boundary article comes back
@@ -251,11 +293,27 @@ every claim a permalink into FreshRSS source. The facts a session trips over:
 **Pending, so do not write code as if it were decided**: how the article store
 is modelled at all, including whether tags survive the schema reset (ticket 12,
 a grilling ticket); collapsing the account layer and the separate-state join
-for a single account (ticket 13); the mirror-and-horizon retention rule, agreed
-in principle as "the phone holds what FreshRSS holds, nothing read older than
-30 days" but not implemented (ticket 15); what the history list looks like
-(ticket 16); and which of the 14 inherited locales LeNews keeps, which is the
-one product call that clears most of the lint baseline.
+for a single account (ticket 13); the mirror-and-horizon retention rule
+(ticket 15, below); what the history list looks like (ticket 16); and which of
+the 14 inherited locales LeNews keeps, which is the one product call that
+clears most of the lint baseline.
+
+**The retention rule** is agreed in principle and not implemented (ticket 15).
+It is two rules with one exception that covers both:
+
+- **Mirror** — the phone holds what FreshRSS holds, no more: an article the
+  server no longer returns is dropped locally, unless it is starred or still
+  within the horizon.
+- **Horizon** — thirty days, measured from when the article **became read**,
+  not from when it was published or fetched. Past it a read article is no
+  longer kept, whatever FreshRSS still has.
+- **Starred articles survive both** — kept regardless of the horizon and
+  regardless of what FreshRSS returns.
+
+The one-line summary "the phone holds what FreshRSS holds, nothing read older
+than 30 days" leaves the starred exception out and says nothing about what the
+thirty days are counted from, which is why it is spelled out here. `CONTEXT.md`
+defines Mirror, Horizon and Starred; ticket 15 implements them.
 
 ## Tickets and bookkeeping
 
