@@ -374,3 +374,10 @@ that `Synchronizer.refreshLocalAccount` only advances the feed counter when
 notifications are enabled. True, and out of scope: that is the local-RSS sync
 path, which ticket 04 deletes outright. The FreshRSS path is the one LeNews
 keeps.
+
+### Trunk switch (2026-09-05, orchestrator)
+
+Done locally after the merge: `develop` renamed to `main` (same history), the ticket worktree and branch deleted, and the full gate run on `main` twice outside the agent sandbox: once with no emulator (G7 cold-booted `bench-pixel6-aosp`, ran 20 db + 32 app tests, shut it down; 28 s end to end with a warm Gradle) and once with the emulator started two seconds before the gate (G7 saw `emulator-5554 offline`, waited for boot, used it and left it running; 1 min 28 s).
+
+Pending on GitHub access: `git push origin main` was refused with 403 and the default-branch change too. The `gh` fine-grained token only covers `jmnicolas90/Ding`; it needs `jmnicolas90/Readrops` added with Contents, Workflows and Administration write and Actions read. Until then: CI has not run on `main`, the CI half of the play-services red proof is not done, and GitHub's default branch is still `develop`. The remote `develop` is left as history either way; only the local one is gone.
+
