@@ -3,6 +3,7 @@ package com.readrops.app
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
@@ -53,7 +54,7 @@ open class ReadropsApp : Application(), KoinComponent, SingletonImageLoader.Fact
             modules(apiModule, dbModule, appModule)
         }
 
-        createNotificationChannels()
+        createNotificationChannels(this)
 
         runBlocking {
             Migrations.upgrade(
@@ -88,19 +89,28 @@ open class ReadropsApp : Application(), KoinComponent, SingletonImageLoader.Fact
             .build()
     }
 
-    private fun createNotificationChannels() {
-        val syncChannel = NotificationChannel(
-            SYNC_CHANNEL_ID,
-            getString(R.string.auto_synchro),
-            NotificationManager.IMPORTANCE_LOW
-        )
-        syncChannel.description = getString(R.string.account_synchro)
-
-        NotificationManagerCompat.from(this)
-            .createNotificationChannel(syncChannel)
-    }
-
     companion object {
         const val SYNC_CHANNEL_ID = "syncChannel"
     }
+}
+
+/**
+ * Creates the notification channels the app posts on.
+ *
+ * Top level rather than a private method of [ReadropsApp] because the
+ * instrumented tests replace the Application with TestApplication, and a
+ * notification posted on a channel that does not exist is dropped by the system
+ * with nothing but a log line. That is how SyncWorkerTest came to assert on an
+ * empty notification list. One definition, called from both applications.
+ */
+fun createNotificationChannels(context: Context) {
+    val syncChannel = NotificationChannel(
+        ReadropsApp.SYNC_CHANNEL_ID,
+        context.getString(R.string.auto_synchro),
+        NotificationManager.IMPORTANCE_LOW
+    )
+    syncChannel.description = context.getString(R.string.account_synchro)
+
+    NotificationManagerCompat.from(context)
+        .createNotificationChannel(syncChannel)
 }

@@ -1,0 +1,3018 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.10.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.10.0)" variant="all" version="8.10.0">
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;512dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/ic_bug.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;496dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/ic_github.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="MissingQuantity"
+        message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)"
+        errorLine1="    &lt;plurals name=&quot;error_occurred&quot;>"
+        errorLine2="    ^">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="99"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="MissingQuantity"
+        message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="    ^">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="105"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;add_feed&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;add_feed&quot;>Add feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="4"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;settings&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;settings&quot;>Settings&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="5"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;add_feed_title&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;add_feed_title&quot;>Add feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="6"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_url&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_url&quot;>Feed url&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="7"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;validate&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;validate&quot;>Validate&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="8"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;empty_field&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;empty_field&quot;>Field can\&apos;t be empty&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="9"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;wrong_url&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;wrong_url&quot;>Input is not a valid URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="10"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;add_feed_connexion_error&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;add_feed_connexion_error&quot;>Connection error&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="11"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;add_feed_unknownhost_error&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;add_feed_unknownhost_error&quot;>Unknown host&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="12"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;read_time&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;read_time&quot;>%1$s min&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="13"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;read_time_lower_than_1&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;read_time_lower_than_1&quot;>&amp;lt;1 min&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="14"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;read_time_one_minute&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;read_time_one_minute&quot;>1 min&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="15"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;share_article&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;share_article&quot;>Share Article&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="17"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;open_url&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;open_url&quot;>Open url&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="18"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;add_folder&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;add_folder&quot;>Add folder&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="19"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_name&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_name&quot;>Feed name&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="20"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;edit_feed&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;edit_feed&quot;>Edit feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="21"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;no_folder&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;no_folder&quot;>No folder&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="22"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;cancel&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;cancel&quot;>Cancel&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="23"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;delete_feed&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;delete_feed&quot;>Delete feed?&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="24"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_insertion_successfull&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_insertion_successfull&quot;>Feed %1$s added successfully&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="25"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_insertion_network_failed&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_insertion_network_failed&quot;>Network failure when accessing feed %1$s&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="26"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_insertion_parse_failed&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_insertion_parse_failed&quot;>Failure when parsing feed %1$s&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="27"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_insertion_wrong_format&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_insertion_wrong_format&quot;>Wrong format for feed %1$s&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="28"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_insertion_unknown_error&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_insertion_unknown_error&quot;>Unknown error for feed %1$s&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="29"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;articles&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;articles&quot;>Articles&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="30"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;show_read_articles&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;show_read_articles&quot;>Show read articles&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="31"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;mark_unread&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;mark_unread&quot;>Mark as non read&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="32"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;mark_read&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;mark_read&quot;>Mark as read&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="33"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;account_url&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;account_url&quot;>Account url&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="34"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;account_name&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;account_name&quot;>Account name&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="35"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;login&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;login&quot;>Login&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="36"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;password&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;password&quot;>Password&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="37"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;password_helper&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;password_helper&quot;>This is your FreshRSS API password (Configuration &amp;gt; Profile)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="38"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;add_account&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;add_account&quot;>Add account&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="39"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;no_feed&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;no_feed&quot;>No feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="40"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;choose_account&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;choose_account&quot;>Choose an account&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="41"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;account&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;account&quot;>Account&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="42"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feeds&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feeds&quot;>Feeds&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="43"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;edit_folder&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;edit_folder&quot;>Edit folder&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="44"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;delete_folder&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;delete_folder&quot;>Delete folder ?&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="45"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;delete_account&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;delete_account&quot;>Delete account&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="46"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;delete_account_question&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;delete_account_question&quot;>Delete account ?&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="47"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_deleted&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_deleted&quot;>The feed %1$s has been deleted&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="48"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_doesnt_exist&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_doesnt_exist&quot;>The feed %1$s doesn\&apos;t exist on the server&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="49"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;error_occured&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;error_occured&quot;>An error occurred&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="50"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;folder_already_exists&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;folder_already_exists&quot;>The folder already exists&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="51"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;folder_doesnt_exist&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;folder_doesnt_exist&quot;>The folder doesn\&apos;t exist on the server&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="52"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;credentials&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;credentials&quot;>Credentials&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="53"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;filter_newest&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;filter_newest&quot;>Newest to oldest&lt;/string> &lt;!-- keep for new filter -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="54"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;filter_oldest&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;filter_oldest&quot;>Oldest to newest&lt;/string> &lt;!-- keep for new filter -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="55"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;login_failed&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>Login failed. Please check your credentials&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="56"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;new_account&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;new_account&quot;>New account&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="57"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;local&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;local&quot;>Local&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="59"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;delete&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;delete&quot;>Delete&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="60"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;app_licence&quot; is not translated in &quot;it&quot; (Italian) or &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;app_licence&quot;>App released under the GPLv3 licence&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="61"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;get_feeds_colors&quot; is not translated in &quot;ja&quot; (Japanese) or &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;get_feeds_colors&quot;>Get feeds colors&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="62"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;global&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;global&quot;>Global&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="63"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;open_items_in&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;open_items_in&quot;>Open items in&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="64"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;external_navigator&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;external_navigator&quot;>External web browser&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="65"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;share_url&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;share_url&quot;>Share URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="66"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;opml_import_export&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>OPML Import/Export&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="67"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;opml_import&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>OPML import&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="68"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;opml_export&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>OPML export&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="69"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;image_options&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;image_options&quot;>Image Options&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="70"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;download_image&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;download_image&quot;>Download image&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="71"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;share_image&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;share_image&quot;>Share image&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="72"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;theme&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;theme&quot;>Theme&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="73"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;light&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;light&quot;>Light&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="74"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;dark&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;dark&quot;>Dark&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="75"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;new_feed&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;new_feed&quot;>New feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="76"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;auto_synchro&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;auto_synchro&quot;>Automatic synchronisation&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="77"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;manual&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;manual&quot;>Manual&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="78"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;min_30&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;min_30&quot;>30 min&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="79"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;hour_1&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;hour_1&quot;>1 hour&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="80"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;hour_2&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;hour_2&quot;>2 hours&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="81"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;hour_3&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;hour_3&quot;>3 hours&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="82"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;hour_6&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;hour_6&quot;>6 hours&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="83"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;hour_12&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;hour_12&quot;>12 hours&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="84"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;every_day&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;every_day&quot;>Every day&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="85"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;account_synchro&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;account_synchro&quot;>Accounts synchronisation&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="86"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;new_items&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;new_items&quot;>%1$s new articles&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;notifications&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;notifications&quot;>Notifications&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;auto_synchro_disabled&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;auto_synchro_disabled&quot;>Automatic synchronization is disabled&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="89"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;enable_auto_synchro_text&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;enable_auto_synchro_text&quot;>To be displayed, notifications need background synchronization to be activated.\nDo you want to open settings?&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="90"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;open&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;open&quot;>Open&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="91"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;back&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;back&quot;>Back&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="92"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;save&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;fr&quot; (French), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;save&quot;>Save&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="93"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;synchronize&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;synchronize&quot;>Synchronize&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="94"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;navigator_view&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;navigator_view&quot;>Navigator view&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="95"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;favorites&quot; is not translated in &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;favorites&quot;>Favorites&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="96"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;system&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;system&quot;>System theme&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="98"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;hide_feeds&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;hide_feeds&quot;>Hide feeds without new items&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="99"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;mark_items_read_on_scroll&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;mark_items_read_on_scroll&quot;>Mark items read on scroll&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="100"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;new_articles&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;new_articles&quot;>New articles&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="101"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;filters&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;filters&quot;>Filters&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="102"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;error_occurred&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;plurals name=&quot;error_occurred&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="103"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;details&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;details&quot;>Details&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="107"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;synchronization_errors&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>Synchronization errors&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="108"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;error_occurred_feed&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="109"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;unreachable_feed_http_error&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;unreachable_feed_http_error&quot;>Unreachable feed, HTTP error %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="113"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;network_failure&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;network_failure&quot;>Network failure: %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="114"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;processing_feed_error&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;processing_feed_error&quot;>Processing feed error&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="115"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;unreachable_url&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;unreachable_url&quot;>Unreachable URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="116"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;unable_open_file&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;unable_open_file&quot;>Unable to open file&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="117"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;http_error_400&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;http_error_400&quot;>HTTP error 400, please check your server URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="118"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;http_error_401&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;http_error_401&quot;>HTTP error 401, please check your credentials&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="119"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;http_error_403&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;http_error_403&quot;>HTTP error 403, access forbidden&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="120"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;http_error_404&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;http_error_404&quot;>HTTP error 404, URL not found&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="121"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;http_error_4XX&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;http_error_4XX&quot;>HTTP error %1$d, please check your fields&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="122"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;http_error_5XX&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;http_error_5XX&quot;>HTTP error %1$d, server error&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="123"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;http_error&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;http_error&quot;>HTTP error %1$d&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="124"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_url_read_only&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_url_read_only&quot;>The API doesn\&apos;t support Feed URL modification&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="125"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;updating_account&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;updating_account&quot;>Updating %1$s account&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="126"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;enable_all&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;enable_all&quot;>Enable all&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;disable_all&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;disable_all&quot;>Disable all&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;open_source_libraries&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;open_source_libraries&quot;>Open source libraries&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;make_donation&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;make_donation&quot;>Make a donation&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="130"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;other_accounts&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;other_accounts&quot;>Other accounts&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="133"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;update&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;update&quot;>Update&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="134"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;rename_account&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;rename_account&quot;>Rename account&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="135"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;name&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;name&quot;>Name&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="136"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;url&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;url&quot;>URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="137"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;unread&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;unread&quot;>%1$d unread&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="138"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;preferences&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;preferences&quot;>Preferences&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="139"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;item_view&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;item_view&quot;>Article view&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="140"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;timeline&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;timeline&quot;>Timeline&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="141"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;hide_feeds_subtitle&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;hide_feeds_subtitle&quot;>Feeds with no left unread items will be hidden in the drawer&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="142"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;compact&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;compact&quot;>Compact&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="143"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;regular&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;regular&quot;>Regular&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="144"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;large&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;large&quot;>Large&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="145"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;item_size&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;item_size&quot;>Item size&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="146"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;background_sync_already_running&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;background_sync_already_running&quot;>A background synchronization is already running&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="147"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;disable_battery_optimization&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;disable_battery_optimization&quot;>Disable battery optimization&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="148"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;disable_battery_optimization_subtitle&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;disable_battery_optimization_subtitle&quot;>Can help with background synchronization not being killed by the system&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="149"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;battery_optimization_already_disabled&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;battery_optimization_already_disabled&quot;>Battery optimization already disabled for this app&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="150"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;opml_export_success&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>OPML export success&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="151"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;add_to_favorite&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;add_to_favorite&quot;>Add to favorites&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="152"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;grant_access_notifications&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;grant_access_notifications&quot;>Grant access to Notifications&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="153"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;system_notifications_disabled&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;system_notifications_disabled&quot;>System notifications are currently disabled. Click here to enable them&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="154"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;show_notifications_background_sync&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;show_notifications_background_sync&quot;>Show notifications after background synchronization&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="155"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;background_sync_new_articles&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;background_sync_new_articles&quot;>Be notified of new articles after background synchronization&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="156"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;no_article&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;no_article&quot;>No articles&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="157"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;no_rss_feed_found&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;no_rss_feed_found&quot;>No RSS feed found&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="158"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;not_valid_rss_feed&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;not_valid_rss_feed&quot;>The provided URL is not a valid RSS feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="159"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;error_occurred&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;error_occurred&quot;>An error occurred&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="160"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;more&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;more&quot;>More&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="161"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;show_oldest_articles_first&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;show_oldest_articles_first&quot;>Show oldest articles first&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="162"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;delete_feed_question&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;delete_feed_question&quot;>Do you want to delete feed %1$s?&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="163"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;delete_folder_question&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;delete_folder_question&quot;>Do you want to delete folder %1$s? All linked feeds will also be deleted.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="164"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;update_color&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;update_color&quot;>Update color&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="165"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;external&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;external&quot;>External&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="166"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;mark_all_articles_read&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;mark_all_articles_read&quot;>Mark all articles as read&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="167"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;mark_all_articles_read_question&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;mark_all_articles_read_question&quot;>Do you really want to mark all items as read?&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="168"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;readrops_crashed&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;readrops_crashed&quot;>Readrops crashed.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="169"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;crash_message&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;crash_message&quot;>I you see this, it means the app ran into an unexpected error. Please if you can, report the error on Github.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="170"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;report_error_github&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;report_error_github&quot;>Report the error on Github&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="171"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;copy_error_clipboard&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;copy_error_clipboard&quot;>Copy error to clipboard&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="172"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;copied&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;copied&quot;>Copied!&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="173"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;bitcoin_copy_address&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;bitcoin_copy_address&quot;>Bitcoin (copy address)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="178"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;litecoin_copy_address&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;litecoin_copy_address&quot;>Litecoin (copy address)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="179"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;donation_text&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;donation_text&quot;>I you find my work useful and you would like to support me, you can consider making me a donation.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="180"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;downloaded_file&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;downloaded_file&quot;>Downloaded file!&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="181"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;provide_full_url&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;provide_full_url&quot;>Please provide the full API URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="182"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;provide_root_url&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;provide_root_url&quot;>Please provide the service root URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="183"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;order_field_tooltip&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;order_field_tooltip&quot;>RSS feeds always contain old articles it is unlikely you will see in your timeline if you order it by date. Ordering by article identifier lets you show all new inserted articles whatever date they might have.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="184"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;date&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;date&quot;>Date&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="185"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;identifier&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;identifier&quot;>Identifier&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="186"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;ascending&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;ascending&quot;>Ascending&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="187"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;descending&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;descending&quot;>Descending&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="188"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;order_by&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;order_by&quot;>Order by&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="189"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;with_direction&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;with_direction&quot;>With direction&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="190"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;choose_folder&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;choose_folder&quot;>Choose a folder&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="191"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;selected&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;selected&quot;>(%1$s selected)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="192"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;add_selected_feeds&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;add_selected_feeds&quot;>Add %1$s selected feeds&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="193"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;enter_url&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;enter_url&quot;>Enter an URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="194"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_already_exists&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_already_exists&quot;>Feed already exists&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="195"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;invalid_folder&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;invalid_folder&quot;>Invalid folder&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="196"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;invalid_feed&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;invalid_feed&quot;>Invalid feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="197"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;error_image_download&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;error_image_download&quot;>An error occurred while downloading the image&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="198"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;enable_notifications&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;enable_notifications&quot;>Enable notifications&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="199"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;account_notifications_disabled&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;account_notifications_disabled&quot;>Account notifications are currently disabled&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="200"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;open_feed_in&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;open_feed_in&quot;>Open Feed in&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="201"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;local_view&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;local_view&quot;>Local view&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="202"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;external_view&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;external_view&quot;>External view&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="203"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;do_not_ask_again_next_feeds&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;do_not_ask_again_next_feeds&quot;>Do not ask me again for next feeds&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="204"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;default_category&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;default_category&quot;>Default category&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="205"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;synchronize_at_launch&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;synchronize_at_launch&quot;>Synchronize at launch&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="206"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;feed_color&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;feed_color&quot;>Feed color&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="207"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;preview&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;preview&quot;>Preview&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="208"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;select_color&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;select_color&quot;>Select color&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="209"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;reset&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;reset&quot;>Reset&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="210"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;actions&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;actions&quot;>Actions&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="211"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;reload_color_favicon&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;reload_color_favicon&quot;>Reload color from Favicon&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="212"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;load_color_new_favicon&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;load_color_new_favicon&quot;>Load color from a new favicon&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="213"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;error_occurred_reloading_favicon_color&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;error_occurred_reloading_favicon_color&quot;>An error occurred while reloading favicon color&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="214"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;use_default_color&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;use_default_color&quot;>Use default color&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="215"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;warning&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;warning&quot;>Warning&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="216"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;understand&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;understand&quot;>I understand&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="217"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;greader_warning&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;greader_warning&quot;>Google Reader is a very old API and lack documentation. It may not be implemented in every aggregator the same way and thus might not work well.\n\nIf you encounter any synchronization problem, please report them to Readrops Github repository.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="218"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;fever_warning&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;fever_warning&quot;>Fever is a very old, limited and depreciated API. It doesn\&apos;t support feed and folder management. It is also poorly documented, may not be implemented in every aggregator the same way and thus might not work well.\n\nIf you encounter any synchronization problem, please report them to Readrops Github repository.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="219"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;api&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;api&quot;>API&lt;/string>"
+        errorLine2="            ~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="220"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;use_custom_share_intent_tpl&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;use_custom_share_intent_tpl&quot;>Customize the text when sharing to other apps&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="223"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;use_custom_share_intent_tpl_explenation&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;use_custom_share_intent_tpl_explenation&quot;>This option lets you customize the text when sharing an article with other Android applications. Check &amp;lt;a href=&quot;https://pebbletemplates.io/wiki/guide/basic-usage/#syntax-reference&quot;>the available synthax here&amp;lt;/a>.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="224"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;preview_shared_text&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;preview_shared_text&quot;>Preview shared text&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="225"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;edit_shared_text_template&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;edit_shared_text_template&quot;>Edit shared text template&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="226"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;example_item_title&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;example_item_title&quot;>Good news, everyone!&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="227"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;example_item_author&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;example_item_author&quot;>Awesome content creator&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="228"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;example_item_content&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;example_item_content&quot;>This happenned last week on earth.\n\nThis is the most awesome thing that happened this week.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="229"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;example_item_explanation&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;example_item_explanation&quot;>The variables that are available in context are: %s. You can use all the template filters &amp;lt;a href=https://pebbletemplates.io/wiki/>documented here&amp;lt;/a> in addition to: %s.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="230"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;remove_author_documentation&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;remove_author_documentation&quot;>when applied to any variable, this filter will remove from it the content of the variable &amp;lt;tt>author&amp;lt;/tt>&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="231"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;fr_typo_documentation&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;fr_typo_documentation&quot;>when applied to any variable, will put an unbreakable space before %s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="232"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;try_the_default_template&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;try_the_default_template&quot;>Fill with the default template&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="233"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;render_template&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;render_template&quot;>See the result&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="234"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;edit_template&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;edit_template&quot;>Edit template&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="235"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;localised_quotes&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;localised_quotes&quot;>&quot;%s&quot;&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="236"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;localised_dict_item&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;localised_dict_item&quot;>%s: %s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="237"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;disabled&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;disabled&quot;>Disabled&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="238"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;swipe_to_right_action&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;swipe_to_right_action&quot;>Swipe to right action&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="239"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;swipe_to_left_action&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;swipe_to_left_action&quot;>Swipe to left action&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="240"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;freshrss_delete_folder_question&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;freshrss_delete_folder_question&quot;>Do you want to delete folder %1$s? All linked feeds will be put in the default folder.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="241"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;no_network&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;no_network&quot;>No network connection available&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="242"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;empty_file&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
+        errorLine1="    &lt;string name=&quot;empty_file&quot;>File is empty&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="243"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;color_contrast_too_low&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;pt&quot; (Portuguese), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish), &quot;zh&quot; (Chinese)"
+        errorLine1="    &lt;string name=&quot;color_contrast_too_low&quot;>Contrast with background is too low. The default color will be used instead when using this theme.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="244"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="Typos"
+        message="&quot;happenned&quot; is a common misspelling; did you mean &quot;happened&quot;?"
+        errorLine1="    &lt;string name=&quot;example_item_content&quot;>This happenned last week on earth.\n\nThis is the most awesome thing that happened this week.&lt;/string>"
+        errorLine2="                                             ^">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="229"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="ImpliedQuantity"
+        message="The quantity `&apos;one&apos;` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more."
+        errorLine1="        &lt;item quantity=&quot;one&quot;>Une erreur s\&apos;est produite&lt;/item>"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="100"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="ImpliedQuantity"
+        message="The quantity `&apos;one&apos;` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more."
+        errorLine1="        &lt;item quantity=&quot;one&quot;>Une erreur s\&apos;est produite pour le flux suivant :&lt;/item>"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="106"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="ImpliedQuantity"
+        message="The quantity `&apos;one&apos;` matches more than one specific number in this locale (0, 1), but the message did not include a formatting argument (such as `%d`). This is usually an internationalization error. See full issue explanation for more."
+        errorLine1="        &lt;item quantity=&quot;one&quot;>Um erro ocorreu para o seguinte feed:&lt;/item>"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="114"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;unread&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;unread&quot;>%1$d unread&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="138"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="DataExtractionRules"
+        message="The attribute `android:allowBackup` is deprecated from Android 12 and the default allows backup"
+        errorLine1="        android:allowBackup=&quot;true&quot;"
+        errorLine2="                             ~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="11"
+            column="30"/>
+    </issue>
+
+    <issue
+        id="VectorPath"
+        message="Very long vector path (965 characters), which is bad for performance. Considering reducing precision, removing minor details or rasterizing vector."
+        errorLine1="      android:pathData=&quot;M256,0c53,0 96,43 96,96l0,3.6c0,15.7 -12.7,28.4 -28.4,28.4l-135.1,0c-15.7,0 -28.4,-12.7 -28.4,-28.4l0,-3.6c0,-53 43,-96 96,-96zM41.4,105.4c12.5,-12.5 32.8,-12.5 45.3,0l64,64c0.7,0.7 1.3,1.4 1.9,2.1c14.2,-7.3 30.4,-11.4 47.5,-11.4l112,0c17.1,0 33.2,4.1 47.5,11.4c0.6,-0.7 1.2,-1.4 1.9,-2.1l64,-64c12.5,-12.5 32.8,-12.5 45.3,0s12.5,32.8 0,45.3l-64,64c-0.7,0.7 -1.4,1.3 -2.1,1.9c6.2,12 10.1,25.3 11.1,39.5l64.3,0c17.7,0 32,14.3 32,32s-14.3,32 -32,32l-64,0c0,24.6 -5.5,47.8 -15.4,68.6c2.2,1.3 4.2,2.9 6,4.8l64,64c12.5,12.5 12.5,32.8 0,45.3s-32.8,12.5 -45.3,0l-63.1,-63.1c-24.5,21.8 -55.8,36.2 -90.3,39.6L272,240c0,-8.8 -7.2,-16 -16,-16s-16,7.2 -16,16l0,239.2c-34.5,-3.4 -65.8,-17.8 -90.3,-39.6L86.6,502.6c-12.5,12.5 -32.8,12.5 -45.3,0s-12.5,-32.8 0,-45.3l64,-64c1.9,-1.9 3.9,-3.4 6,-4.8C101.5,367.8 96,344.6 96,320l-64,0c-17.7,0 -32,-14.3 -32,-32s14.3,-32 32,-32l64.3,0c1.1,-14.1 5,-27.5 11.1,-39.5c-0.7,-0.6 -1.4,-1.2 -2.1,-1.9l-64,-64c-12.5,-12.5 -12.5,-32.8 0,-45.3z&quot;/>"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/drawable/ic_bug.xml"
+            line="8"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="VectorPath"
+        message="Very long vector path (1462 characters), which is bad for performance. Considering reducing precision, removing minor details or rasterizing vector."
+        errorLine1="      android:pathData=&quot;M165.9,397.4c0,2 -2.3,3.6 -5.2,3.6 -3.3,0.3 -5.6,-1.3 -5.6,-3.6 0,-2 2.3,-3.6 5.2,-3.6 3,-0.3 5.6,1.3 5.6,3.6zM134.8,392.9c-0.7,2 1.3,4.3 4.3,4.9 2.6,1 5.6,0 6.2,-2s-1.3,-4.3 -4.3,-5.2c-2.6,-0.7 -5.5,0.3 -6.2,2.3zM179,391.2c-2.9,0.7 -4.9,2.6 -4.6,4.9 0.3,2 2.9,3.3 5.9,2.6 2.9,-0.7 4.9,-2.6 4.6,-4.6 -0.3,-1.9 -3,-3.2 -5.9,-2.9zM244.8,8C106.1,8 0,113.3 0,252c0,110.9 69.8,205.8 169.5,239.2 12.8,2.3 17.3,-5.6 17.3,-12.1 0,-6.2 -0.3,-40.4 -0.3,-61.4 0,0 -70,15 -84.7,-29.8 0,0 -11.4,-29.1 -27.8,-36.6 0,0 -22.9,-15.7 1.6,-15.4 0,0 24.9,2 38.6,25.8 21.9,38.6 58.6,27.5 72.9,20.9 2.3,-16 8.8,-27.1 16,-33.7 -55.9,-6.2 -112.3,-14.3 -112.3,-110.5 0,-27.5 7.6,-41.3 23.6,-58.9 -2.6,-6.5 -11.1,-33.3 2.6,-67.9 20.9,-6.5 69,27 69,27 20,-5.6 41.5,-8.5 62.8,-8.5s42.8,2.9 62.8,8.5c0,0 48.1,-33.6 69,-27 13.7,34.7 5.2,61.4 2.6,67.9 16,17.7 25.8,31.5 25.8,58.9 0,96.5 -58.9,104.2 -114.8,110.5 9.2,7.9 17,22.9 17,46.4 0,33.7 -0.3,75.4 -0.3,83.6 0,6.5 4.6,14.4 17.3,12.1C428.2,457.8 496,362.9 496,252 496,113.3 383.5,8 244.8,8zM97.2,352.9c-1.3,1 -1,3.3 0.7,5.2 1.6,1.6 3.9,2.3 5.2,1 1.3,-1 1,-3.3 -0.7,-5.2 -1.6,-1.6 -3.9,-2.3 -5.2,-1zM86.4,344.8c-0.7,1.3 0.3,2.9 2.3,3.9 1.6,1 3.6,0.7 4.3,-0.7 0.7,-1.3 -0.3,-2.9 -2.3,-3.9 -2,-0.6 -3.6,-0.3 -4.3,0.7zM118.8,380.4c-1.6,1.3 -1,4.3 1.3,6.2 2.3,2.3 5.2,2.6 6.5,1 1.3,-1.3 0.7,-4.3 -1.3,-6.2 -2.2,-2.3 -5.2,-2.6 -6.5,-1zM107.4,365.7c-1.6,1 -1.6,3.6 0,5.9 1.6,2.3 4.3,3.3 5.6,2.3 1.6,-1.3 1.6,-3.9 0,-6.2 -1.4,-2.3 -4,-3.3 -5.6,-2z&quot;/>"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/drawable/ic_github.xml"
+            line="8"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="VectorPath"
+        message="Very long vector path (904 characters), which is bad for performance. Considering reducing precision, removing minor details or rasterizing vector."
+        errorLine1="    &lt;path android:fillColor=&quot;@android:color/white&quot; android:pathData=&quot;M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z&quot;/>"
+        errorLine2="                                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/drawable/ic_settings.xml"
+            line="4"
+            column="70"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_backup` appears to be unused"
+        errorLine1="&lt;vector android:height=&quot;24dp&quot; android:tint=&quot;#000000&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/ic_backup.xml"
+            line="1"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_hourglass_empty` appears to be unused"
+        errorLine1="&lt;vector android:height=&quot;24dp&quot; android:tint=&quot;#000000&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/ic_hourglass_empty.xml"
+            line="1"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.ic_read_later` appears to be unused"
+        errorLine1="&lt;vector android:height=&quot;24dp&quot; android:tint=&quot;#727272&quot;"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/ic_read_later.xml"
+            line="1"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.add_feed_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;add_feed_title&quot;>Add feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="6"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.add_feed_connexion_error` appears to be unused"
+        errorLine1="    &lt;string name=&quot;add_feed_connexion_error&quot;>Connection error&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="11"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.add_feed_unknownhost_error` appears to be unused"
+        errorLine1="    &lt;string name=&quot;add_feed_unknownhost_error&quot;>Unknown host&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="12"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.read_time_one_minute` appears to be unused"
+        errorLine1="    &lt;string name=&quot;read_time_one_minute&quot;>1 min&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="15"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.share_article` appears to be unused"
+        errorLine1="    &lt;string name=&quot;share_article&quot;>Share Article&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="17"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.open_url` appears to be unused"
+        errorLine1="    &lt;string name=&quot;open_url&quot;>Open url&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="18"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feed_insertion_successfull` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feed_insertion_successfull&quot;>Feed %1$s added successfully&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="25"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feed_insertion_network_failed` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feed_insertion_network_failed&quot;>Network failure when accessing feed %1$s&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="26"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feed_insertion_parse_failed` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feed_insertion_parse_failed&quot;>Failure when parsing feed %1$s&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="27"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feed_insertion_wrong_format` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feed_insertion_wrong_format&quot;>Wrong format for feed %1$s&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="28"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feed_insertion_unknown_error` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feed_insertion_unknown_error&quot;>Unknown error for feed %1$s&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="29"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.mark_unread` appears to be unused"
+        errorLine1="    &lt;string name=&quot;mark_unread&quot;>Mark as non read&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="32"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.add_account` appears to be unused"
+        errorLine1="    &lt;string name=&quot;add_account&quot;>Add account&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="39"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.feed_deleted` appears to be unused"
+        errorLine1="    &lt;string name=&quot;feed_deleted&quot;>The feed %1$s has been deleted&lt;/string> &lt;!-- To check -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="48"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.filter_newest` appears to be unused"
+        errorLine1="    &lt;string name=&quot;filter_newest&quot;>Newest to oldest&lt;/string> &lt;!-- keep for new filter -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="54"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.filter_oldest` appears to be unused"
+        errorLine1="    &lt;string name=&quot;filter_oldest&quot;>Oldest to newest&lt;/string> &lt;!-- keep for new filter -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="55"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.share_url` appears to be unused"
+        errorLine1="    &lt;string name=&quot;share_url&quot;>Share URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="66"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.new_feed` appears to be unused"
+        errorLine1="    &lt;string name=&quot;new_feed&quot;>New feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="76"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.synchronize` appears to be unused"
+        errorLine1="    &lt;string name=&quot;synchronize&quot;>Synchronize&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="94"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.unreachable_feed_http_error` appears to be unused"
+        errorLine1="    &lt;string name=&quot;unreachable_feed_http_error&quot;>Unreachable feed, HTTP error %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="113"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.app_changelog_url` appears to be unused"
+        errorLine1="    &lt;string name=&quot;app_changelog_url&quot; translatable=&quot;false&quot;>https://github.com/readrops/Readrops/blob/develop/CHANGELOG.md&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="131"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.url` appears to be unused"
+        errorLine1="    &lt;string name=&quot;url&quot;>URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="137"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.show_oldest_articles_first` appears to be unused"
+        errorLine1="    &lt;string name=&quot;show_oldest_articles_first&quot;>Show oldest articles first&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="162"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.reset` appears to be unused"
+        errorLine1="    &lt;string name=&quot;reset&quot;>Reset&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="210"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.load_color_new_favicon` appears to be unused"
+        errorLine1="    &lt;string name=&quot;load_color_new_favicon&quot;>Load color from a new favicon&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="213"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.preview_shared_text` appears to be unused"
+        errorLine1="    &lt;string name=&quot;preview_shared_text&quot;>Preview shared text&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="225"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.edit_shared_text_template` appears to be unused"
+        errorLine1="    &lt;string name=&quot;edit_shared_text_template&quot;>Edit shared text template&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="226"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="                        get&lt;SharedPreferences>().edit()"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/readrops/app/account/credentials/AccountCredentialsScreenModel.kt"
+            line="94"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="fun Context.openUrl(url: String) = startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))"
+        errorLine2="                                                                            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/readrops/app/util/extensions/ContextExtensions.kt"
+            line="20"
+            column="77"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `Spanned.toHtml` instead?"
+        errorLine1="            HtmlCompat.toHtml(SpannedString(unescapedText), HtmlCompat.TO_HTML_PARAGRAPH_LINES_CONSECUTIVE)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/readrops/app/item/view/ItemWebView.kt"
+            line="95"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="                    oldPreferences.edit()"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/readrops/app/util/Migrations.kt"
+            line="29"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `SharedPreferences.edit` instead?"
+        errorLine1="                    oldPreferences.edit()"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/readrops/app/util/Migrations.kt"
+            line="39"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                                            data = Uri.parse(&quot;package:$packageName&quot;)"
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/readrops/app/more/preferences/PreferencesScreen.kt"
+            line="142"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                                            data = Uri.parse(&quot;package:$packageName&quot;)"
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/readrops/app/more/preferences/PreferencesScreen.kt"
+            line="142"
+            column="52"/>
+    </issue>
+
+</issues>

@@ -1,0 +1,166 @@
+# Copyright (C) 2026 Jean-Michel Nicolas
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+name: CI
+
+on:
+  push:
+    # Every branch, because ticket branches have to be green before they merge
+    # back to the trunk. Naming branches also excludes tags, which is what we
+    # want — a release tag points at a commit the gate has already passed on.
+    #
+    # It has to be spelled this way round. A bare `tags-ignore: ["**"]` looks
+    # equivalent and is not: when only a tag filter is given, GitHub runs the
+    # workflow for no branch push at all. A gate that silently stops running is
+    # worse than one that fails.
+    branches: ["**"]
+  pull_request:
+
+# Nothing here writes to the repository, publishes a package or comments on a
+# pull request, so the token gets the least it can be given.
+permissions:
+  contents: read
+
+# A branch that has a PR open fires both triggers. Rather than drop one and lose
+# either ticket-branch coverage or PR coverage, let both fire and cancel runs
+# that a newer push has already superseded.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# One job, run in the same order as scripts/check.sh, stage for stage. Splitting
+# the stages into parallel jobs would make each one re-run Gradle configuration
+# and rebuild the same inputs. Steps stop at the first failure, so the fail-fast
+# behaviour matches the local gate too.
+#
+# Every action is pinned to a full commit SHA, with the tag it was in a comment.
+# A tag is a movable pointer: whoever can move it can change what runs here.
+#
+# If this file and scripts/check.sh ever disagree about whether the tree is
+# good, one of them is lying, and the drift is the bug.
+jobs:
+  gate:
+    name: Gate
+    runs-on: ubuntu-latest
+    # Generous, because G7 boots an emulator. A run that reaches this is stuck,
+    # not slow.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The email guard below checks every commit this fork authored, not
+          # just the checked-out tree, so it needs the whole history. The
+          # default here is a depth-1 clone, and the guard treats a shallow one
+          # as a failure rather than passing on what it cannot see.
+          fetch-depth: 0
+
+      - name: G1 email guard
+        # First, because it needs nothing but the checkout and takes under a
+        # second, and because an address that reaches a public push cannot be
+        # taken back. Same script scripts/check.sh runs as its G1, so the
+        # pattern, the allowlist and the commit range cannot drift between the
+        # two gates. The script skips its next-commit-identity check when
+        # GITHUB_ACTIONS is set, out loud, because a runner has no identity and
+        # never commits.
+        run: scripts/check-no-personal-email.sh
+
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          # The JDK that runs Gradle and AGP. The bytecode target stays at 17,
+          # set in build.gradle.kts; this is not that number.
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      # The runner image ships an Android SDK, but not necessarily the exact
+      # packages this project pins: compileSdk 35 needs platforms/android-35 and
+      # nothing else will do, and buildToolsVersion is pinned to 35.0.1 in
+      # build.gradle.kts. Install them rather than hope.
+      - uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          packages: platform-tools platforms;android-35 build-tools;35.0.1
+
+      - name: G0 preflight
+        # The same preflight scripts/check.sh runs, minus its AVD half:
+        # SKIP_INSTRUMENTED tells it not to demand the local bench AVD, because
+        # on a runner the emulator step below creates its own. What is left is
+        # the question that matters here — is platforms/android-35 really there
+        # after the step above.
+        env:
+          SKIP_INSTRUMENTED: "1"
+        run: scripts/check-preflight.sh
+
+      # Both variants: the argument for a separate release APK step — that
+      # release-only breakage is invisible to a debug gate — applies to lint too.
+      - name: G2 lint
+        run: >
+          ./gradlew
+          :app:lintDebug :app:lintRelease
+          :api:lintDebug :api:lintRelease
+          :db:lintDebug :db:lintRelease
+
+      - name: G3 unit tests
+        run: ./gradlew :app:testDebugUnitTest :api:testDebugUnitTest :db:testDebugUnitTest
+
+      # The GrapheneOS constraint, enforced rather than documented: nothing on a
+      # runtime classpath may pull in Play Services or Firebase.
+      - name: G4 Google guard
+        run: >
+          ./gradlew
+          :app:checkNoGoogleDependencies
+          :api:checkNoGoogleDependencies
+          :db:checkNoGoogleDependencies
+
+      - name: G5 debug APK
+        run: ./gradlew :app:assembleDebug
+
+      # Its own step because release is the only build type with minifyEnabled,
+      # so R8's shrinking, optimization and obfuscation passes run nowhere else.
+      # No keystore and no secret: with no signingConfig on release this
+      # produces an unsigned APK, which is all the gate needs to know the build
+      # works.
+      - name: G6 release APK
+        run: ./gradlew :app:assembleRelease
+
+      # The emulator needs hardware acceleration, and the runner's /dev/kvm is
+      # not readable by the runner user until this rule is in place.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # G7, the stage that tests the database. target: default is a pure AOSP
+      # system image — no Play Services — which is the kind of device this app
+      # has to work on, and the same kind the local bench AVD uses. API 35
+      # matches compileSdk and has a default x86_64 image; the local AVD is 36,
+      # which is the one place the two gates run on different hardware.
+      #
+      # The emulator flags are the action's own defaults, which use the software
+      # renderer. That is deliberate: locally this AVD needs -gpu host or it
+      # dies silently during startup, but a hosted runner has no GPU to hand it
+      # and swiftshader is what works there.
+      #
+      # The permission the tests need is granted by the test rules
+      # (ReadropsTestRule), not by an adb line here, so the same tests pass when
+      # someone runs them by hand.
+      - name: G7 instrumented tests
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          script: ./gradlew :db:connectedDebugAndroidTest :app:connectedDebugAndroidTest
