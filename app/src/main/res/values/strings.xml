@@ -54,7 +54,7 @@
     <string name="filter_newest">Newest to oldest</string> <!-- keep for new filter -->
     <string name="filter_oldest">Oldest to newest</string> <!-- keep for new filter -->
     <string name="new_account">New account</string>
-    <string name="app_url" translatable="false">https://github.com/readrops/Readrops</string>
+    <string name="app_url" translatable="false">https://github.com/jmnicolas90/LeNews</string>
     <string name="delete">Delete</string>
     <string name="app_licence">App released under the GPLv3 licence</string>
     <string name="get_feeds_colors">Get feeds colors</string>
@@ -89,7 +89,7 @@
     <string name="synchronize">Synchronize</string>
     <string name="navigator_view">Navigator view</string>
     <string name="favorites">Favorites</string>
-    <string name="changelog_url" translatable="false">https://github.com/readrops/Readrops/blob/develop/CHANGELOG.md</string>
+    <string name="changelog_url" translatable="false">https://github.com/jmnicolas90/LeNews/blob/main/CHANGELOG.md</string>
     <string name="system">System theme</string>
     <string name="hide_feeds">Hide feeds without new items</string>
     <string name="mark_items_read_on_scroll">Mark items read on scroll</string>
@@ -112,9 +112,7 @@
     <string name="enable_all">Enable all</string>
     <string name="disable_all">Disable all</string>
     <string name="open_source_libraries">Open source libraries</string>
-    <string name="make_donation">Make a donation</string>
-    <string name="app_changelog_url" translatable="false">https://github.com/readrops/Readrops/blob/develop/CHANGELOG.md</string>
-    <string name="app_issues_url" translatable="false">https://github.com/readrops/Readrops/issues</string>
+    <string name="app_issues_url" translatable="false">https://github.com/jmnicolas90/LeNews/issues</string>
     <string name="other_accounts">Other accounts</string>
     <string name="update">Update</string>
     <string name="rename_account">Rename account</string>
@@ -154,13 +152,6 @@
     <string name="report_error_github">Report the error on Github</string>
     <string name="copy_error_clipboard">Copy error to clipboard</string>
     <string name="copied">Copied!</string>
-    <string name="paypal" translatable="false">Paypal</string>
-    <string name="paypal_url" translatable="false">https://paypal.me/readropsapp</string>
-    <string name="bitcoin_address" translatable="false">bc1qlkzlcsvvtn3y6mek5umv5tc4ln09l64x6y42hr</string>
-    <string name="litecoin_address" translatable="false">MTuf45ZvxhMWWo4v8YBbFDTLsFcGtpcPNT</string>
-    <string name="bitcoin_copy_address">Bitcoin (copy address)</string>
-    <string name="litecoin_copy_address">Litecoin (copy address)</string>
-    <string name="donation_text">I you find my work useful and you would like to support me, you can consider making me a donation.</string>
     <string name="downloaded_file">Downloaded file!</string>
     <string name="provide_root_url">Please provide the service root URL</string>
     <string name="order_field_tooltip">RSS feeds always contain old articles it is unlikely you will see in your timeline if you order it by date. Ordering by article identifier lets you show all new inserted articles whatever date they might have.</string>
