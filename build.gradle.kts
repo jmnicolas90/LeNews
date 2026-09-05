@@ -1,7 +1,12 @@
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.gradle.AppPlugin
 import com.android.build.gradle.BaseExtension
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.LibraryPlugin
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.result.ResolvedComponentResult
+import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 
@@ -35,6 +40,16 @@ allprojects {
 }
 
 subprojects {
+    // Lint is a gate stage (G2), so it has to be able to fail the build. It was
+    // turned off here and turned off again in each module's own build file,
+    // which made every lint error in this repo advisory. It is on now, in this
+    // one place, for all three modules. Errors only: warnings still print and
+    // still stop nothing, and the errors that were already here on the day the
+    // gate was built are held in app/lint-baseline.xml rather than fixed blind
+    // — see app/build.gradle.kts for what is in that baseline and why.
+    //
+    // Set through the typed extension rather than through BaseExtension's
+    // lintOptions, which AGP has deprecated.
     afterEvaluate {
         with(extensions.getByType<KotlinAndroidProjectExtension>()) {
             compilerOptions {
@@ -46,10 +61,16 @@ subprojects {
             configure<BaseExtension> {
                 configure(this)
             }
+            the<com.android.build.api.dsl.ApplicationExtension>().lint {
+                abortOnError = true
+            }
         }
         plugins.withType<LibraryPlugin> {
             configure<LibraryExtension> {
                 configure(this)
+            }
+            the<com.android.build.api.dsl.LibraryExtension>().lint {
+                abortOnError = true
             }
         }
     }
@@ -70,7 +91,6 @@ fun configure(extension: BaseExtension) = with(extension) {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    lintOptions.isAbortOnError = false
 }
 
 tasks.register<Delete>("clean") {
@@ -135,4 +155,119 @@ tasks.register<JacocoReport>("jacocoFullReport") {
             )
         }
     )
+}
+
+// ---------------------------------------------------------------------------
+// Google dependency guard (gate stage G4)
+// ---------------------------------------------------------------------------
+// The app has to keep working on a de-Googled OS — GrapheneOS with no Play
+// Services, sandboxed or otherwise — so nothing on a runtime classpath may pull
+// in Play Services or Firebase, including transitively, which is how it would
+// actually happen.
+//
+// Match on coordinates, never on the string "google". `com.google.android.material`
+// is AndroidX Material Components, `com.google.accompanist` is Compose helpers
+// and `com.google.devtools.ksp` is the annotation processor: all three are in
+// this graph today and none of them has anything to do with Play Services.
+val bannedDependencyGroups = setOf("com.google.android.gms", "com.google.firebase")
+val bannedDependencyModuleFragment = "play-services"
+
+// One task per module rather than one task at the root walking all three. A task
+// may only resolve its own project's configurations; a root task reaching into
+// :app's would be cross-project resolution, which Gradle is in the middle of
+// taking away. Running `./gradlew checkNoGoogleDependencies` unqualified still
+// runs all three, and scripts/check.sh names them one by one so the stage says
+// which module failed.
+subprojects {
+    // Collected from the variant API rather than hard-coded to debug and
+    // release, so that a build type or product flavour added later is guarded
+    // the day it appears. This project already has a third build type, `beta`.
+    // "May never enter the graph" is not a constraint that should depend on
+    // someone remembering to extend a list.
+    val guardedConfigurations = mutableListOf<String>()
+    val modulePath = path
+
+    plugins.withType<AppPlugin> {
+        extensions.getByType<ApplicationAndroidComponentsExtension>().onVariants { variant ->
+            guardedConfigurations.add(variant.runtimeConfiguration.name)
+        }
+    }
+    plugins.withType<LibraryPlugin> {
+        extensions.getByType<LibraryAndroidComponentsExtension>().onVariants { variant ->
+            guardedConfigurations.add(variant.runtimeConfiguration.name)
+        }
+    }
+
+    val guard = tasks.register("checkNoGoogleDependencies") {
+        group = "verification"
+        description = "Fails if a variant runtime classpath pulls in Play Services or Firebase."
+
+        // Resolve the whole dependency graph, not just the first level: the
+        // point of the guard is to catch what an innocent-looking dependency
+        // drags in behind it. This block runs when the task is realised, which
+        // is after the variant callbacks above have filled the list.
+        val dependencyGraphs = guardedConfigurations.associateWith { name ->
+            configurations.named(name).flatMap { it.incoming.resolutionResult.rootComponent }
+        }
+        doLast {
+            // A guard that inspects nothing passes everything. If the variant
+            // API ever hands back an empty list, that has to be loud rather
+            // than green.
+            if (dependencyGraphs.isEmpty()) {
+                throw GradleException(
+                    "checkNoGoogleDependencies found no variant runtime classpath to inspect in" +
+                            " $modulePath, so it checked nothing. Fix the guard."
+                )
+            }
+
+            val offenders = sortedSetOf<String>()
+
+            dependencyGraphs.forEach { (configurationName, rootComponent) ->
+                val visited = mutableSetOf<String>()
+                val pending = ArrayDeque<ResolvedComponentResult>()
+                pending.add(rootComponent.get())
+
+                while (pending.isNotEmpty()) {
+                    val component = pending.removeFirst()
+                    if (!visited.add(component.id.displayName)) {
+                        continue
+                    }
+
+                    val id = component.id
+                    if (id is ModuleComponentIdentifier &&
+                        (id.group in bannedDependencyGroups ||
+                                id.module.contains(bannedDependencyModuleFragment))
+                    ) {
+                        offenders.add(
+                            "  ${id.group}:${id.module}:${id.version}" +
+                                    "  (in $modulePath $configurationName)"
+                        )
+                    }
+
+                    component.dependencies.forEach { dependency ->
+                        if (dependency is ResolvedDependencyResult) {
+                            pending.add(dependency.selected)
+                        }
+                    }
+                }
+            }
+
+            if (offenders.isNotEmpty()) {
+                throw GradleException(
+                    "Google Play Services / Firebase dependencies are not allowed:\n" +
+                            offenders.joinToString("\n") +
+                            "\n\nThis app has to run on a de-Googled OS. Find a replacement, or" +
+                            "\nchange this rule deliberately in build.gradle.kts."
+                )
+            }
+        }
+    }
+
+    // Wire the guard into the standard lifecycle so it is not only enforced by
+    // the scripts that happen to remember to call it. `check` is created by the
+    // base plugin that the Android plugins bring, so match it lazily rather
+    // than asking for it before it exists.
+    tasks.matching { it.name == "check" }.configureEach {
+        dependsOn(guard)
+    }
 }

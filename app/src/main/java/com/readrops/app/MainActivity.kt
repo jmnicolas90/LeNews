@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -73,9 +74,15 @@ class MainActivity : ComponentActivity(), KoinComponent {
 
         setContent {
             KoinAndroidContext {
-                val useDarkTheme by preferences.theme.flow
-                    .map { mode -> useDarkTheme(mode, darkFlag) }
-                    .collectAsState(initial = initialUseDarkTheme)
+                // remember, because map() builds a new Flow every time it is
+                // called and calling it in composition would hand collectAsState
+                // a different Flow on every recomposition, restarting the
+                // collection each time. Nothing here changes across
+                // recompositions, so there are no keys.
+                val themeFlow = remember {
+                    preferences.theme.flow.map { mode -> useDarkTheme(mode, darkFlag) }
+                }
+                val useDarkTheme by themeFlow.collectAsState(initial = initialUseDarkTheme)
 
                 ReadropsTheme(
                     useDarkTheme = useDarkTheme

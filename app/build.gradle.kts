@@ -77,7 +77,29 @@ android {
     }
 
     lint {
-        abortOnError = false
+        // abortOnError is set once, in the root build.gradle.kts, for all three
+        // modules. What is module-specific is the baseline, and this is the only
+        // module that had lint errors when the gate was built: 227 of them,
+        // every one translation debt. The 47 warnings are in there too, so the
+        // report reads "no new issues" rather than scrolling past known noise.
+        //
+        //   224 MissingTranslation — the 14 locales inherited from upstream's
+        //       Weblate, most of them behind the English strings. Which
+        //       languages LeNews keeps is a product call nobody has made yet
+        //       (see "Translations" under Not yet specified in the map). Until
+        //       it is made, adding strings would mean inventing translations
+        //       and deleting locales would pre-empt the call.
+        //     3 ImpliedQuantity — the French and Brazilian Portuguese plurals of
+        //       two error strings, whose "one" form also covers zero. Fixing
+        //       them means giving the English source string a count argument,
+        //       which is the same product call.
+        //
+        // A 228th error, the only one that was not translation debt — a Flow
+        // operator invoked inside composition, in MainActivity — was fixed
+        // rather than baselined.
+        // Everything the baseline holds is a finding to clear, not a rule to
+        // forget: new errors of the same kinds still fail the gate.
+        baseline = file("lint-baseline.xml")
     }
 
     testOptions {

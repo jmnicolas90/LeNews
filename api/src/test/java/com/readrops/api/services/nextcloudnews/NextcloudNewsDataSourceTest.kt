@@ -25,6 +25,7 @@ import org.koin.test.KoinTestRule
 import org.koin.test.get
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -330,7 +331,19 @@ class NextcloudNewsDataSourceTest : KoinTest {
 
     @Test
     fun classicSyncTest() = runTest {
-        var setItemState = 0
+        // Atomic, and the reason is the whole story of this test's flakiness.
+        // synchronize() launches the read-state and star-state calls
+        // concurrently, and MockWebServer answers each request on its own
+        // thread, so this counter was being incremented from four threads at
+        // once. `count++` is a read, an add and a write, so two threads landing
+        // together lose one of the increments and the assertion below sees 3
+        // instead of 4 — the intermittent failure this test was known for. The
+        // println that used to sit in the dispatcher, with the comment
+        // "important, otherwise test fails and I don't know why", was hiding it:
+        // System.out is synchronized, so printing serialised the dispatcher
+        // threads and published the writes between them. An AtomicInteger does
+        // that properly and the println is gone.
+        val setItemState = AtomicInteger(0)
         val lastModified = 10L
         val ids = listOf(1, 2, 3, 4)
 
@@ -338,8 +351,6 @@ class NextcloudNewsDataSourceTest : KoinTest {
 
             override fun dispatch(request: RecordedRequest): MockResponse {
                 with(request.path!!) {
-                    // important, otherwise test fails and I don't know why
-                    println("request: ${request.path}")
                     return when {
                         this == "/folders" -> {
                             MockResponse.okResponseWithBody(TestUtils.loadResource("services/nextcloudnews/adapters/valid_folder.json"))
@@ -358,7 +369,7 @@ class NextcloudNewsDataSourceTest : KoinTest {
                         }
 
                         this.matches(Regex("/items/(read|unread|star|unstar)/multiple")) -> {
-                            setItemState++
+                            setItemState.incrementAndGet()
                             MockResponse().setResponseCode(200)
                         }
 
@@ -380,7 +391,7 @@ class NextcloudNewsDataSourceTest : KoinTest {
         )
 
         with(result) {
-            assertEquals(4, setItemState)
+            assertEquals(4, setItemState.get())
             assertEquals(1, folders.size)
             assertEquals(3, feeds.size)
             assertEquals(2, items.size)

@@ -19,6 +19,12 @@ class TestApplication : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
 
+        // The same channels the real Application creates. Without them the
+        // system drops every notification this app posts, and the tests that
+        // assert on notifications fail with an empty list rather than with
+        // anything that names the cause.
+        createNotificationChannels(this)
+
         /*startKoin {
             androidLogger(Level.INFO)
             androidContext(this@TestApplication)

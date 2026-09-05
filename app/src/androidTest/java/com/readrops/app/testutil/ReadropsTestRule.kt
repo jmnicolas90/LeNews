@@ -1,13 +1,18 @@
 package com.readrops.app.testutil
 
+import android.Manifest
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.rule.GrantPermissionRule
 import com.readrops.api.apiModule
 import com.readrops.app.appModule
 import com.readrops.db.Database
+import org.junit.rules.RuleChain
+import org.junit.rules.TestRule
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
+import org.junit.runners.model.Statement
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.Koin
@@ -18,43 +23,72 @@ import org.koin.core.logger.Level
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatformTools
 
-@OptIn(KoinInternalApi::class)
-class ReadropsTestRule : TestWatcher() {
+/**
+ * What every app instrumented test needs before it runs: a Koin graph with an
+ * in-memory database, and the notification permission.
+ *
+ * The permission is here rather than in the CI workflow — where upstream kept it,
+ * as two `adb shell pm grant` lines — because the tests that need it need it
+ * wherever they run. Left ungranted, four of them fail on the emulator and the
+ * failures do not look like a permission problem at all: `Synchronizer` only
+ * counts a synced feed inside `if (notificationManager.areNotificationsEnabled())`,
+ * so the progress callback reports zero feeds, and `SyncWorkerTest` finds no
+ * notification to inspect. A permission granted by the test rules travels with
+ * the tests; one granted by a CI step is a trap for the next person who runs
+ * them by hand.
+ */
+class ReadropsTestRule : TestRule {
 
-    private var _koin: Koin? = null
+    private val koinRule = KoinRule()
+
+    private val chain: RuleChain = RuleChain
+        .outerRule(GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS))
+        .around(koinRule)
+
     val koin: Koin
-        get() = _koin ?: error("No Koin application found")
+        get() = koinRule.koin
 
-    override fun starting(description: Description?) {
-        closeExistingInstance()
-        _koin = startKoin {
-            androidLogger(Level.INFO)
-            androidContext(ApplicationProvider.getApplicationContext<Context>())
+    override fun apply(base: Statement, description: Description): Statement =
+        chain.apply(base, description)
 
-            modules(
-                module {
-                    single {
-                        Room.inMemoryDatabaseBuilder(get(), Database::class.java)
-                            .build()
-                    }
-                },
-                apiModule, appModule
-            )
-        }.koin
+    @OptIn(KoinInternalApi::class)
+    private class KoinRule : TestWatcher() {
 
-        koin.logger.info("Koin Rule - starting")
-    }
+        private var _koin: Koin? = null
+        val koin: Koin
+            get() = _koin ?: error("No Koin application found")
 
-    private fun closeExistingInstance() {
-        KoinPlatformTools.defaultContext().getOrNull()?.let { koin ->
-            koin.logger.info("Koin Rule - closing existing instance")
-            koin.close()
+        override fun starting(description: Description?) {
+            closeExistingInstance()
+            _koin = startKoin {
+                androidLogger(Level.INFO)
+                androidContext(ApplicationProvider.getApplicationContext<Context>())
+
+                modules(
+                    module {
+                        single {
+                            Room.inMemoryDatabaseBuilder(get(), Database::class.java)
+                                .build()
+                        }
+                    },
+                    apiModule, appModule
+                )
+            }.koin
+
+            koin.logger.info("Koin Rule - starting")
         }
-    }
 
-    override fun finished(description: Description?) {
-        koin.logger.info("Koin Rule - finished")
-        stopKoin()
-        _koin = null
+        private fun closeExistingInstance() {
+            KoinPlatformTools.defaultContext().getOrNull()?.let { koin ->
+                koin.logger.info("Koin Rule - closing existing instance")
+                koin.close()
+            }
+        }
+
+        override fun finished(description: Description?) {
+            koin.logger.info("Koin Rule - finished")
+            stopKoin()
+            _koin = null
+        }
     }
 }

@@ -29,7 +29,8 @@ android {
     }
 
     lint {
-        abortOnError = false
+        // abortOnError lives in the root build.gradle.kts, one setting for all
+        // three modules. This module has no lint errors and so needs no baseline.
 
         // disable lint rule which isn't supposed to be applied on a non compose module
         disable.add("CoroutineCreationDuringComposition")

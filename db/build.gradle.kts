@@ -32,9 +32,9 @@ android {
         }
     }
 
-    lint {
-        abortOnError = false
-    }
+    // No lint block: abortOnError lives in the root build.gradle.kts, one
+    // setting for all three modules, and this module has no lint errors and so
+    // needs no baseline.
 }
 
 ksp {
