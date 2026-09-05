@@ -137,3 +137,6 @@ mapping/
 **/*.exec
 
 .kotlin/
+
+# agent worktrees (one per ticket)
+.claude/worktrees/
