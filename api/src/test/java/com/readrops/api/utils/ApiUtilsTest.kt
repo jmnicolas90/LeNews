@@ -1,33 +1,21 @@
 package com.readrops.api.utils
 
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertFalse
+import junit.framework.TestCase.assertTrue
 import org.junit.Test
 
 class ApiUtilsTest {
 
     @Test
-    fun contentTypeWithCharsetTest() {
-        assertEquals(ApiUtils.parseContentType("application/rss+xml; charset=UTF-8"),
-                "application/rss+xml")
-    }
+    fun feedContentTypeTest() {
+        assertTrue(ApiUtils.isFeedContentType("application/rss+xml"))
+        assertTrue(ApiUtils.isFeedContentType("application/atom+xml"))
+        assertTrue(ApiUtils.isFeedContentType("application/rdf+xml"))
+        assertTrue(ApiUtils.isFeedContentType("application/feed+json"))
 
-    @Test
-    fun contentTypeWithoutCharsetText() {
-        assertEquals(ApiUtils.parseContentType("text/xml"),
-                "text/xml")
-    }
-
-    @Test
-    fun cleanTextTest() {
-        val text = "    <p>This is a text<br/>to</p> clean    "
-        assertEquals("This is a text to clean", ApiUtils.cleanText(text))
-    }
-
-    @Test
-    fun md5hashTest() {
-        val value = ApiUtils.md5hash("test")
-
-        assertEquals(value, "98f6bcd4621d373cade4e832627b4f6")
+        assertFalse(ApiUtils.isFeedContentType("text/html"))
+        assertFalse(ApiUtils.isFeedContentType(null))
     }
 
     @Test

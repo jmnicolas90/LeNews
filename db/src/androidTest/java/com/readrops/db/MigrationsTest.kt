@@ -58,12 +58,33 @@ class MigrationsTest {
     @Test
     fun migrate4To5() {
         helper.createDatabase(dbName, 4).apply {
-            execSQL("Insert Into Account(account_type, last_modified, current_account, notifications_enabled) Values(0, 0, 1, 0)")
+            // account_type 3 was FreshRSS, the only service this app speaks to
+            execSQL("Insert Into Account(account_type, last_modified, current_account, notifications_enabled) Values(3, 0, 1, 0)")
         }
 
         helper.runMigrationsAndValidate(dbName, 5, true, MigrationFrom4To5).apply {
             val type = compileStatement("Select type From Account").simpleQueryForString()
-            assertEquals("LOCAL", type)
+            assertEquals("FRESHRSS", type)
+        }
+    }
+
+    @Test
+    fun migrate4To5DropsAccountsOfOtherServices() {
+        helper.createDatabase(dbName, 4).apply {
+            execSQL("Insert Into Account(account_type, last_modified, current_account, notifications_enabled) Values(3, 0, 1, 0)")
+            execSQL("Insert Into Account(account_type, last_modified, current_account, notifications_enabled) Values(0, 0, 0, 0)")
+            execSQL("Insert Into Feed(color, account_id, notification_enabled) Values(0, 2, 0)")
+        }
+
+        helper.runMigrationsAndValidate(dbName, 5, true, MigrationFrom4To5).apply {
+            val accountCount = compileStatement("Select count(*) From Account").simpleQueryForLong()
+            assertEquals(1L, accountCount)
+
+            val type = compileStatement("Select type From Account").simpleQueryForString()
+            assertEquals("FRESHRSS", type)
+
+            val feedCount = compileStatement("Select count(*) From Feed").simpleQueryForLong()
+            assertEquals(0L, feedCount)
         }
     }
 }

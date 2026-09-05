@@ -24,7 +24,7 @@ class GetFoldersWithFeedsTest : KoinTest {
 
     private val database: Database by inject()
     private val getFoldersWithFeeds: GetFoldersWithFeeds by inject()
-    private val account = Account(type = AccountType.LOCAL)
+    private val account = Account(type = AccountType.FRESHRSS)
 
     @get:Rule
     val koinTest = ReadropsTestRule()

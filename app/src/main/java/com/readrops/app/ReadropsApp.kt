@@ -16,7 +16,6 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.readrops.api.apiModule
 import com.readrops.app.util.CrashActivity
-import com.readrops.app.util.FeverFaviconFetcher
 import com.readrops.app.util.Migrations
 import com.readrops.db.dbModule
 import kotlinx.coroutines.runBlocking
@@ -76,8 +75,6 @@ open class ReadropsApp : Application(), KoinComponent, SingletonImageLoader.Fact
                     client.newBuilder()
                         .build()
                 }))
-
-                add(FeverFaviconFetcher.Factory(get()))
             }
             .diskCache {
                 DiskCache.Builder()

@@ -21,7 +21,6 @@ import com.readrops.db.entities.ItemStateChange
 import com.readrops.db.entities.Tag
 import com.readrops.db.entities.TagJoin
 import com.readrops.db.entities.account.Account
-import com.readrops.db.entities.account.AccountType
 import com.readrops.db.util.Converters
 
 @Database(
@@ -123,19 +122,24 @@ object MigrationFrom4To5 : Migration(4, 5) {
         db.execSQL("CREATE TABLE IF NOT EXISTS `_new_Account` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `url` TEXT, `name` TEXT, `displayed_name` TEXT, `type` TEXT, `last_modified` INTEGER NOT NULL, `current_account` INTEGER NOT NULL, `token` TEXT, `write_token` TEXT, `notifications_enabled` INTEGER NOT NULL)")
         db.execSQL("INSERT INTO `_new_Account` (`id`, `url`, `name`, `displayed_name`, `type`, `last_modified`, `current_account`, `token`, `write_token`, `notifications_enabled`) SELECT `id`, `url`, `account_name`, `displayed_name`, NULL, `last_modified`, `current_account`, `token`, `writeToken`, `notifications_enabled` FROM `Account`")
 
-        // migrate type from INTEGER to TEXT
-        val cursor = db.query("SELECT `id`, `account_type` FROM `Account`")
-        while (cursor.moveToNext()) {
-            val id = cursor.getInt(0)
-            val ordinal = cursor.getInt(1)
-
-            val type = AccountType.entries[ordinal]
-
-            db.execSQL("UPDATE `_new_Account` SET `type` = \"${type.name}\" WHERE `id` = $id")
-        }
+        // migrate type from INTEGER to TEXT.
+        // A version 4 database held the account type as the position of an enum
+        // listing six services. This app talks to FreshRSS only, which was
+        // position 3, so those accounts get the name and the others are dropped
+        // below with everything that hangs off them.
+        db.execSQL("UPDATE `_new_Account` SET `type` = 'FRESHRSS' WHERE `id` IN (SELECT `id` FROM `Account` WHERE `account_type` = 3)")
 
         db.execSQL("DROP TABLE IF EXISTS `Account`")
         db.execSQL("ALTER TABLE `_new_Account` RENAME TO `Account`")
+
+        // drop the accounts of services this app does not speak to, and their content
+        val droppedAccounts = "SELECT `id` FROM `Account` WHERE `type` IS NULL"
+        db.execSQL("DELETE FROM `Item` WHERE `feed_id` IN (SELECT `id` FROM `Feed` WHERE `account_id` IN ($droppedAccounts))")
+        db.execSQL("DELETE FROM `Feed` WHERE `account_id` IN ($droppedAccounts)")
+        db.execSQL("DELETE FROM `Folder` WHERE `account_id` IN ($droppedAccounts)")
+        db.execSQL("DELETE FROM `ItemState` WHERE `account_id` IN ($droppedAccounts)")
+        db.execSQL("DELETE FROM `ItemStateChange` WHERE `account_id` IN ($droppedAccounts)")
+        db.execSQL("DELETE FROM `Account` WHERE `type` IS NULL")
 
         // add image_url field
         db.execSQL("""ALTER TABLE `Feed` ADD `image_url` TEXT DEFAULT NULL""")

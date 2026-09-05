@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 import android.util.Patterns
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
-import com.readrops.api.localfeed.LocalRSSDataSource
+import android.nfc.FormatException
 import com.readrops.api.services.Credentials
 import com.readrops.api.utils.ApiUtils
 import com.readrops.api.utils.AuthInterceptor
@@ -32,7 +32,6 @@ import org.koin.core.parameter.parametersOf
 
 class NewFeedScreenModel(
     private val database: Database,
-    private val dataSource: LocalRSSDataSource,
     private val context: Context,
     url: String?,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
@@ -149,7 +148,12 @@ class NewFeedScreenModel(
             val url = state.value.actualUrl
 
             try {
-                if (dataSource.isUrlRSSResource(url)) {
+                // The url may be a feed or the web page a feed is announced on. Only a
+                // web page can be read for feed links; anything else is handed to the
+                // account as it was typed, and the server says whether it is a feed.
+                val rssUrls = try {
+                    HtmlParser.getFeedLink(url, get())
+                } catch (e: FormatException) {
                     insertFeeds(
                         listOf(
                             Feed(
@@ -159,41 +163,41 @@ class NewFeedScreenModel(
                             )
                         )
                     )
-                } else {
-                    val rssUrls = HtmlParser.getFeedLink(url, get())
 
-                    when {
-                        rssUrls.isEmpty() -> mutableState.update {
-                            it.copy(urlError = TextFieldError.NoRSSFeed, isLoading = false)
-                        }
+                    return@launch
+                }
 
-                        rssUrls.size == 1 -> insertFeeds(
-                            listOf(
-                                Feed(
-                                    url = rssUrls.first().url,
-                                    folderId = state.value.folderId,
-                                    remoteFolderId = state.value.selectedFolder?.remoteId
-                                )
+                when {
+                    rssUrls.isEmpty() -> mutableState.update {
+                        it.copy(urlError = TextFieldError.NoRSSFeed, isLoading = false)
+                    }
+
+                    rssUrls.size == 1 -> insertFeeds(
+                        listOf(
+                            Feed(
+                                url = rssUrls.first().url,
+                                folderId = state.value.folderId,
+                                remoteFolderId = state.value.selectedFolder?.remoteId
                             )
                         )
+                    )
 
-                        else -> {
-                            val parsingResults = rssUrls.map {
-                                ParsingResultState(
-                                    url = it.url,
-                                    label = it.label,
-                                    isSelected = true,
-                                    folder = state.value.selectedFolder,
-                                    isExpanded = false
-                                )
-                            }
+                    else -> {
+                        val parsingResults = rssUrls.map {
+                            ParsingResultState(
+                                url = it.url,
+                                label = it.label,
+                                isSelected = true,
+                                folder = state.value.selectedFolder,
+                                isExpanded = false
+                            )
+                        }
 
-                            mutableState.update {
-                                it.copy(
-                                    parsingResults = parsingResults,
-                                    isLoading = false
-                                )
-                            }
+                        mutableState.update {
+                            it.copy(
+                                parsingResults = parsingResults,
+                                isLoading = false
+                            )
                         }
                     }
                 }
@@ -211,7 +215,7 @@ class NewFeedScreenModel(
     private suspend fun insertFeeds(feeds: List<Feed>) {
         val selectedAccount = mutableState.value.selectedAccount
 
-        if (selectedAccount != null && !selectedAccount.isLocal) {
+        if (selectedAccount != null) {
             get<SharedPreferences>().apply {
                 selectedAccount.login = getString(selectedAccount.loginKey, null)
                 selectedAccount.password = getString(selectedAccount.passwordKey, null)
@@ -351,10 +355,6 @@ data class State(
 
     val folderId: Int? get() = selectedFolder?.id.takeUnless { it == 0 }
 
-    /**
-     * Handles known special cases where RSS source can not be deduced via standard methods but
-     * methods to deduce it is known. Currently used to deduce RSS feeds from Youtube playlists
-     */
     val actualUrl: String get() = ApiUtils.handleRssSpecialCases(url)
 }
 

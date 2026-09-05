@@ -30,13 +30,10 @@ import org.koin.mp.KoinPlatformTools
  *
  * The permission is here rather than in the CI workflow — where upstream kept it,
  * as two `adb shell pm grant` lines — because the tests that need it need it
- * wherever they run. Left ungranted, four of them fail on the emulator and the
- * failures do not look like a permission problem at all: `Synchronizer` only
- * counts a synced feed inside `if (notificationManager.areNotificationsEnabled())`,
- * so the progress callback reports zero feeds, and `SyncWorkerTest` finds no
- * notification to inspect. A permission granted by the test rules travels with
- * the tests; one granted by a CI step is a trap for the next person who runs
- * them by hand.
+ * wherever they run. Left ungranted, `SyncWorkerTest` finds no notification to
+ * inspect, since the system drops a notification the app has no permission to
+ * post. A permission granted by the test rules travels with the tests; one
+ * granted by a CI step is a trap for the next person who runs them by hand.
  *
  * POST_NOTIFICATIONS only exists from API 33, and asking for a permission the
  * platform does not know makes GrantPermissionRule fail during setup. The app's

@@ -23,24 +23,8 @@
 # help debug release versions
 -dontobfuscate
 
--dontwarn org.xmlpull.v1.XmlPullParser
--dontwarn org.xmlpull.v1.XmlSerializer
--keep class org.xmlpull.v1.* {*;}
-
--keep class org.simpleframework.xml.** { *; }
-
--keep class com.readrops.api.services.greader.json.** { *; }
--keep class com.readrops.api.services.nextcloudnews.json.** { *; }
-
--keep class com.readrops.api.localfeed.** { *; }
-
--keep class com.readrops.api.opml.model.** { *; }
-
 # Please add these rules to your existing keep rules in order to suppress warnings.
 # This is generated automatically by the Android Gradle plugin.
--dontwarn javax.xml.stream.Location
--dontwarn javax.xml.stream.XMLInputFactory
--dontwarn javax.xml.stream.XMLStreamReader
 -dontwarn org.bouncycastle.jsse.BCSSLParameters
 -dontwarn org.bouncycastle.jsse.BCSSLSocket
 -dontwarn org.bouncycastle.jsse.provider.BouncyCastleJsseProvider

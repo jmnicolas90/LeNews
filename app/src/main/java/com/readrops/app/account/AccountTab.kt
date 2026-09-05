@@ -1,9 +1,6 @@
 package com.readrops.app.account
 
 import android.content.Context
-import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,16 +17,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -46,31 +37,22 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabOptions
-import com.readrops.api.utils.ApiUtils
 import com.readrops.app.R
 import com.readrops.app.account.credentials.AccountCredentialsScreen
 import com.readrops.app.account.credentials.AccountCredentialsScreenMode
 import com.readrops.app.account.dialog.AccountSelectionDialog
-import com.readrops.app.account.dialog.AccountWarningDialog
-import com.readrops.app.account.dialog.OPML
-import com.readrops.app.account.dialog.OPMLChoiceDialog
-import com.readrops.app.account.dialog.OPMLImportProgressDialog
 import com.readrops.app.account.selection.AccountSelectionScreen
 import com.readrops.app.account.selection.adaptiveIconPainterResource
 import com.readrops.app.notifications.NotificationsScreen
-import com.readrops.app.repositories.ErrorResult
-import com.readrops.app.timelime.dialog.ErrorListDialog
 import com.readrops.app.util.components.SelectableIconText
 import com.readrops.app.util.components.SelectableImageText
 import com.readrops.app.util.components.ThreeDotsMenu
-import com.readrops.app.util.components.dialog.ErrorDialog
 import com.readrops.app.util.components.dialog.TextFieldDialog
 import com.readrops.app.util.components.dialog.TwoChoicesDialog
 import com.readrops.app.util.theme.LargeSpacer
 import com.readrops.app.util.theme.MediumSpacer
 import com.readrops.app.util.theme.VeryShortSpacer
 import com.readrops.app.util.theme.spacing
-import com.readrops.db.entities.account.ACCOUNT_APIS
 import com.readrops.db.entities.account.Account
 import com.readrops.db.entities.account.AccountType
 
@@ -87,77 +69,14 @@ object AccountTab : Tab {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
-        val context = LocalContext.current
         val screenModel = koinScreenModel<AccountScreenModel>()
 
         val closeHome by screenModel.closeHome.collectAsStateWithLifecycle()
         val state by screenModel.accountState.collectAsStateWithLifecycle()
 
-        val snackbarHostState = remember { SnackbarHostState() }
-
         if (closeHome) {
             navigator.replaceAll(AccountSelectionScreen())
             screenModel.resetCloseHome()
-        }
-
-        LaunchedEffect(state.error) {
-            if (state.error != null) {
-                val action = snackbarHostState.showSnackbar(
-                    message = context.resources.getQuantityString(
-                        R.plurals.error_occurred,
-                        1
-                    ),
-                    actionLabel = context.getString(R.string.details),
-                    duration = SnackbarDuration.Short
-                )
-
-                if (action == SnackbarResult.ActionPerformed) {
-                    screenModel.openDialog(DialogState.Error(state.error!!))
-                } else {
-                    screenModel.closeDialog(DialogState.Error(state.error!!))
-                }
-            }
-        }
-
-        LaunchedEffect(state.synchronizationErrors) {
-            if (state.synchronizationErrors != null) {
-                val action = snackbarHostState.showSnackbar(
-                    message = context.resources.getQuantityString(
-                        R.plurals.error_occurred,
-                        state.synchronizationErrors!!.size
-                    ),
-                    actionLabel = context.getString(R.string.details),
-                    duration = SnackbarDuration.Short
-                )
-
-                if (action == SnackbarResult.ActionPerformed) {
-                    screenModel.openDialog(DialogState.ErrorList(state.synchronizationErrors!!))
-                } else {
-                    screenModel.closeDialog(DialogState.ErrorList(state.synchronizationErrors!!))
-                }
-            }
-        }
-
-        LaunchedEffect(state.opmlExportSuccess) {
-            if (state.opmlExportSuccess) {
-                val action = snackbarHostState.showSnackbar(
-                    message = context.getString(R.string.opml_export_success),
-                    actionLabel = context.resources.getString(R.string.open)
-                )
-
-                if (action == SnackbarResult.ActionPerformed) {
-                    Intent().apply {
-                        this.action = Intent.ACTION_VIEW
-                        setDataAndType(state.opmlExportUri, "text/xml")
-                    }.also {
-                        context.startActivity(Intent.createChooser(it, null))
-                    }
-
-                    screenModel.resetOPMLState()
-                } else {
-                    screenModel.resetOPMLState()
-                }
-            }
         }
 
         AccountDialogs(
@@ -180,8 +99,7 @@ object AccountTab : Tab {
                         contentDescription = null
                     )
                 }
-            },
-            snackbarHost = { SnackbarHost(snackbarHostState) }
+            }
         ) { paddingValues ->
             Column(
                 modifier = Modifier
@@ -227,37 +145,33 @@ object AccountTab : Tab {
                         }
                     }
 
-                    if (state.account.isLocal) {
-                        ThreeDotsMenu(
-                            items = mapOf(1 to stringResource(id = R.string.rename_account)),
-                            onItemClick = {
-                                screenModel.openDialog(DialogState.RenameAccount(state.account.name!!))
-                            },
-                        )
-                    }
+                    ThreeDotsMenu(
+                        items = mapOf(1 to stringResource(id = R.string.rename_account)),
+                        onItemClick = {
+                            screenModel.openDialog(DialogState.RenameAccount(state.account.name!!))
+                        },
+                    )
                 }
 
                 LargeSpacer()
 
-                if (!state.account.isLocal) {
-                    SelectableIconText(
-                        icon = painterResource(id = R.drawable.ic_person),
-                        text = stringResource(R.string.credentials),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal),
-                        spacing = MaterialTheme.spacing.largeSpacing,
-                        padding = MaterialTheme.spacing.mediumSpacing,
-                        tint = MaterialTheme.colorScheme.primary,
-                        iconSize = 24.dp,
-                        onClick = {
-                            navigator.push(
-                                AccountCredentialsScreen(
-                                    state.account,
-                                    AccountCredentialsScreenMode.EDIT_CREDENTIALS
-                                )
+                SelectableIconText(
+                    icon = painterResource(id = R.drawable.ic_person),
+                    text = stringResource(R.string.credentials),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal),
+                    spacing = MaterialTheme.spacing.largeSpacing,
+                    padding = MaterialTheme.spacing.mediumSpacing,
+                    tint = MaterialTheme.colorScheme.primary,
+                    iconSize = 24.dp,
+                    onClick = {
+                        navigator.push(
+                            AccountCredentialsScreen(
+                                state.account,
+                                AccountCredentialsScreenMode.EDIT_CREDENTIALS
                             )
-                        }
-                    )
-                }
+                        )
+                    }
+                )
 
                 SelectableIconText(
                     icon = painterResource(id = R.drawable.ic_notifications),
@@ -269,19 +183,6 @@ object AccountTab : Tab {
                     iconSize = 24.dp,
                     onClick = { navigator.push(NotificationsScreen(state.account)) }
                 )
-
-                if (state.account.isLocal) {
-                    SelectableIconText(
-                        icon = painterResource(id = R.drawable.ic_import_export),
-                        text = stringResource(R.string.opml_import_export),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal),
-                        spacing = MaterialTheme.spacing.largeSpacing,
-                        padding = MaterialTheme.spacing.mediumSpacing,
-                        tint = MaterialTheme.colorScheme.primary,
-                        iconSize = 24.dp,
-                        onClick = { screenModel.openDialog(DialogState.OPMLChoice) }
-                    )
-                }
 
                 SelectableIconText(
                     icon = rememberVectorPainter(image = Icons.Default.AccountCircle),
@@ -329,17 +230,7 @@ object AccountTab : Tab {
         val context = LocalContext.current
         val navigator = LocalNavigator.currentOrThrow
 
-        val opmlImportLauncher =
-            rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-                uri?.let { screenModel.parseOPMLFile(uri, context) }
-            }
-
-        val opmlExportLauncher =
-            rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/xml")) { uri ->
-                uri?.let { screenModel.exportOPMLFile(uri, context) }
-            }
-
-        when (val dialog = state.dialog) {
+        when (state.dialog) {
             is DialogState.DeleteAccount -> {
                 TwoChoicesDialog(
                     title = stringResource(R.string.delete_account),
@@ -361,72 +252,12 @@ object AccountTab : Tab {
                     onValidate = { accountType ->
                         screenModel.closeDialog()
 
-                        if (accountType == AccountType.LOCAL) {
-                            screenModel.createLocalAccount()
-                        } else {
-                            if (ACCOUNT_APIS.any { it == accountType }) {
-                                screenModel.openDialog(DialogState.AccountWarning(accountType))
-                            } else {
-                                pushAccount(
-                                    type = accountType,
-                                    context = context,
-                                    navigator = navigator
-                                )
-                            }
-                        }
-                    }
-                )
-            }
-
-            is DialogState.AccountWarning -> {
-                AccountWarningDialog(
-                    type = dialog.type,
-                    onConfirm = {
-                        screenModel.closeDialog()
                         pushAccount(
-                            type = dialog.type,
+                            type = accountType,
                             context = context,
                             navigator = navigator
                         )
-                    },
-                    onDismiss = { screenModel.closeDialog(dialog) }
-                )
-            }
-
-            is DialogState.OPMLImport -> {
-                OPMLImportProgressDialog(
-                    currentFeed = dialog.currentFeed,
-                    feedCount = dialog.feedCount,
-                    feedMax = dialog.feedMax
-                )
-            }
-
-            is DialogState.ErrorList -> {
-                ErrorListDialog(
-                    errorResult = dialog.errorResult as ErrorResult, // cast needed by assembleRelease
-                    onDismiss = { screenModel.closeDialog(dialog) }
-                )
-            }
-
-            is DialogState.Error -> {
-                ErrorDialog(
-                    error = dialog.error,
-                    onDismiss = { screenModel.closeDialog(dialog) }
-                )
-            }
-
-            is DialogState.OPMLChoice -> {
-                OPMLChoiceDialog(
-                    onChoice = {
-                        if (it == OPML.IMPORT) {
-                            opmlImportLauncher.launch(ApiUtils.OPML_MIMETYPES.toTypedArray())
-                        } else {
-                            opmlExportLauncher.launch("subscriptions.opml")
-                        }
-
-                        screenModel.closeDialog()
-                    },
-                    onDismiss = { screenModel.closeDialog() }
+                    }
                 )
             }
 

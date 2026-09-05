@@ -25,9 +25,6 @@ data class Account(
     val config: AccountConfig
         get() = type!!.config
 
-    val isLocal
-        get() = type == AccountType.LOCAL
-
     fun `is`(accountType: AccountType) = this.type == accountType
 
     val loginKey

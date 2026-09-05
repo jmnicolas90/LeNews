@@ -61,9 +61,7 @@ import com.readrops.app.util.theme.LargeSpacer
 import com.readrops.app.util.theme.MediumSpacer
 import com.readrops.app.util.theme.ShortSpacer
 import com.readrops.app.util.theme.spacing
-import com.readrops.db.entities.account.ACCOUNT_APIS
 import com.readrops.db.entities.account.Account
-import com.readrops.db.entities.account.AccountType
 import org.koin.core.parameter.parametersOf
 
 enum class AccountCredentialsScreenMode {
@@ -195,9 +193,6 @@ class AccountCredentialsScreen(
                                 state.urlError != null -> {
                                     Text(text = state.urlError!!.errorText())
                                 }
-                                ACCOUNT_APIS.any { it == account.type }  -> {
-                                    Text(text = stringResource(R.string.provide_full_url))
-                                }
                                 else -> {
                                     Text(text = stringResource(R.string.provide_root_url))
                                 }
@@ -257,7 +252,7 @@ class AccountCredentialsScreen(
                                 state.passwordError != null -> {
                                     Text(text = state.passwordError!!.errorText())
                                 }
-                                account.type == AccountType.FRESHRSS -> {
+                                else -> {
                                     Text(text = stringResource(id = R.string.password_helper))
                                 }
                             }

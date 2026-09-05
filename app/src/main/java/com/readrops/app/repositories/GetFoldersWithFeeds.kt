@@ -69,7 +69,7 @@ class GetFoldersWithFeeds(
                 }
             }
 
-            // Nextcloud News case, no need to add a config parameter
+            // folders whose name starts with an underscore come first
             val comparator = compareByDescending<Folder?> {
                 it?.name?.startsWith("_")
             }

@@ -194,10 +194,6 @@ class FeedScreenModel(
     }
 
     fun deleteFeed(feed: Feed) {
-        if (!checkInternetConnection()) {
-            return
-        }
-
         screenModelScope.launch(dispatcher) {
             try {
                 repository?.deleteFeed(feed)
@@ -208,10 +204,6 @@ class FeedScreenModel(
     }
 
     fun deleteFolder(folder: Folder) {
-        if (!checkInternetConnection()) {
-            return
-        }
-
         screenModelScope.launch(dispatcher) {
             try {
                 repository?.deleteFolder(folder)
@@ -392,17 +384,4 @@ class FeedScreenModel(
         }
     }
 
-    private fun checkInternetConnection(): Boolean {
-        if (!currentAccount!!.isLocal) {
-            return true
-        }
-
-        val isConnected = context.isConnected()
-
-        if (!isConnected) {
-            _feedState.update { it.copy(error = context.getString(R.string.no_network)) }
-        }
-
-        return isConnected
-    }
 }

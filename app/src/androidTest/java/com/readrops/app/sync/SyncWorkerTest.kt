@@ -14,12 +14,11 @@ import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.TestListenableWorkerBuilder
 import androidx.work.testing.WorkManagerTestInitHelper
 import androidx.work.workDataOf
-import com.readrops.api.utils.ApiUtils
 import com.readrops.app.testutil.ReadropsTestRule
 import com.readrops.app.testutil.TestUtils
+import com.readrops.app.testutil.okResponseWithBody
 import com.readrops.app.util.extensions.getSerializable
 import com.readrops.db.Database
-import com.readrops.db.entities.Feed
 import com.readrops.db.entities.account.Account
 import com.readrops.db.entities.account.AccountType
 import junit.framework.TestCase.assertNotNull
@@ -30,14 +29,12 @@ import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
-import okio.Buffer
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.koin.test.KoinTest
 import org.koin.test.inject
-import java.net.HttpURLConnection
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -68,51 +65,32 @@ class SyncWorkerTest : KoinTest {
     @get:Rule
     val rule = ReadropsTestRule()
 
-    private val localAccount = Account(
-        name = "Local account",
-        type = AccountType.LOCAL,
+    private val account = Account(
+        name = "Account",
+        type = AccountType.FRESHRSS,
+        url = mockServer.url("/").toString(),
+        writeToken = "writeToken",
         isNotificationsEnabled = true
     )
 
-    private val feverAccount = Account(
-        name = "Fever account",
-        type = AccountType.FEVER,
-    )
-
-    private val localFeed = Feed(
-        name = "Hacker news",
-        url = mockServer.url("/local").toString(),
-        isNotificationEnabled = true
+    // an account with no url makes the synchronization fail before any request
+    private val brokenAccount = Account(
+        name = "Broken account",
+        type = AccountType.FRESHRSS
     )
 
     @Before
     fun before() = runTest {
-        //mockServer.start()
-
         val config = Configuration.Builder()
             .setMinimumLoggingLevel(Log.DEBUG)
             .setExecutor(SynchronousExecutor())
             .build()
         WorkManagerTestInitHelper.initializeTestWorkManager(context, config)
 
-        mockServer.dispatcher = object : Dispatcher() {
+        mockServer.dispatcher = greaderDispatcher("greader/items_1_item.json")
 
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                return MockResponse()
-                    .setResponseCode(HttpURLConnection.HTTP_OK)
-                    .setHeader(ApiUtils.CONTENT_TYPE_HEADER, "application/rss+xml")
-                    .setBody(Buffer().readFrom(TestUtils.loadResource("rss_feed_1_item.xml")))
-            }
-
-        }
-
-        localAccount.id = database.accountDao().insert(localAccount).toInt()
-        feverAccount.id = database.accountDao().insert(feverAccount).toInt()
-
-        localFeed.apply {
-            accountId = localAccount.id
-            id = database.feedDao().insert(localFeed).toInt()
-        }
+        account.id = database.accountDao().insert(account).toInt()
+        brokenAccount.id = database.accountDao().insert(brokenAccount).toInt()
     }
 
     @After
@@ -122,16 +100,45 @@ class SyncWorkerTest : KoinTest {
         notificationManager.cancelAll()
     }
 
+    /**
+     * Answers the calls one synchronization makes, with a single new article.
+     */
+    private fun greaderDispatcher(itemsResource: String) = object : Dispatcher() {
+
+        override fun dispatch(request: RecordedRequest): MockResponse {
+            with(request.path!!) {
+                return when {
+                    contains("tag/list") -> {
+                        MockResponse.okResponseWithBody(TestUtils.loadResource("greader/folders.json"))
+                    }
+
+                    contains("subscription/list") -> {
+                        MockResponse.okResponseWithBody(TestUtils.loadResource("greader/feeds.json"))
+                    }
+
+                    contains("contents/user/-/state/com.google/reading-list") -> {
+                        MockResponse.okResponseWithBody(TestUtils.loadResource(itemsResource))
+                    }
+
+                    contains("contents/user/-/state/com.google/starred") -> {
+                        MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_empty.json"))
+                    }
+
+                    contains("stream/items/ids") -> {
+                        MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_starred_ids.json"))
+                    }
+
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
+    }
+
     @Test
     fun manualWorkerTest() = runTest {
         val worker = TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
             .setTags(listOf(SyncWorker.WORK_MANUAL))
-            .setInputData(
-                workDataOf(
-                    SyncWorker.ACCOUNT_ID_KEY to localAccount.id,
-                    SyncWorker.FEED_ID_KEY to localFeed.id
-                )
-            )
+            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         val result = worker.doWork()
@@ -146,12 +153,7 @@ class SyncWorkerTest : KoinTest {
     fun autoWorkerWithNotificationsTest() = runBlocking {
         val worker = TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
             .setTags(listOf(SyncWorker.WORK_AUTO))
-            .setInputData(
-                workDataOf(
-                    SyncWorker.ACCOUNT_ID_KEY to localAccount.id,
-                    SyncWorker.FEED_ID_KEY to localFeed.id
-                )
-            )
+            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         val result = worker.doWork()
@@ -162,7 +164,7 @@ class SyncWorkerTest : KoinTest {
         with(notificationManager.activeNotifications.first()) {
             assertEquals(SyncWorker.SYNC_RESULT_NOTIFICATION_ID, id)
             assertEquals(
-                "Hacker news",
+                "FreshRSS @ GitHub",
                 this.notification.extras.getString(Notification.EXTRA_TITLE)
             )
 
@@ -171,7 +173,8 @@ class SyncWorkerTest : KoinTest {
             // wait for global scope to execute in SyncBroadcastReceiver
             delay(1000L)
 
-            val items = database.itemDao().selectItems(localFeed.id)
+            val feed = database.feedDao().selectFeeds(account.id).first()
+            val items = database.itemDao().selectItems(feed.id)
 
             assertTrue { items.first().isRead }
             assertTrue { items.first().isStarred }
@@ -186,23 +189,13 @@ class SyncWorkerTest : KoinTest {
         val request1 = OneTimeWorkRequestBuilder<SyncWorker>()
             .addTag(SyncWorker.TAG)
             .addTag(SyncWorker.WORK_MANUAL)
-            .setInputData(
-                workDataOf(
-                    SyncWorker.ACCOUNT_ID_KEY to localAccount.id,
-                    SyncWorker.FEED_ID_KEY to localFeed.id
-                )
-            )
+            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         val request2 = OneTimeWorkRequestBuilder<SyncWorker>()
             .addTag(SyncWorker.TAG)
             .addTag(SyncWorker.WORK_MANUAL)
-            .setInputData(
-                workDataOf(
-                    SyncWorker.ACCOUNT_ID_KEY to localAccount.id,
-                    SyncWorker.FEED_ID_KEY to localFeed.id
-                )
-            )
+            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         workManager.enqueue(request1)
@@ -242,11 +235,7 @@ class SyncWorkerTest : KoinTest {
         val manualWorker =
             TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
                 .setTags(listOf(SyncWorker.WORK_MANUAL))
-                .setInputData(
-                    workDataOf(
-                        SyncWorker.ACCOUNT_ID_KEY to feverAccount.id,
-                    )
-                )
+                .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to brokenAccount.id))
                 .build()
 
         val result = manualWorker.doWork()
@@ -258,42 +247,12 @@ class SyncWorkerTest : KoinTest {
         val autoWorker =
             TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
                 .setTags(listOf(SyncWorker.WORK_AUTO))
-                .setInputData(
-                    workDataOf(
-                        SyncWorker.ACCOUNT_ID_KEY to feverAccount.id,
-                    )
-                )
+                .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to brokenAccount.id))
                 .build()
 
         val autoResult = autoWorker.doWork()
 
         assertTrue { autoResult is ListenableWorker.Result.Failure }
         assertFalse { autoResult.outputData.getBoolean(SyncWorker.SYNC_FAILURE_KEY, false) }
-    }
-
-    @Test
-    fun localAccountErrorTest() = runTest {
-        mockServer.dispatcher = object : Dispatcher() {
-
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                return MockResponse()
-                    .setResponseCode(HttpURLConnection.HTTP_NOT_FOUND)
-            }
-        }
-
-        val worker = TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
-            .setTags(listOf(SyncWorker.WORK_MANUAL))
-            .setInputData(
-                workDataOf(
-                    SyncWorker.ACCOUNT_ID_KEY to localAccount.id,
-                    SyncWorker.FEED_ID_KEY to localFeed.id
-                )
-            )
-            .build()
-
-        val result = worker.doWork()
-
-        assertTrue { result is ListenableWorker.Result.Success }
-        assertNotNull { result.outputData.getSerializable(SyncWorker.LOCAL_SYNC_ERRORS_KEY) }
     }
 }

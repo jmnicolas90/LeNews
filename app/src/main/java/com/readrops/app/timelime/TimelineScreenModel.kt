@@ -11,7 +11,6 @@ import androidx.work.workDataOf
 import cafe.adriel.voyager.core.model.screenModelScope
 import com.readrops.app.R
 import com.readrops.app.home.TabScreenModel
-import com.readrops.app.repositories.ErrorResult
 import com.readrops.app.repositories.GetFoldersWithFeeds
 import com.readrops.app.sync.SyncWorker
 import com.readrops.app.timelime.components.SwipeAction
@@ -211,7 +210,6 @@ class TimelineScreenModel(
                 } else {
                     emptyFlow()
                 },
-                isAccountLocal = currentAccount!!.isLocal,
                 scrollToTop = true,
                 hideReadAllFAB = !currentAccount!!.config.canMarkAllItemsAsRead
             )
@@ -220,7 +218,6 @@ class TimelineScreenModel(
         _listIndexState.update { 0 }
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun refreshTimeline() {
         if (!context.isConnected()) {
             _timelineState.update { it.copy(syncError = context.getString(R.string.no_network)) }
@@ -230,43 +227,23 @@ class TimelineScreenModel(
         buildPager(empty = true)
 
         screenModelScope.launch(dispatcher) {
-            val filterPair = with(_timelineState.value.filters) {
-                when (subFilter) {
-                    SubFilter.FEED -> SyncWorker.FEED_ID_KEY to feedId
-                    SubFilter.FOLDER -> SyncWorker.FOLDER_ID_KEY to folderId
-                    else -> null
-                }
-            }
-            val accountPair = SyncWorker.ACCOUNT_ID_KEY to currentAccount!!.id
+            val workData = workDataOf(SyncWorker.ACCOUNT_ID_KEY to currentAccount!!.id)
 
-            val workData = if (filterPair != null) {
-                workDataOf(filterPair, accountPair)
-            } else {
-                workDataOf(accountPair)
-            }
-
-            if (!currentAccount!!.isLocal) {
-                _timelineState.update {
-                    it.copy(
-                        isRefreshing = true,
-                        hideReadAllFAB = true
-                    )
-                }
+            _timelineState.update {
+                it.copy(
+                    isRefreshing = true,
+                    hideReadAllFAB = true
+                )
             }
 
             SyncWorker.startNow(context, workData) { workInfo ->
                 when {
                     workInfo.outputData.getBoolean(SyncWorker.END_SYNC_KEY, false) -> {
-                        val errors =
-                            workInfo.outputData.getSerializable(SyncWorker.LOCAL_SYNC_ERRORS_KEY) as ErrorResult?
-                        workInfo.outputData.clearSerializables()
-
                         _timelineState.update {
                             it.copy(
                                 isRefreshing = false,
                                 hideReadAllFAB = false,
-                                scrollToTop = true,
-                                localSyncErrors = errors?.ifEmpty { null }
+                                scrollToTop = true
                             )
                         }
 
@@ -287,18 +264,6 @@ class TimelineScreenModel(
                         }
 
                         buildPager()
-                    }
-
-                    workInfo.progress.getString(SyncWorker.FEED_NAME_KEY) != null -> {
-                        _timelineState.update {
-                            it.copy(
-                                isRefreshing = true,
-                                currentFeed = workInfo.progress.getString(SyncWorker.FEED_NAME_KEY)
-                                    ?: "",
-                                feedCount = workInfo.progress.getInt(SyncWorker.FEED_COUNT_KEY, 0),
-                                feedMax = workInfo.progress.getInt(SyncWorker.FEED_MAX_KEY, 0)
-                            )
-                        }
                     }
                 }
             }
@@ -419,10 +384,6 @@ class TimelineScreenModel(
     fun openDialog(dialog: DialogState) = _timelineState.update { it.copy(dialog = dialog) }
 
     fun closeDialog(dialog: DialogState? = null) {
-        if (dialog is DialogState.ErrorList) {
-            _timelineState.update { it.copy(localSyncErrors = null) }
-        }
-
         _timelineState.update { it.copy(dialog = null) }
     }
 
@@ -501,12 +462,8 @@ class TimelineScreenModel(
 data class TimelineState(
     val isRefreshing: Boolean = false,
     val isDrawerOpen: Boolean = false,
-    val currentFeed: String = "",
     val unreadNewItemsCount: Int = 0,
-    val feedCount: Int = 0,
-    val feedMax: Int = 0,
     val scrollToTop: Boolean = false,
-    val localSyncErrors: ErrorResult? = null,
     val syncError: String? = null,
     val filters: QueryFilters = QueryFilters(),
     val filterFeedName: String = "",
@@ -514,14 +471,11 @@ data class TimelineState(
     val foldersAndFeeds: Map<Folder?, List<Feed>> = emptyMap(),
     val itemState: Flow<PagingData<ItemWithFeed>> = emptyFlow(),
     val dialog: DialogState? = null,
-    val isAccountLocal: Boolean = false,
     val hideReadAllFAB: Boolean = false,
     val preferences: TimelinePreferences = TimelinePreferences()
 ) {
 
     val showSubtitle = filters.subFilter != SubFilter.ALL
-
-    val displayRefreshScreen = isRefreshing && isAccountLocal
 }
 
 @Stable
@@ -543,6 +497,5 @@ data class TimelinePreferences(
 sealed interface DialogState {
     data object ConfirmDialog : DialogState
     data object FilterSheet : DialogState
-    class ErrorList(val errorResult: ErrorResult) : DialogState
     class OpenIn(val itemWithFeed: ItemWithFeed) : DialogState
 }

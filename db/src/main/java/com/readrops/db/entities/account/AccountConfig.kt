@@ -15,42 +15,12 @@ data class AccountConfig(
 ) {
 
     companion object {
-        val LOCAL = AccountConfig(
-            isFeedUrlReadOnly = false,
-            canCreateFolder = true,
-            addNoFolder = true,
-            useSeparateState = false,
-        )
-
-        val NEXTCLOUD_NEWS = AccountConfig(
-            isFeedUrlReadOnly = true,
-            canCreateFolder = true,
-            addNoFolder = true,
-            useSeparateState = false,
-        )
-
-        val GREADER = AccountConfig(
+        val FRESHRSS = AccountConfig(
             isFeedUrlReadOnly = true,
             canCreateFolder = false,
             addNoFolder = false,
             useSeparateState = true,
-        )
-
-        val FRESHRSS = GREADER.copy(
             showCustomFolderDeleteMessage = true
-        )
-
-        val FEVER = AccountConfig(
-            isFeedUrlReadOnly = false,
-            addNoFolder = true,
-            useSeparateState = true,
-            canCreateFolder = false,
-            canCreateFeed = false,
-            canUpdateFolder = false,
-            canUpdateFeed = false,
-            canDeleteFeed = false,
-            canDeleteFolder = false,
-            canMarkAllItemsAsRead = false
         )
     }
 }

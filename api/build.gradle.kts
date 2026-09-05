@@ -45,9 +45,6 @@ dependencies {
     implementation(platform(libs.koin.bom))
     implementation(libs.bundles.koin)
 
-    implementation(libs.konsumexml)
-    implementation(libs.kotlinxmlbuilder)
-
     implementation(libs.okhttp)
 
     implementation(libs.bundles.retrofit) {

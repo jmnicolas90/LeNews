@@ -2,11 +2,8 @@ package com.readrops.app.util.accounterror
 
 import android.content.Context
 import com.readrops.api.utils.exceptions.HttpException
-import com.readrops.api.utils.exceptions.LoginFailedException
 import com.readrops.api.utils.exceptions.ParseException
-import com.readrops.api.utils.exceptions.UnknownFormatException
 import com.readrops.app.R
-import com.readrops.app.repositories.FeedExistException
 import com.readrops.db.entities.account.Account
 import com.readrops.db.entities.account.AccountType
 import java.io.IOException
@@ -35,9 +32,7 @@ abstract class AccountError(protected val context: Context) {
             exception.message.orEmpty()
         )
 
-        is ParseException, is UnknownFormatException -> context.resources.getString(R.string.processing_feed_error)
-        is LoginFailedException -> context.getString(R.string.login_failed)
-        is FeedExistException -> context.getString(R.string.feed_already_exists)
+        is ParseException -> context.resources.getString(R.string.processing_feed_error)
         else -> "${exception.javaClass.simpleName}: ${exception.message}"
     }
 
@@ -64,8 +59,7 @@ abstract class AccountError(protected val context: Context) {
     companion object {
 
         fun from(account: Account, context: Context): AccountError = when (account.type) {
-            AccountType.FRESHRSS, AccountType.GREADER -> GReaderError(context)
-            AccountType.NEXTCLOUD_NEWS -> NextcloudNewsError(context)
+            AccountType.FRESHRSS -> GReaderError(context)
             else -> DefaultAccountError(context)
         }
 

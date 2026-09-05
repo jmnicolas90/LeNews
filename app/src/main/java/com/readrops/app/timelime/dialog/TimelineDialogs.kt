@@ -63,13 +63,6 @@ fun TimelineDialogs(
             )
         }
 
-        is DialogState.ErrorList -> {
-            ErrorListDialog(
-                errorResult = dialog.errorResult,
-                onDismiss = { screenModel.closeDialog(dialog) }
-            )
-        }
-
         is DialogState.OpenIn -> {
             val itemWithFeed = dialog.itemWithFeed
 

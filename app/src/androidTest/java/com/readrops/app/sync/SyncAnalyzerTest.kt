@@ -39,13 +39,13 @@ class SyncAnalyzerTest : KoinTest {
 
     private val account2 = Account(
         name = "test account 2",
-        type = AccountType.NEXTCLOUD_NEWS,
+        type = AccountType.FRESHRSS,
         isNotificationsEnabled = false
     )
 
     private val account3 = Account(
         name = "test account 3",
-        type = AccountType.LOCAL,
+        type = AccountType.FRESHRSS,
         isNotificationsEnabled = true
     )
 
