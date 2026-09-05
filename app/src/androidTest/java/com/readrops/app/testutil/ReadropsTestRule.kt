@@ -2,6 +2,7 @@ package com.readrops.app.testutil
 
 import android.Manifest
 import android.content.Context
+import android.os.Build
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.rule.GrantPermissionRule
@@ -36,14 +37,25 @@ import org.koin.mp.KoinPlatformTools
  * notification to inspect. A permission granted by the test rules travels with
  * the tests; one granted by a CI step is a trap for the next person who runs
  * them by hand.
+ *
+ * POST_NOTIFICATIONS only exists from API 33, and asking for a permission the
+ * platform does not know makes GrantPermissionRule fail during setup. The app's
+ * floor is API 31, so the grant is asked for only where there is something to
+ * grant; below 33 notifications need no runtime permission and the tests that
+ * depend on them work without one.
  */
 class ReadropsTestRule : TestRule {
 
     private val koinRule = KoinRule()
 
-    private val chain: RuleChain = RuleChain
-        .outerRule(GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS))
-        .around(koinRule)
+    private val chain: RuleChain =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            RuleChain
+                .outerRule(GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS))
+                .around(koinRule)
+        } else {
+            RuleChain.outerRule(koinRule)
+        }
 
     val koin: Koin
         get() = koinRule.koin

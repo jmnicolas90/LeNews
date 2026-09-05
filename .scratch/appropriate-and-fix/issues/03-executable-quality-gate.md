@@ -111,8 +111,10 @@ Ten fixture hits, three false positives, one real leak.
   Nothing was edited and nothing was allowlisted by path. The guard has one
   narrow test for it: the local part is exactly the keyword `this` **and** the
   file is a `.kt`. Both conditions, so a real address cannot pass by sitting in
-  a Kotlin file and no other file type can pass at all. There is no upstream
-  author address in a GPL header anywhere in the tree.
+  a Kotlin file and no other file type can pass at all. (The review round below
+  adds a third condition — what follows the at sign must be a class-shaped label
+  and a member — because those two alone still exempted a string literal.) There
+  is no upstream author address in a GPL header anywhere in the tree.
 - **One real address, in a fork-authored file.** `docs/research/upstream-since-fork.md`
   quoted, from a public upstream issue thread, the address upstream publishes as
   its contact. Removed from the working tree — the sentence says "the project's
@@ -120,7 +122,8 @@ Ten fixture hits, three false positives, one real leak.
   (the research commit and its merge) are already in this history and only a
   rewrite would unpublish them, so the historical-tree scan, and only that scan,
   exempts that one path. The working tree and the index are still checked, so
-  the quote cannot come back.
+  the quote cannot come back. (The review round below narrows this to the exact
+  blob, and counts five commits carrying it rather than two.)
 
 The historical scan also exempts, by address value read at run time, the set the
 fork point tree `9ebbe038` already publishes — the fixture addresses above, as
@@ -201,7 +204,8 @@ first. The user's phone is out of bounds.
 
 Only the "already running" branch was exercised here — the emulator was up
 throughout. The cold-boot branch is written and unexercised; the orchestrator
-tests it.
+tests it. (The review round below rewrites this stage and exercises both
+branches against a mock adb and a mock emulator.)
 
 Four instrumented tests were red before this ticket and are green now. All four
 came from one cause and neither of them is a flake:
@@ -273,3 +277,100 @@ branch on GitHub, delete the local `develop` — is the orchestrator's, after th
 branch merges. The ticket's two remaining "done when" conditions, **CI green on
 `main`** and **the `play-services-base` red test in CI**, can only be checked
 once something is pushed, and are recorded then.
+
+### Review round (2026-09-05)
+
+A Codex adversarial review of this ticket raised nine findings. Eight are fixed
+in the second commit on this branch; the ninth is ruled out and recorded at the
+end. The whole gate is green after the changes, on the emulator that was already
+running, and `bash -n` and `shellcheck` are clean on all five scripts (one
+pre-existing `SC2012` info in `codex-review.sh`, untouched).
+
+1. **The exemption for the research file is bound to content, not to a path.**
+   Exempting the path exempted it in every fork commit, so an address written
+   into that file after this gate was built and taken out again before the gate
+   ran would have passed. The exemption is now one blob id, and five commits
+   carry that blob — the research commit `48a3360e`, its merge `1402ea19`, and
+   the three commits of ticket 02 between that merge and the one that removed
+   the quote. Proof: with the id replaced by one nothing has, exactly those five
+   commits are reported and no others; with the real id, green. The exemption by
+   address value read from the fork point stays unbounded on purpose, and the
+   comment now says why: an address upstream published in its own tree is not
+   something this fork can unpublish.
+2. **G7 owns the emulator, or it leaves it alone.** Four faults, one fix. "Is
+   one already running" now asks whether *anything* is listed on the serial in
+   any state, because a booting emulator is listed `offline` and the old check
+   read that as "nothing there", started a second one on a port already taken,
+   set `started_here` anyway and killed, at the end, an emulator it had not
+   started. The device is then identified — `adb emu avd name` must answer
+   `bench-pixel6-aosp` or the stage fails without installing anything and
+   without killing anything. A launched emulator's pid is kept, and if that
+   process exits before the boot completes the stage fails at once and prints
+   the tail of `build/emulator.log` instead of waiting five minutes for a boot
+   timeout. Shutdown sends `emu kill` and then waits, bounded, for the pid to
+   actually go; if it does not, the stage fails rather than reporting green over
+   a machine it has left holding port 5554. A trap covers the interrupted run.
+   Proofs, all against a mock `adb` and a mock emulator in a temporary directory
+   — no second emulator was ever booted: the exact bug reproduced (an `offline`
+   device on the serial, the launch failing on the busy port; the old code ran
+   the tests and then killed the emulator it had not started, the new code uses
+   it and kills nothing); a wrong AVD refused with nothing installed and nothing
+   killed; a launched emulator that dies before boot reported with its log; a
+   cold boot through tests to a clean shutdown; an emulator that ignores
+   `emu kill` failing the stage; `SIGINT` during the boot wait exiting 130 after
+   killing only the emulator the stage had started. The "already running" branch
+   is exercised by the real gate run above.
+3. **The Google guard no longer drops what it cannot resolve.** An
+   `UnresolvedDependencyResult` edge was skipped in silence, so a banned
+   dependency whose version does not resolve passed. Any unresolved edge now
+   fails the task, naming the requested coordinate and the resolution failure.
+   Proof: with a `play-services-base` at a version that does not exist added to
+   the app, `./gradlew -q :app:checkNoGoogleDependencies` was green before and
+   is red after, naming the coordinate in all three variants; green again once
+   the dependency is removed.
+4. **The Kotlin qualified-this exemption is narrowed.** A local part of `this`
+   in a `.kt` file was enough, which exempted any address written inside a
+   string literal — which is exactly where one would be written. What follows
+   the at sign must now also read as a label naming a class or an object (a
+   capital first letter) followed by one or more members. Narrowing beat
+   rewriting the three call sites: the three are ordinary Kotlin, more will be
+   written, and the exemption would have had to come back. Proof: a planted
+   string literal in a `.kt` file whose domain is an ordinary lowercase one is
+   green before and red after; the three real call sites stay exempt.
+5. **Author and committer names are scanned.** `git` writes whatever it is
+   given into the name field, and it is published with the commit exactly like
+   the address beside it. The names of every fork commit and the name half of
+   the identity the next commit would carry are now checked. Proof: with
+   `GIT_AUTHOR_NAME` set to an address the script is green before and red after,
+   saying so without printing the name; likewise `GIT_COMMITTER_NAME`; and a
+   dangling commit object made with a bad author name (no ref moved) is reported
+   by the fork-commit check.
+6. **The whole mailbox is matched.** The local part accepts every character RFC
+   5322 allows unquoted, so a real address that holds one of them — a bang
+   before the word noreply, say — is no longer matched from after that character
+   into something the no-reply exemption waves through. It still has to start at
+   an alphanumeric, so a backquote or an angle bracket in the text around an
+   address is not dragged in. Proof: such an address planted in a tracked file
+   is green before and red after.
+7. **File names are scanned, and every printed location is redacted.** A path is
+   published as loudly as a line of a file. The names in the index and in the
+   tree of every fork commit are checked, and any address inside a location this
+   script prints is blanked out first — component by component, so the
+   directories around the name survive and the report still says where. Proof: a
+   tracked file whose name holds an address is green before and red after, and
+   the report reads `docs/<address withheld>`; the file was removed and never
+   committed.
+8. **The notification grant is asked for only where it exists.**
+   `POST_NOTIFICATIONS` arrived in API 33 and `GrantPermissionRule` fails during
+   setup on a device that does not know it, which is every device at this app's
+   API 31 floor. `ReadropsTestRule` now builds the chain with the grant only
+   when `Build.VERSION.SDK_INT` is at least 33. Not provable here: the bench AVD
+   is API 36 and no second emulator may be booted, so what is verified is that
+   the instrumented tests still pass unchanged on API 36. An API 31 device would
+   be needed to see the other branch run.
+
+**Ruled out, not fixed.** The review also said the notification grant conceals
+that `Synchronizer.refreshLocalAccount` only advances the feed counter when
+notifications are enabled. True, and out of scope: that is the local-RSS sync
+path, which ticket 04 deletes outright. The FreshRSS path is the one LeNews
+keeps.

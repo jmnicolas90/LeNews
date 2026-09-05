@@ -7,6 +7,7 @@ import com.android.build.gradle.LibraryPlugin
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedComponentResult
 import org.gradle.api.artifacts.result.ResolvedDependencyResult
+import org.gradle.api.artifacts.result.UnresolvedDependencyResult
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 
@@ -222,6 +223,13 @@ subprojects {
 
             val offenders = sortedSetOf<String>()
 
+            // An edge Gradle could not resolve is an edge nobody can see the
+            // group and module of, so the check above cannot be run on it. A
+            // banned dependency with a typo in its version would walk straight
+            // through a guard that skipped these. Collected and reported, so
+            // "the guard did not look at this one" is loud instead of silent.
+            val unresolved = sortedSetOf<String>()
+
             dependencyGraphs.forEach { (configurationName, rootComponent) ->
                 val visited = mutableSetOf<String>()
                 val pending = ArrayDeque<ResolvedComponentResult>()
@@ -245,20 +253,44 @@ subprojects {
                     }
 
                     component.dependencies.forEach { dependency ->
-                        if (dependency is ResolvedDependencyResult) {
-                            pending.add(dependency.selected)
+                        when (dependency) {
+                            is ResolvedDependencyResult -> pending.add(dependency.selected)
+                            is UnresolvedDependencyResult -> unresolved.add(
+                                "  ${dependency.attempted.displayName}" +
+                                        "  (in $modulePath $configurationName)" +
+                                        "\n      ${dependency.failure.message}"
+                            )
+
+                            else -> unresolved.add(
+                                "  ${dependency.requested.displayName}" +
+                                        "  (in $modulePath $configurationName)" +
+                                        "\n      unknown kind of dependency result:" +
+                                        " ${dependency.javaClass.name}"
+                            )
                         }
                     }
                 }
             }
 
+            val problems = mutableListOf<String>()
             if (offenders.isNotEmpty()) {
-                throw GradleException(
+                problems.add(
                     "Google Play Services / Firebase dependencies are not allowed:\n" +
                             offenders.joinToString("\n") +
                             "\n\nThis app has to run on a de-Googled OS. Find a replacement, or" +
                             "\nchange this rule deliberately in build.gradle.kts."
                 )
+            }
+            if (unresolved.isNotEmpty()) {
+                problems.add(
+                    "checkNoGoogleDependencies could not resolve these dependencies, so it" +
+                            " could not tell\nwhether they are allowed:\n" +
+                            unresolved.joinToString("\n") +
+                            "\n\nFix the dependency, then run the guard again."
+                )
+            }
+            if (problems.isNotEmpty()) {
+                throw GradleException(problems.joinToString("\n\n"))
             }
         }
     }

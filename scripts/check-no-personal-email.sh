@@ -25,7 +25,7 @@
 # that reaches a push is published to harvesters the moment it lands, and taking
 # it back means rewriting history.
 #
-# Four checks, and all four run: the script reports everything it finds rather
+# Five checks, and all five run: the script reports everything it finds rather
 # than stopping at the first hit, so one run tells you the whole job.
 #
 #   1. Every tracked file in the working tree.
@@ -33,13 +33,18 @@
 #      working tree: `git add -p` can stage a hunk holding an address while the
 #      file on disk is being cleaned up around it, and the commit takes what is
 #      staged. Without this check that commit lands after a green gate.
-#   3. The author and committer identity the *next* commit would carry, which
-#      is the one check that fires before anything has been written.
-#   4. Every commit this fork authored — author, committer, the whole message
-#      including its trailers, and the commit's own tree. The tree matters
-#      because a clone receives every historical blob: an address that was
-#      committed and redacted two commits later is still published, and only
-#      this check sees it.
+#   3. The author and committer identity the *next* commit would carry — the
+#      name as well as the address — which is the one check that fires before
+#      anything has been written.
+#   4. Every commit this fork authored — author and committer name and address,
+#      the whole message including its trailers, and the commit's own tree. The
+#      tree matters because a clone receives every historical blob: an address
+#      that was committed and redacted two commits later is still published,
+#      and only this check sees it.
+#   5. The names of tracked files, in the index and in the tree of every fork
+#      commit. A path is published exactly as loudly as a line of a file — it
+#      is in `git ls-files`, in every clone's checkout and in the web view of
+#      the repository — and nothing else here looks at paths as text.
 #
 # Check 4 needs real history, so a shallow clone, or a clone missing the fork
 # point, is a failure and not a pass — the check must not look green exactly
@@ -59,18 +64,27 @@
 #   a. By address value: the set of addresses the fork point tree already
 #      publishes. The fork's early commits carry upstream's files unchanged, so
 #      those addresses sit in the fork's own trees as well as in upstream's.
-#      Reporting them forever would buy nothing — they reach every clone through
-#      upstream's commits, which stay in this repo's ancestry for good — and
-#      would bury real findings under noise. The set is read out of the fork
-#      point at run time and is never written into this file, so this file still
-#      names no address.
-#   b. By path: docs/research/upstream-since-fork.md. Ticket 10's findings
-#      quoted, from a public upstream issue thread, the address that upstream
-#      publishes as its contact. Ticket 03 removed the quote from the working
-#      tree, but the two commits that carried it are already in this history and
-#      only a rewrite would unpublish them. The path is exempt in historical
-#      trees alone: the working tree and the index are still checked, so the
-#      quote cannot come back.
+#      Reporting them forever would buy nothing and would bury real findings
+#      under noise. This one is deliberately not bound to particular commits:
+#      an address that upstream published in its own tree is not something this
+#      fork can unpublish — upstream's commits stay in this repo's ancestry for
+#      good, and every clone receives them — so wherever such an address turns
+#      up in a fork commit's tree it is already public through a commit no
+#      rewrite of ours could reach. The set is read out of the fork point at run
+#      time and is never written into this file, so this file still names no
+#      address.
+#   b. By blob content: the exact bytes of docs/research/upstream-since-fork.md
+#      as ticket 10 wrote it. Those findings quoted, from a public upstream
+#      issue thread, the address that upstream publishes as its contact. Ticket
+#      03 removed the quote from the working tree, but the five commits that
+#      carry that blob are already in this history and only a rewrite would
+#      unpublish them. The exemption is on the content and not on the path,
+#      because a path exemption would hold for every commit that ever has that
+#      file — an address written into it after this gate was built and taken out
+#      again before the gate ran would have passed. A blob id is the bytes that
+#      are already published and nothing else. It applies in historical trees
+#      alone: the working tree and the index are still checked, so the quote
+#      cannot come back.
 #
 # Neither relaxation touches the working tree, the index, an identity or a
 # commit message. A fork commit that copies an inherited address into a new file
@@ -97,7 +111,9 @@
 # not addresses. If one ever gains an address, the header is the thing to fix.
 #
 # It reports the commit, the file and the line number and never prints the
-# address itself, so a failing gate does not republish what it just caught.
+# address itself, so a failing gate does not republish what it just caught. A
+# path can itself hold an address, so every location this script prints goes
+# through redact() first.
 # That is also why tracing is turned off below and never turned back on, and why
 # no comment in this file spells out an example address: this script is itself a
 # tracked file, and check 1 reads it like any other.
@@ -114,16 +130,37 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # every grep below is given -i as well. Either alone would do; together, neither
 # a future edit to the pattern nor a dropped flag at one call site can quietly
 # let an all-capitals address through.
-address_pattern='[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
+#
+# The local part accepts every character RFC 5322 allows in an unquoted address
+# — the alphanumerics, the dot, and ! # $ % & ' * + / = ? ^ _ ` { | } ~ - —
+# rather than a polite subset of them. A narrow class does not merely miss such
+# an address, it mis-reads it: the match starts *after* the character the class
+# does not know, and the fragment that is left can look like something the
+# allowlist below waves through. The no-reply test is a test of the whole local
+# part, so the whole local part has to be what was matched.
+#
+# It has to start at an alphanumeric all the same, because the text around an
+# address is often punctuation the class now contains — a backquote in
+# markdown, an angle bracket in a trailer — and dragging that in would break the
+# same test in the other direction. No real mailbox begins with punctuation; one
+# that did would still be reported, with its first character missing from a
+# value this script never prints anyway.
+address_pattern="[A-Za-z0-9][A-Za-z0-9.!#\$%&'*+/=?^_\`{|}~-]*@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
 
 # Paths where an address is attribution the licence requires.
 attribution_paths=(
   ':!LICENSE'
 )
 
-# Path exempt from the historical-tree scan only; see relaxation (b) above.
-historical_only_exempt_paths=(
-  ':!docs/research/upstream-since-fork.md'
+# Blobs exempt from the historical-tree scan only; see relaxation (b) above.
+# Content, not paths, so the exemption covers the bytes that are already
+# published and stops there.
+declare -A historical_only_exempt_blobs=(
+  # docs/research/upstream-since-fork.md as ticket 10 wrote it. Five commits
+  # carry it: the research commit 48a3360e, its merge 1402ea19, and the three
+  # commits of ticket 02 that sit between that merge and the commit which took
+  # the quote out. Any other content of that file, in any commit, is scanned.
+  ['b4317da144155078333c4b98543cf38d2f4744b0']=1
 )
 
 # The fork point on upstream's develop. Everything reachable from it is
@@ -139,6 +176,42 @@ failures=0
 fail() {
   printf '%s\n' "$@" >&2
   failures=$((failures + 1))
+}
+
+# Blank out any address inside a location before it is printed. A location is a
+# path, and a path can hold an address itself, so reporting one verbatim would
+# republish exactly what the report is careful never to print.
+#
+# Component by component, because the local part may hold a slash and a greedy
+# match would then swallow the directories on either side of the name, leaving a
+# report that says an address was found somewhere. A path separator is part of
+# no address, so splitting on it costs nothing and the report still says where.
+redact() {
+  local text="$1" out='' part separator=''
+  local -a parts=()
+  IFS='/' read -r -a parts <<< "$text"
+  for part in "${parts[@]}"; do
+    out="$out$separator$(redact_field "$part")"
+    separator='/'
+  done
+  printf '%s' "$out"
+}
+
+# One component of a location. The colon is the s/// delimiter: the pattern
+# holds no colon, while it does hold a comma (in the {2,} repetition) and most
+# of the punctuation sed would otherwise accept. I is GNU sed's case-insensitive
+# flag, matching the -i every grep here is given.
+#
+# A failed redaction prints a placeholder rather than nothing. An empty string
+# would read to the caller as "no hit at all", which is the one answer this
+# script must never give by accident.
+redact_field() {
+  local redacted
+  if redacted="$(printf '%s' "$1" | sed -E "s:$address_pattern:<address withheld>:gI")"; then
+    printf '%s' "$redacted"
+  else
+    printf '%s' '<withheld: redaction failed>'
+  fi
 }
 
 # The one test for "this is a no-reply address", used by every check, so there
@@ -162,18 +235,44 @@ is_no_reply_address() {
 # The one test for "this match is Kotlin, not an address". A qualified this — a
 # `this@Companion` label followed by a member — has the shape of an address and
 # is none: the local part is the keyword `this`, which no mailbox is named, and
-# a qualified this only ever
-# appears in Kotlin source. Both conditions are required, so a real address
-# cannot pass by being written in a .kt file, and a file called something else
-# cannot pass by starting a line with the keyword.
+# a qualified this only ever appears in Kotlin source.
+#
+# Three conditions, all required. The file is a .kt, so no other kind of file
+# passes by starting a line with the keyword. The local part is exactly `this`,
+# lowercase, because that is the keyword and nothing else is. And what stands
+# where the domain would stand has the shape a qualified this actually has: a
+# label naming a class or an object, which by Kotlin convention starts with a
+# capital, then one or more members. That last condition is the one that matters
+# for a guard: without it anything at all after the keyword and the at sign was
+# exempt in a .kt file, a real domain included, and a string literal in the
+# middle of the code is precisely where an address gets written. What is left
+# exempt is a label like `Companion` or `ItemScreenModel` followed by a member,
+# which is not a mailbox anyone publishes by accident; anything with an ordinary
+# lowercase domain after it is now reported, in a .kt file like anywhere else.
 #
 # $1 is the matched address, $2 the "file:line" it was found at. The path is
 # everything before the last colon of that location, and a path may hold colons
 # of its own, so strip only the final field.
 is_kotlin_qualified_this() {
-  local address="$1" location="$2" path
+  local address="$1" location="$2" path label
+  local kotlin_label='^[A-Z][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$'
   path="${location%:*}"
-  [ "${address%@*}" = 'this' ] && [ "${path%.kt}" != "$path" ]
+  [ "${path%.kt}" != "$path" ] || return 1
+  [ "${address%%@*}" = 'this' ] || return 1
+  label="${address#*@}"
+  [[ "$label" =~ $kotlin_label ]]
+}
+
+# Is this historical hit inside one of the blobs relaxation (b) exempts? $1 is
+# the commit being scanned, $2 the "<commit>:<path>:<line>" git grep reported.
+# The revision prefix is what this scan passed in and the line number is the
+# last field, so strip both; whatever colons remain belong to the path.
+is_exempt_historical_blob() {
+  local commit="$1" location="$2" path blob
+  path="${location#"$commit":}"
+  path="${path%:*}"
+  blob="$(git rev-parse --quiet --verify "$commit:$path" 2>/dev/null)" || return 1
+  [ -n "${historical_only_exempt_blobs[$blob]+set}" ]
 }
 
 # The address values the fork point tree holds, lowercased. Filled by
@@ -207,9 +306,6 @@ addresses_in_tree() {
     index) grep_args=(--cached "${grep_args[@]}") ;;
     *) grep_args+=("$where") ;;
   esac
-  if [ "$exemption" = 'historical' ]; then
-    paths+=("${historical_only_exempt_paths[@]}")
-  fi
   set +e
   raw="$(git grep "${grep_args[@]}" -- "${paths[@]}")"
   status=$?
@@ -241,7 +337,11 @@ addresses_in_tree() {
       && [ -n "${fork_point_addresses[${address,,}]+set}" ]; then
       continue
     fi
-    printf '%s\n' "$location"
+    if [ "$exemption" = 'historical' ] \
+      && is_exempt_historical_blob "$where" "$location"; then
+      continue
+    fi
+    printf '%s\n' "$(redact "$location")"
   done <<< "$raw"
 }
 
@@ -273,6 +373,58 @@ read_fork_point_addresses() {
   if [ "${#fork_point_addresses[@]}" -eq 0 ]; then
     return 1
   fi
+}
+
+# Print every tracked path that holds an address, redacted, for check 5. $1 is
+# "index" or a commit id.
+#
+# `git ls-files` is the index, which is also the set of paths a checkout of this
+# working tree has on disk; `git ls-tree -r --name-only` is the same question
+# asked of a commit. No exemptions at all here: LICENSE earns its exemption
+# through what is inside it, and no path in this repository has ever needed one.
+# A name that matches is either a mistake or something deliberate, and both want
+# reporting.
+#
+# One grep over the whole listing rather than one grep per path — this runs for
+# every fork commit, and a thousand paths a commit would be a thousand processes
+# a commit. -n numbers the lines of the listing, which is how a hit gets back to
+# the name it came from. Returns 2 when git itself failed.
+names_with_addresses() {
+  local where="$1" listing status match address position
+  local -a names=()
+  set +e
+  case "$where" in
+    index) listing="$(git ls-files)" ;;
+    *) listing="$(git ls-tree -r --name-only "$where")" ;;
+  esac
+  status=$?
+  set -e
+  if [ "$status" -ne 0 ]; then
+    return 2
+  fi
+  if [ -z "$listing" ]; then
+    return 0
+  fi
+  mapfile -t names <<< "$listing"
+  while IFS= read -r match; do
+    if [ -z "$match" ]; then
+      continue
+    fi
+    position="${match%%:*}"
+    address="${match#*:}"
+    if is_no_reply_address "$address"; then
+      continue
+    fi
+    printf '%s\n' "$(redact "${names[position - 1]}")"
+  done < <(printf '%s\n' "$listing" | { grep -naoEi "$address_pattern" || true; })
+}
+
+# Does this name — a commit's author or committer name, or the name half of the
+# identity the next commit would carry — hold an address? A name is a name; git
+# will happily write an address into that field, and it is published with the
+# commit exactly like the address field beside it.
+name_holds_address() {
+  printf '%s\n' "$1" | grep -qaEi "$address_pattern"
 }
 
 # 1. The working tree. No historical exemption: an address upstream published is
@@ -312,6 +464,23 @@ check_index() {
   fi
 }
 
+# 5a. The names of the tracked files, as the index holds them — which is both
+# what the next commit would write and what a checkout of this tree puts on
+# disk. The historical half of check 5 is inside check_fork_commits.
+check_tracked_names() {
+  local hits status=0
+  hits="$(names_with_addresses index)" || status=$?
+  if [ "$status" -ne 0 ]; then
+    fail "✗ git failed while listing the tracked file names"
+    return
+  fi
+  if [ -n "$hits" ]; then
+    fail "✗ email address in the name of a tracked file (address blanked out):" \
+         "$(printf '%s\n' "$hits" | sed 's/^/    /')" \
+         "  fix: git mv it to a name that holds no address."
+  fi
+}
+
 # 3. The identity the next commit would carry. git var applies the same
 # precedence a commit does — the environment, then repo config, then global — so
 # this is the address that would actually be written, and asking git beats
@@ -328,7 +497,7 @@ check_index() {
 # configures no identity and never commits; that case is handled at the call
 # site, once, and out loud.
 check_next_commit_identity() {
-  local role="$1" git_variable="$2" ident address status=0
+  local role="$1" git_variable="$2" ident address name status=0
   ident="$(git -c user.useConfigOnly=true var "$git_variable" 2>/dev/null)" || status=$?
   if [ "$status" -ne 0 ]; then
     fail "✗ git cannot say what $role address the next commit would carry" \
@@ -352,11 +521,20 @@ check_next_commit_identity() {
     fail "✗ the next commit's $role address is not a no-reply address (address withheld)" \
          "  fix: git config user.email with your forge's no-reply address"
   fi
+  # The name half, which is published with every commit just as the address
+  # half is. user.name set to an address is an easy thing to do by accident on a
+  # machine where the two were once the same string.
+  name="${ident%<*}"
+  if name_holds_address "$name"; then
+    fail "✗ the next commit's $role name holds an email address (name withheld)" \
+         "  fix: git config user.name with a name, not an address"
+  fi
 }
 
 # 4. Every commit the fork authored.
 check_fork_commits() {
   local commits commit metadata author committer message
+  local author_name committer_name
   local message_lines match address hits status
 
   if [ "$(git rev-parse --is-shallow-repository)" != "false" ]; then
@@ -383,16 +561,27 @@ check_fork_commits() {
   fi
 
   while IFS= read -r commit; do
-    metadata="$(git show --no-patch --format='%ae%n%ce%n%B' "$commit")"
-    author="$(printf '%s\n' "$metadata" | sed -n 1p)"
-    committer="$(printf '%s\n' "$metadata" | sed -n 2p)"
-    message="$(printf '%s\n' "$metadata" | sed -n '3,$p')"
+    # Names first, then addresses, then the message: git forbids a newline in
+    # either half of an identity, so the four fields are exactly four lines and
+    # the message is everything after them.
+    metadata="$(git show --no-patch --format='%an%n%cn%n%ae%n%ce%n%B' "$commit")"
+    author_name="$(printf '%s\n' "$metadata" | sed -n 1p)"
+    committer_name="$(printf '%s\n' "$metadata" | sed -n 2p)"
+    author="$(printf '%s\n' "$metadata" | sed -n 3p)"
+    committer="$(printf '%s\n' "$metadata" | sed -n 4p)"
+    message="$(printf '%s\n' "$metadata" | sed -n '5,$p')"
 
     if ! is_no_reply_address "$author"; then
       fail "✗ commit $commit: author address is not a no-reply address (address withheld)"
     fi
     if ! is_no_reply_address "$committer"; then
       fail "✗ commit $commit: committer address is not a no-reply address (address withheld)"
+    fi
+    if name_holds_address "$author_name"; then
+      fail "✗ commit $commit: author name holds an email address (name withheld)"
+    fi
+    if name_holds_address "$committer_name"; then
+      fail "✗ commit $commit: committer name holds an email address (name withheld)"
     fi
 
     # The whole message, subject and body and trailers alike, so a
@@ -423,11 +612,23 @@ check_fork_commits() {
       fail "✗ email address in a file at commit $commit (commit, file and line only, address withheld):" \
            "$(printf '%s\n' "$hits" | sed 's/^/    /')"
     fi
+
+    # 5b. The names in that commit's tree. A path that once held an address is
+    # published by the commit that carried it, the same way a line of a file is.
+    status=0
+    hits="$(names_with_addresses "$commit")" || status=$?
+    if [ "$status" -ne 0 ]; then
+      fail "✗ git failed while listing the file names of commit $commit"
+    elif [ -n "$hits" ]; then
+      fail "✗ email address in a file name at commit $commit (address blanked out):" \
+           "$(printf '%s\n' "$hits" | sed 's/^/    /')"
+    fi
   done <<< "$commits"
 }
 
 check_working_tree
 check_index
+check_tracked_names
 # A hosted runner has no configured identity and never commits, so there is no
 # "next commit" for check 3 to be about. Skipping it there is the one exception
 # to treating an unreadable identity as a failure; it is announced rather than

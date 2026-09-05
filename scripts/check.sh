@@ -44,6 +44,13 @@ device_serial='emulator-5554'
 device_port='5554'
 emulator_avd='bench-pixel6-aosp'
 emulator_boot_timeout_seconds=300
+emulator_shutdown_timeout_seconds=60
+
+# Filled in by instrumented_tests, and read by the helpers below — including the
+# ones the trap calls, which run after the function has returned.
+adb=''
+emulator_pid=''
+emulator_owned=0
 
 # Run one gate. Everything after the label is the command to run, passed as
 # separate words rather than a string, so nothing goes through a second round
@@ -66,13 +73,78 @@ gate() {
   echo "✓ $id $label"
 }
 
-# G7's body. Boots the AVD headless if nothing is already serving on its port,
-# waits for the system to finish booting, runs the instrumented tests of the two
-# modules that have any, and shuts the emulator down again only if this stage is
-# what started it. Returns non-zero on any of those failing, and shuts down
-# before returning, so a failed test run does not leave an emulator behind.
+# Is anything at all sitting on that serial? "Anything", in whatever state adb
+# lists it: an emulator that is still starting is listed `offline`, and asking
+# instead whether it answers `device` would read a booting emulator as "nothing
+# is running", try to start a second one on a port already taken, and then treat
+# the emulator it did not start as its own to kill. Whatever is there is someone
+# else's; the only right move is to wait for it.
+device_on_serial() {
+  "$adb" devices 2>/dev/null \
+    | awk -v serial="$device_serial" '$1 == serial { found = 1 } END { exit found ? 0 : 1 }'
+}
+
+# The AVD name behind the serial, asked of the emulator's own console. Prints
+# nothing when nothing answers. The console replies with the name and then OK,
+# hence the first line only.
+emulator_avd_name() {
+  "$adb" -s "$device_serial" emu avd name 2>/dev/null | head -n 1 | tr -d '\r\n' || true
+}
+
+# The last of the emulator's own output, for the two cases where the emulator
+# failed and its log is the only thing that says why.
+report_emulator_log() {
+  if [ -s "$ROOT/build/emulator.log" ]; then
+    echo "  the last of the emulator's own output (build/emulator.log):" >&2
+    tail -n 40 "$ROOT/build/emulator.log" | sed 's/^/    /' >&2
+  else
+    echo "  build/emulator.log is empty" >&2
+  fi
+}
+
+# Shut down the emulator this stage started, and only that one. Does nothing at
+# all when the stage did not start one, which is what makes it safe to call from
+# the trap as well as from the normal path — it runs once, whoever calls first.
+#
+# `emu kill` is a request, so the process is then waited for rather than assumed
+# gone: a hung emulator holds port 5554 and the next run would find the port
+# taken by something nothing can identify. Returns non-zero when it is still
+# there, so the stage fails rather than reporting a green gate over a machine it
+# has left in a state it did not intend.
+stop_owned_emulator() {
+  local waited=0
+  if [ "$emulator_owned" -ne 1 ]; then
+    return 0
+  fi
+  emulator_owned=0
+  echo "· shutting down $device_serial (this stage started it)"
+  "$adb" -s "$device_serial" emu kill >/dev/null 2>&1 || true
+  while [ "$waited" -lt "$emulator_shutdown_timeout_seconds" ]; do
+    if ! kill -0 "$emulator_pid" 2>/dev/null; then
+      wait "$emulator_pid" 2>/dev/null || true
+      return 0
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  echo "✗ the emulator this stage started (pid $emulator_pid) is still alive" \
+       "${emulator_shutdown_timeout_seconds}s after emu kill" >&2
+  echo "  kill it by hand before running the gate again; it is holding port $device_port" >&2
+  return 1
+}
+
+# G7's body. Uses whatever is already on the serial, or boots the AVD headless
+# itself; either way it checks that the device is the bench AVD before it
+# installs anything on it, waits for the system to finish booting, runs the
+# instrumented tests of the two modules that have any, and shuts the emulator
+# down again only if this stage is what started it.
+#
+# The one rule the whole function is built around: never touch a device this
+# stage did not start. This machine usually has the user's phone plugged in, and
+# an emulator started by hand for a debugging session is just as much someone
+# else's.
 instrumented_tests() {
-  local sdk adb emulator_binary started_here=0 waited=0 status=0 boot=''
+  local sdk emulator_binary waited=0 status=0 boot='' avd_name
 
   sdk="$("$ROOT/scripts/android-sdk-path.sh")" || return 1
   adb="$sdk/platform-tools/adb"
@@ -84,11 +156,8 @@ instrumented_tests() {
     return 1
   fi
 
-  # "Is one already running" is asked of the serial, not of the AVD name: that
-  # is the same question the Gradle task will ask through ANDROID_SERIAL, so if
-  # the answer here is yes the tests will find it too.
-  if [ "$("$adb" -s "$device_serial" get-state 2>/dev/null || true)" = 'device' ]; then
-    echo "· $device_serial is already running; using it and leaving it running afterwards"
+  if device_on_serial; then
+    echo "· something is already on $device_serial; using it and leaving it running afterwards"
   else
     if [ ! -x "$emulator_binary" ]; then
       echo "✗ no emulator at $emulator_binary" >&2
@@ -106,13 +175,34 @@ instrumented_tests() {
     "$emulator_binary" -avd "$emulator_avd" -port "$device_port" \
       -no-window -no-audio -no-snapshot -gpu host -feature -GnssGrpcV1 \
       >"$ROOT/build/emulator.log" 2>&1 &
-    started_here=1
+    emulator_pid=$!
+    emulator_owned=1
+    # From here on there is a process this run is responsible for. The traps
+    # exist for the interrupted run: Ctrl-C during a five-minute test run would
+    # otherwise leave a headless emulator behind with nobody to notice. They
+    # kill only what this stage started, because that is all stop_owned_emulator
+    # ever kills.
+    trap 'stop_owned_emulator || true' EXIT
+    trap 'stop_owned_emulator || true; exit 130' INT
+    trap 'stop_owned_emulator || true; exit 143' TERM
   fi
 
   # Wait for the system to finish booting, not merely for adb to see the device:
   # adb answers "device" while Android is still starting, and a test run started
   # then fails on an install that cannot reach the package manager yet.
+  #
+  # An emulator that cannot start — a taken port, a broken AVD, no KVM — exits
+  # within seconds and says why in its log, so the wait watches the process as
+  # well as the property. Without that, the stage would sit here for five
+  # minutes and then report a boot timeout, which is not what happened.
   while [ "$waited" -lt "$emulator_boot_timeout_seconds" ]; do
+    if [ "$emulator_owned" -eq 1 ] && ! kill -0 "$emulator_pid" 2>/dev/null; then
+      echo "✗ the emulator this stage started exited before $device_serial finished booting" >&2
+      report_emulator_log
+      emulator_owned=0
+      wait "$emulator_pid" 2>/dev/null || true
+      return 1
+    fi
     boot="$("$adb" -s "$device_serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r\n' || true)"
     if [ "$boot" = '1' ]; then
       break
@@ -122,10 +212,23 @@ instrumented_tests() {
   done
   if [ "$boot" != '1' ]; then
     echo "✗ $device_serial did not finish booting within ${emulator_boot_timeout_seconds}s" >&2
-    if [ "$started_here" -eq 1 ]; then
-      echo "  the emulator's own output is in build/emulator.log" >&2
-      "$adb" -s "$device_serial" emu kill >/dev/null 2>&1 || true
+    if [ "$emulator_owned" -eq 1 ]; then
+      report_emulator_log
     fi
+    stop_owned_emulator || true
+    return 1
+  fi
+
+  # Which AVD is that, actually. The serial says where the device is and nothing
+  # about what it is, and this stage is about to install a debug build on it and
+  # run tests that wipe databases. Any other AVD is refused rather than used —
+  # and refused without being killed, since something else is running it.
+  avd_name="$(emulator_avd_name)"
+  if [ "$avd_name" != "$emulator_avd" ]; then
+    echo "✗ the device on $device_serial is not $emulator_avd" >&2
+    echo "  it answers: ${avd_name:-nothing (its console did not reply)}" >&2
+    echo "  fix: stop it, or run the gate when it is not there. Nothing was installed on it." >&2
+    stop_owned_emulator || true
     return 1
   fi
 
@@ -140,9 +243,8 @@ instrumented_tests() {
   ANDROID_SERIAL="$device_serial" "$GRADLE" -q \
     :db:connectedDebugAndroidTest :app:connectedDebugAndroidTest || status=$?
 
-  if [ "$started_here" -eq 1 ]; then
-    echo "· shutting down $device_serial (this stage started it)"
-    "$adb" -s "$device_serial" emu kill >/dev/null 2>&1 || true
+  if ! stop_owned_emulator; then
+    status=1
   fi
 
   return "$status"
