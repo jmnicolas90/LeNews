@@ -3,7 +3,6 @@ package com.readrops.app.more.preferences
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.compose.foundation.layout.Box
@@ -127,33 +126,31 @@ class PreferencesScreen : AndroidScreen() {
                                 onValueChange = { SyncWorker.startPeriodically(context, it) }
                             )
 
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                BasePreference(
-                                    title = stringResource(R.string.disable_battery_optimization),
-                                    subtitle = stringResource(R.string.disable_battery_optimization_subtitle),
-                                    onClick = {
-                                        val powerManager =
-                                            context.getSystemService("power") as PowerManager
-                                        val packageName = context.packageName
+                            BasePreference(
+                                title = stringResource(R.string.disable_battery_optimization),
+                                subtitle = stringResource(R.string.disable_battery_optimization_subtitle),
+                                onClick = {
+                                    val powerManager =
+                                        context.getSystemService("power") as PowerManager
+                                    val packageName = context.packageName
 
-                                        if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
-                                            @SuppressLint("BatteryLife")
-                                            val intent = Intent().apply {
-                                                action =
-                                                    Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
-                                                data = Uri.parse("package:$packageName")
-                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                            }
+                                    if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                                        @SuppressLint("BatteryLife")
+                                        val intent = Intent().apply {
+                                            action =
+                                                Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                                            data = Uri.parse("package:$packageName")
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
 
-                                            context.startActivity(intent)
-                                        } else {
-                                            coroutineScope.launch {
-                                                snackbarHostState.showSnackbar(context.getString(R.string.battery_optimization_already_disabled))
-                                            }
+                                        context.startActivity(intent)
+                                    } else {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar(context.getString(R.string.battery_optimization_already_disabled))
                                         }
                                     }
-                                )
-                            }
+                                }
+                            )
 
                             PreferenceHeader(text = stringResource(id = R.string.timeline))
 

@@ -44,8 +44,6 @@ ksp {
 }
 
 dependencies {
-    coreLibraryDesugaring(libs.jdk.desugar)
-
     implementation(libs.corektx)
     implementation(libs.appcompat)
 

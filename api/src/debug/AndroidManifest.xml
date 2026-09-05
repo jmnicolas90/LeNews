@@ -1,11 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- for tests only -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <application
-        android:requestLegacyExternalStorage="true"
-        android:usesCleartextTraffic="true" />
+    <application android:usesCleartextTraffic="true" />
 
 </manifest>

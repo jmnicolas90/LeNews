@@ -89,8 +89,6 @@ aboutlibraries-composem3 = { module = "com.mikepenz:aboutlibraries-compose-m3", 
 konsumexml = "com.gitlab.mvysny.konsume-xml:konsume-xml:1.4"
 kotlinxmlbuilder = "org.redundent:kotlin-xml-builder:1.9.3"
 
-jdk-desugar = "com.android.tools:desugar_jdk_libs_nio:2.1.5"
-
 jsoup = "org.jsoup:jsoup:1.20.1"
 moshi = "com.squareup.moshi:moshi:1.15.1"
 
