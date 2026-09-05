@@ -64,7 +64,6 @@ class SyncWorker(
         val notificationBuilder = Builder(applicationContext, ReadropsApp.SYNC_CHANNEL_ID)
             .setProgress(0, 0, true)
             .setSmallIcon(R.drawable.ic_sync)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT) // for Android 7.1 and earlier
             .setOngoing(true)
             .setOnlyAlertOnce(true)
 

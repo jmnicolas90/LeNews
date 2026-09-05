@@ -1,7 +1,6 @@
 package com.readrops.app.account.selection
 
 import android.graphics.drawable.AdaptiveIconDrawable
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
@@ -267,17 +266,11 @@ fun adaptiveIconPainterResource(@DrawableRes id: Int): Painter {
     val res = LocalContext.current.resources
     val theme = LocalContext.current.theme
 
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        // Android O supports adaptive icons, try loading this first (even though this is least likely to be the format).
-        val adaptiveIcon = ResourcesCompat.getDrawable(res, id, theme) as? AdaptiveIconDrawable
-        if (adaptiveIcon != null) {
-            BitmapPainter(adaptiveIcon.toBitmap().asImageBitmap())
-        } else {
-            // We couldn't load the drawable as an Adaptive Icon, just use painterResource
-            painterResource(id)
-        }
+    val adaptiveIcon = ResourcesCompat.getDrawable(res, id, theme) as? AdaptiveIconDrawable
+    return if (adaptiveIcon != null) {
+        BitmapPainter(adaptiveIcon.toBitmap().asImageBitmap())
     } else {
-        // We're not on Android O or later, just use painterResource
+        // The drawable is not an adaptive icon, load it as a plain resource
         painterResource(id)
     }
 }

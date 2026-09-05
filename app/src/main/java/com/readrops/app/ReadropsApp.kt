@@ -4,7 +4,6 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
 import coil3.ImageLoader
@@ -90,17 +89,15 @@ open class ReadropsApp : Application(), KoinComponent, SingletonImageLoader.Fact
     }
 
     private fun createNotificationChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val syncChannel = NotificationChannel(
-                SYNC_CHANNEL_ID,
-                getString(R.string.auto_synchro),
-                NotificationManager.IMPORTANCE_LOW
-            )
-            syncChannel.description = getString(R.string.account_synchro)
+        val syncChannel = NotificationChannel(
+            SYNC_CHANNEL_ID,
+            getString(R.string.auto_synchro),
+            NotificationManager.IMPORTANCE_LOW
+        )
+        syncChannel.description = getString(R.string.account_synchro)
 
-            NotificationManagerCompat.from(this)
-                .createNotificationChannel(syncChannel)
-        }
+        NotificationManagerCompat.from(this)
+            .createNotificationChannel(syncChannel)
     }
 
     companion object {

@@ -1,6 +1,5 @@
 package com.readrops.db.util
 
-import android.annotation.SuppressLint
 import android.util.Log
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -50,7 +49,6 @@ object DateUtils {
      * If the provided value is null or the parsing fails, [LocalDateTime.now] is returned.
      * @return parsed date or [LocalDateTime.now]
      */
-    @SuppressLint("NewApi") // works with API 21+ so the lint might be buggy
     @JvmStatic
     fun parse(value: String?): LocalDateTime {
         if (value == null) {
