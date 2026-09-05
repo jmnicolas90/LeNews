@@ -25,11 +25,22 @@ namespace are both `app.lenews`, the libraries are `app.lenews.db` and
 this fork's own and the app on screen is "LeNews", v0.1.0. Nothing under
 `app/src/` says Readrops any more, and no Kotlin file in this repo carries a
 copyright header — upstream shipped none, so the attribution the GPL asks for
-lives in `LICENSE` and in what ticket 08 writes into `README.md`. What still
-says Readrops is deliberate and stays: `CHANGELOG.md`, which records upstream's
-release history; `code-review-02-09-2026.md` at the root, which reviewed
-upstream's code; `docs/research/`, which reports on upstream; and the
-historical record under `.scratch/`.
+lives in `LICENSE`, in `README.md` and in the header rule `CONTRIBUTING.md`
+states (ticket 08). What still says Readrops is deliberate and stays: the
+*Readrops history* half of `CHANGELOG.md`, which is upstream's release history
+kept unedited below LeNews's own; `code-review-02-09-2026.md` at the root, which
+reviewed upstream's code; `docs/research/`, which reports on upstream; the fork
+paragraph of `README.md`; and the historical record under `.scratch/`.
+
+**The public documents are written** (ticket 08). `README.md` describes LeNews
+and only LeNews, including what is *not* done: the three pain points are still
+there. `CONTRIBUTING.md` holds the rule for copyright headers —
+`Copyright (C) 2026 Jean-Michel Nicolas`, name only, on files this fork creates,
+in the comment syntax of their language, *added* under upstream's header and
+never substituted for it, and **not** on Markdown documentation, which says in
+its own prose who wrote it. In this tree that means five `scripts/*.sh`,
+`.github/workflows/ci.yml` and the two fork-drawn launcher drawables carry the
+header, `LICENSE` is byte-identical to upstream's, and nothing else does.
 
 ## Hard constraints — do not break these
 
