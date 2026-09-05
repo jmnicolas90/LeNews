@@ -182,7 +182,7 @@
     <string name="external">வெளிப்புறம்</string>
     <string name="mark_all_articles_read">எல்லா கட்டுரைகளையும் வாசித்தபடி குறிக்கவும்</string>
     <string name="mark_all_articles_read_question">எல்லா உருப்படிகளையும் படிக்க நீங்கள் உண்மையில் குறிக்க விரும்புகிறீர்களா?</string>
-    <string name="readrops_crashed">ரீட் ராப்ச் செயலிழந்தது.</string>
+    <string name="app_crashed">LeNews செயலிழந்தது.</string>
     <string name="crash_message">இதை நீங்கள் காண்கிறீர்கள், இதன் பொருள் பயன்பாடு எதிர்பாராத பிழையில் இயங்கியது. தயவுசெய்து உங்களால் முடிந்தால், கிட்அப்பில் பிழையைப் புகாரளிக்கவும்.</string>
     <string name="report_error_github">கிட்அப்பில் பிழையைப் புகாரளிக்கவும்</string>
     <string name="copy_error_clipboard">பிழையை இடைநிலைப்பலகைக்கு நகலெடுக்கவும்</string>

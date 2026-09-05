@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Placeholder launcher foreground: the letters LN, drawn as four straight-edged
+    paths, inside the adaptive icon's safe zone (the central 66dp of 108dp).
+    Nothing here is upstream's artwork; it is here so the app has a mark of its
+    own until someone draws a real one.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- L -->
+    <path
+        android:pathData="M30,38h8v24h12v8h-20z"
+        android:fillColor="#FFFFFFFF" />
+    <!-- N: left stem, diagonal, right stem -->
+    <path
+        android:pathData="M56,38h7v32h-7z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M56,38L63,38L78,70L71,70z"
+        android:fillColor="#FFFFFFFF" />
+    <path
+        android:pathData="M71,38h7v32h-7z"
+        android:fillColor="#FFFFFFFF" />
+</vector>

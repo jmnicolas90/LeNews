@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name" translatable="false">Readrops</string>
+    <string name="app_name" translatable="false">LeNews</string>
     <string name="add_feed">Add feed</string>
     <string name="settings">Settings</string>
     <string name="add_feed_title">Add feed</string>
@@ -149,7 +149,7 @@
     <string name="update_color">Update color</string>
     <string name="mark_all_articles_read">Mark all articles as read</string>
     <string name="mark_all_articles_read_question">Do you really want to mark all items as read?</string>
-    <string name="readrops_crashed">Readrops crashed.</string>
+    <string name="app_crashed">LeNews crashed.</string>
     <string name="crash_message">I you see this, it means the app ran into an unexpected error. Please if you can, report the error on Github.</string>
     <string name="report_error_github">Report the error on Github</string>
     <string name="copy_error_clipboard">Copy error to clipboard</string>

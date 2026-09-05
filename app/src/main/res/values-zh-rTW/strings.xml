@@ -113,7 +113,7 @@
     <string name="open_source_libraries">開放原始碼函式庫</string>
     <string name="unread">%1$d 未讀</string>
     <string name="preferences">偏好</string>
-    <string name="readrops_crashed">Readrops 崩潰了。</string>
+    <string name="app_crashed">LeNews 崩潰了。</string>
     <string name="copy_error_clipboard">將錯誤訊息複製至剪貼簿</string>
     <string name="copied">已複製！</string>
     <string name="provide_full_url">請提供完整的 API URL</string>

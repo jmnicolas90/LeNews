@@ -1,0 +1,501 @@
+package app.lenews.timelime
+
+import android.content.Context
+import androidx.compose.runtime.Stable
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.map
+import androidx.work.workDataOf
+import cafe.adriel.voyager.core.model.screenModelScope
+import app.lenews.R
+import app.lenews.home.TabScreenModel
+import app.lenews.repositories.GetFoldersWithFeeds
+import app.lenews.sync.SyncWorker
+import app.lenews.timelime.components.SwipeAction
+import app.lenews.timelime.components.TimelineItemSize
+import app.lenews.util.PAGING_INITIAL_SIZE
+import app.lenews.util.PAGING_PAGE_SIZE
+import app.lenews.util.PAGING_PREFETCH_DISTANCE
+import app.lenews.util.Preferences
+import app.lenews.util.Utils
+import app.lenews.util.extensions.clearSerializables
+import app.lenews.util.extensions.getSerializable
+import app.lenews.util.extensions.isConnected
+import app.lenews.db.Database
+import app.lenews.db.entities.Feed
+import app.lenews.db.entities.Folder
+import app.lenews.db.entities.Item
+import app.lenews.db.entities.OpenIn
+import app.lenews.db.filters.MainFilter
+import app.lenews.db.filters.OrderField
+import app.lenews.db.filters.OrderType
+import app.lenews.db.filters.QueryFilters
+import app.lenews.db.filters.SubFilter
+import app.lenews.db.pojo.ItemWithFeed
+import app.lenews.db.queries.ItemSelectionQueryBuilder
+import app.lenews.db.queries.ItemsQueryBuilder
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class TimelineScreenModel(
+    private val database: Database,
+    private val getFoldersWithFeeds: GetFoldersWithFeeds,
+    private val preferences: Preferences,
+    private val context: Context,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO
+) : TabScreenModel(database, context) {
+
+    private val _timelineState = MutableStateFlow(TimelineState())
+    val timelineState = _timelineState.asStateFlow()
+
+    // separate this from main Timeline state for performances
+    // as it will be very often updated
+    private val _listIndexState = MutableStateFlow(0)
+    val listIndexState = _listIndexState.asStateFlow()
+
+    private val filters = MutableStateFlow(_timelineState.value.filters)
+
+    private val useCustomShareIntentTpl = preferences.useCustomShareIntentTpl.flow.stateIn(
+        screenModelScope, SharingStarted.Eagerly, false
+    )
+    private val customShareIntentTpl = preferences.customShareIntentTpl.flow.stateIn(
+        screenModelScope, SharingStarted.Eagerly, ""
+    )
+
+    init {
+        screenModelScope.launch(dispatcher) {
+            var syncAtLaunch = preferences.synchAtLaunch.flow.first()
+            filters.update { it.copy(mainFilter = MainFilter.valueOf(preferences.mainFilter.flow.first())) }
+
+            combine(
+                accountEvent,
+                filters,
+                getTimelinePreferences()
+            ) { account, filters, timelinePreferences ->
+                Triple(account, filters.copy(accountId = account.id), timelinePreferences)
+            }.collectLatest { (account, filters, timelinePreferences) ->
+                _timelineState.update {
+                    it.copy(
+                        preferences = timelinePreferences,
+                        filters = filters.copy(
+                            showReadItems = timelinePreferences.showReadItems,
+                            orderField = timelinePreferences.orderField,
+                            orderType = timelinePreferences.orderType
+                        )
+                    )
+                }
+
+                if (syncAtLaunch) {
+                    refreshTimeline()
+                    syncAtLaunch = false
+                } else {
+                    buildPager()
+                }
+
+                preferences.hideReadFeeds.flow
+                    .flatMapLatest { hideReadFeeds ->
+                        getFoldersWithFeeds.get(
+                            accountId = account.id,
+                            mainFilter = filters.mainFilter,
+                            useSeparateState = account.config.useSeparateState,
+                            hideReadFeeds = hideReadFeeds
+                        )
+                    }
+                    .collect { foldersAndFeeds ->
+                        _timelineState.update {
+                            it.copy(
+                                foldersAndFeeds = foldersAndFeeds
+                            )
+                        }
+                    }
+            }
+        }
+
+        screenModelScope.launch(dispatcher) {
+            accountEvent.flatMapLatest {
+                getFoldersWithFeeds.getNewItemsUnreadCount(it.id, it.config.useSeparateState)
+            }.collectLatest { count ->
+                _timelineState.update {
+                    it.copy(unreadNewItemsCount = count)
+                }
+            }
+        }
+    }
+
+    private fun getTimelinePreferences(): Flow<TimelinePreferences> = with(preferences) {
+        return combine(
+            timelineItemSize.flow,
+            scrollRead.flow,
+            displayNotificationsPermission.flow,
+            showReadItems.flow,
+            orderField.flow,
+            orderType.flow,
+            theme.flow,
+            openLinksWith.flow,
+            globalOpenInAsk.flow,
+            synchAtLaunch.flow,
+            swipeToLeft.flow,
+            swipeToRight.flow,
+            transform = {
+                TimelinePreferences(
+                    itemSize = when (it[0]) {
+                        "compact" -> TimelineItemSize.COMPACT
+                        "regular" -> TimelineItemSize.REGULAR
+                        else -> TimelineItemSize.LARGE
+                    },
+                    markReadOnScroll = it[1] as Boolean,
+                    displayNotificationsPermission = it[2] as Boolean,
+                    showReadItems = it[3] as Boolean,
+                    orderField = OrderField.valueOf(it[4] as String),
+                    orderType = OrderType.valueOf(it[5] as String),
+                    theme = it[6] as String,
+                    openInExternalBrowser = it[7] as String == "external_navigator",
+                    openInAsk = it[8] as Boolean,
+                    syncAtLaunch = it[9] as Boolean,
+                    swipeToLeft = SwipeAction.valueOf(it[10] as String),
+                    swipeToRight = SwipeAction.valueOf(it[11] as String)
+                )
+            }
+        )
+    }
+
+    private fun buildPager(empty: Boolean = false) {
+        val query = ItemsQueryBuilder.buildItemsQuery(
+            queryFilters = _timelineState.value.filters,
+            separateState = currentAccount!!.config.useSeparateState
+        )
+
+        val pager = Pager(
+            config = PagingConfig(
+                initialLoadSize = PAGING_INITIAL_SIZE,
+                pageSize = PAGING_PAGE_SIZE,
+                prefetchDistance = PAGING_PREFETCH_DISTANCE
+            ),
+            pagingSourceFactory = {
+                database.itemDao().selectAll(query)
+            },
+        )
+            .flow
+            .map { pagingData ->
+                pagingData.map { itemWithFeed ->
+                    itemWithFeed.item.tags = database.tagDao().selectAllByItem(itemWithFeed.item.id)
+
+                    itemWithFeed
+                }
+            }
+            .cachedIn(screenModelScope)
+
+        _timelineState.update {
+            it.copy(
+                itemState = if (!empty) {
+                    pager
+                } else {
+                    emptyFlow()
+                },
+                scrollToTop = true,
+                hideReadAllFAB = !currentAccount!!.config.canMarkAllItemsAsRead
+            )
+        }
+
+        _listIndexState.update { 0 }
+    }
+
+    fun refreshTimeline() {
+        if (!context.isConnected()) {
+            _timelineState.update { it.copy(syncError = context.getString(R.string.no_network)) }
+            return
+        }
+
+        buildPager(empty = true)
+
+        screenModelScope.launch(dispatcher) {
+            val workData = workDataOf(SyncWorker.ACCOUNT_ID_KEY to currentAccount!!.id)
+
+            _timelineState.update {
+                it.copy(
+                    isRefreshing = true,
+                    hideReadAllFAB = true
+                )
+            }
+
+            SyncWorker.startNow(context, workData) { workInfo ->
+                when {
+                    workInfo.outputData.getBoolean(SyncWorker.END_SYNC_KEY, false) -> {
+                        _timelineState.update {
+                            it.copy(
+                                isRefreshing = false,
+                                hideReadAllFAB = false,
+                                scrollToTop = true
+                            )
+                        }
+
+                        buildPager()
+                    }
+
+                    workInfo.outputData.getBoolean(SyncWorker.SYNC_FAILURE_KEY, false) -> {
+                        val error =
+                            workInfo.outputData.getSerializable(SyncWorker.SYNC_FAILURE_EXCEPTION_KEY) as Exception?
+                        workInfo.outputData.clearSerializables()
+
+                        _timelineState.update {
+                            it.copy(
+                                syncError = accountError?.genericMessage(error!!),
+                                isRefreshing = false,
+                                hideReadAllFAB = false
+                            )
+                        }
+
+                        buildPager()
+                    }
+                }
+            }
+        }
+    }
+
+    fun openDrawer() {
+        _timelineState.update { it.copy(isDrawerOpen = true) }
+    }
+
+    fun closeDrawer() {
+        _timelineState.update { it.copy(isDrawerOpen = false) }
+    }
+
+    fun updateDrawerDefaultItem(selection: MainFilter) {
+        _timelineState.update {
+            it.copy(
+                filters = updateFilters {
+                    it.filters.copy(
+                        mainFilter = selection,
+                        subFilter = SubFilter.ALL,
+                        feedId = 0,
+                        folderId = 0
+                    )
+                },
+                isDrawerOpen = false
+            )
+        }
+    }
+
+    fun updateDrawerFolderSelection(folder: Folder) {
+        _timelineState.update {
+            it.copy(
+                filters = updateFilters {
+                    it.filters.copy(
+                        subFilter = SubFilter.FOLDER,
+                        folderId = folder.id,
+                        feedId = 0
+                    )
+                },
+                filterFolderName = folder.name!!,
+                isDrawerOpen = false
+            )
+        }
+    }
+
+    fun updateDrawerFeedSelection(feed: Feed) {
+        _timelineState.update {
+            it.copy(
+                filters = updateFilters {
+                    it.filters.copy(
+                        subFilter = SubFilter.FEED,
+                        feedId = feed.id,
+                        folderId = 0
+                    )
+                },
+                filterFeedName = feed.name!!,
+                isDrawerOpen = false
+            )
+        }
+    }
+
+    private fun updateFilters(block: () -> QueryFilters): QueryFilters {
+        val filter = block()
+        filters.update { filter }
+
+        return filter
+    }
+
+    fun setItemRead(item: Item) {
+        item.isRead = true
+
+        screenModelScope.launch(dispatcher) {
+            repository?.setItemReadState(item)
+        }
+    }
+
+    fun updateItemReadState(item: Item) {
+        screenModelScope.launch(dispatcher) {
+            with(item) {
+                isRead = !isRead
+                repository?.setItemReadState(this)
+            }
+        }
+    }
+
+    fun updateStarState(item: Item) {
+        screenModelScope.launch(dispatcher) {
+            with(item) {
+                isStarred = isStarred.not()
+                repository?.setItemStarState(this)
+            }
+        }
+    }
+
+
+    fun setAllItemsRead() {
+        screenModelScope.launch(dispatcher) {
+            when (_timelineState.value.filters.subFilter) {
+                SubFilter.FEED ->
+                    repository?.setAllItemsReadByFeed(
+                        feedId = _timelineState.value.filters.feedId
+                    )
+
+                SubFilter.FOLDER -> repository?.setAllItemsReadByFolder(
+                    folderId = _timelineState.value.filters.folderId
+                )
+
+                else -> when (_timelineState.value.filters.mainFilter) {
+                    MainFilter.STARS -> repository?.setAllStarredItemsRead()
+                    MainFilter.ALL -> repository?.setAllItemsRead()
+                    MainFilter.NEW -> repository?.setAllNewItemsRead()
+                }
+            }
+        }
+    }
+
+    fun openDialog(dialog: DialogState) = _timelineState.update { it.copy(dialog = dialog) }
+
+    fun closeDialog(dialog: DialogState? = null) {
+        _timelineState.update { it.copy(dialog = null) }
+    }
+
+    fun setShowReadItemsState(showReadItems: Boolean) {
+        screenModelScope.launch {
+            preferences.showReadItems.write(showReadItems)
+
+            _timelineState.update {
+                it.copy(
+                    filters = it.filters.copy(showReadItems = showReadItems)
+                )
+            }
+        }
+    }
+
+    fun setOrderFieldState(orderField: OrderField) {
+        screenModelScope.launch {
+            preferences.orderField.write(orderField.name)
+
+            _timelineState.update {
+                it.copy(
+                    filters = it.filters.copy(orderField = orderField)
+                )
+            }
+        }
+    }
+
+    fun setOrderTypeState(orderType: OrderType) {
+        screenModelScope.launch {
+            preferences.orderType.write(orderType.name)
+
+            _timelineState.update {
+                it.copy(filters = it.filters.copy(orderType = orderType))
+            }
+        }
+    }
+
+    fun resetScrollToTop() {
+        _timelineState.update { it.copy(scrollToTop = false) }
+    }
+
+    fun resetSyncError() {
+        _timelineState.update { it.copy(syncError = null) }
+    }
+
+    fun updateLastFirstVisibleItemIndex(index: Int) {
+        _listIndexState.update { index }
+    }
+
+    fun disableDisplayNotificationsPermission() {
+        screenModelScope.launch {
+            preferences.displayNotificationsPermission.write(false)
+        }
+    }
+
+    suspend fun selectItemWithFeed(itemId: Int): ItemWithFeed? {
+        val query =
+            ItemSelectionQueryBuilder.buildQuery(itemId, currentAccount!!.config.useSeparateState)
+        return database.itemDao().selectItemById(query).firstOrNull()
+    }
+
+    fun updateOpenInParameter(feedId: Int, openIn: OpenIn, openInAsk: Boolean) {
+        screenModelScope.launch(dispatcher) {
+            database.feedDao().updateOpenInSetting(feedId, openIn)
+            database.feedDao().updateOpenInAsk(feedId, false)
+            preferences.globalOpenInAsk.write(openInAsk)
+        }
+    }
+
+    fun shareItem(itemWithFeed: ItemWithFeed, context: Context) = Utils.shareItem(
+        itemWithFeed, context, useCustomShareIntentTpl.value, customShareIntentTpl.value
+    )
+}
+
+@Stable
+data class TimelineState(
+    val isRefreshing: Boolean = false,
+    val isDrawerOpen: Boolean = false,
+    val unreadNewItemsCount: Int = 0,
+    val scrollToTop: Boolean = false,
+    val syncError: String? = null,
+    val filters: QueryFilters = QueryFilters(),
+    val filterFeedName: String = "",
+    val filterFolderName: String = "",
+    val foldersAndFeeds: Map<Folder?, List<Feed>> = emptyMap(),
+    val itemState: Flow<PagingData<ItemWithFeed>> = emptyFlow(),
+    val dialog: DialogState? = null,
+    val hideReadAllFAB: Boolean = false,
+    val preferences: TimelinePreferences = TimelinePreferences()
+) {
+
+    val showSubtitle = filters.subFilter != SubFilter.ALL
+}
+
+@Stable
+data class TimelinePreferences(
+    val itemSize: TimelineItemSize = TimelineItemSize.LARGE,
+    val markReadOnScroll: Boolean = false,
+    val displayNotificationsPermission: Boolean = false,
+    val showReadItems: Boolean = true,
+    val orderField: OrderField = OrderField.DATE,
+    val orderType: OrderType = OrderType.DESC,
+    val theme: String = "light",
+    val openInExternalBrowser: Boolean = false,
+    val openInAsk: Boolean = true,
+    val syncAtLaunch: Boolean = false,
+    val swipeToLeft: SwipeAction = SwipeAction.READ,
+    val swipeToRight: SwipeAction = SwipeAction.DISABLED
+)
+
+sealed interface DialogState {
+    data object ConfirmDialog : DialogState
+    data object FilterSheet : DialogState
+    class OpenIn(val itemWithFeed: ItemWithFeed) : DialogState
+}

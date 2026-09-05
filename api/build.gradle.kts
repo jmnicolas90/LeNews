@@ -4,17 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.readrops.api"
+    namespace = "app.lenews.api"
 
     buildTypes {
         debug {
             enableUnitTestCoverage = true
-        }
-
-        create("beta") {
-            initWith(getByName("release"))
-
-            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

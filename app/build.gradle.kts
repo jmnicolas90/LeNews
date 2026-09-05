@@ -16,15 +16,18 @@ val props = Properties().apply {
 
 
 android {
-    namespace = "com.readrops.app"
+    namespace = "app.lenews"
 
     defaultConfig {
-        applicationId = "com.readrops.app"
+        applicationId = "app.lenews"
 
-        versionCode = 22
-        versionName = "2.1.1"
+        // LeNews starts at 1. Nothing upgrades from the Readrops package — the
+        // applicationId changed, so every install is a fresh one — and upstream's
+        // numbers carry no obligation here.
+        versionCode = 1
+        versionName = "0.1.0"
 
-        testInstrumentationRunner = "com.readrops.app.ReadropsTestRunner"
+        testInstrumentationRunner = "app.lenews.LeNewsTestRunner"
     }
 
     buildTypes {
@@ -49,15 +52,13 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
         }
 
-        create("beta") {
-            initWith(getByName("release"))
-
-            applicationIdSuffix = ".beta"
-            signingConfig = signingConfigs.getByName("debug")
-        }
+        // Two build types, no more. Upstream's debug-signed `beta` existed to
+        // hand out pre-releases; LeNews publishes GitHub releases and has no
+        // second audience. The `.debug` suffix stays: it is what lets the store
+        // Readrops and a LeNews debug build sit on the phone at the same time.
 
         configureEach {
-            val shouldSource = name == "debug" || name == "beta"
+            val shouldSource = name == "debug"
             val values = mapOf("url" to "https://", "login" to "", "password" to "")
 
             values.forEach { (param, default) ->
