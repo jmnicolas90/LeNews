@@ -20,6 +20,10 @@ The gate does not exist yet (ticket 03), so verification is by hand: `./gradlew 
 reported 5 `ObsoleteSdkInt` findings right after the raise (4 in `app`, 1 in
 `db`, 0 in `api`) and reports 0 now.
 
+Done in two commits: the raise itself, then a review round that removed two
+more compat shims the raise had made dead (core library desugaring, and the
+legacy storage permission in `api`'s debug manifest).
+
 Removed, file by file:
 
 - `build.gradle.kts` — `minSdk = 21` becomes `minSdk = 31`.
@@ -49,6 +53,31 @@ Removed, file by file:
 - `db/src/main/res/mipmap-anydpi-v26/` renamed to `mipmap-anydpi/`. The `v26`
   qualifier could never lose at minSdk 31.
 
+Removed in the review round:
+
+- Core library desugaring, everywhere: `isCoreLibraryDesugaringEnabled` and
+  the commented-out `add("coreLibraryDesugaring", ...)` block in the root
+  `build.gradle.kts`, the `coreLibraryDesugaring(libs.jdk.desugar)` line in
+  `app`, `api` and `db`, and the now-unused `jdk-desugar` alias in
+  `gradle/libs.versions.toml`. Desugaring backported `java.time`,
+  `java.util.stream` and `java.nio.file` to releases that did not have them;
+  all three are native from API 26, so at a floor of 31 the whole mechanism
+  was a shim for devices the app no longer runs on. Lint raises no `NewApi`
+  in its place, and the debug APK no longer carries any `j$/time` class.
+  Two comments in `db/.../util/DateUtils.kt` that blamed "java.time android
+  desugaring" for strict day-of-week parsing were reworded; the parsing
+  itself is unchanged, `java.time` is strict about that on Android either
+  way.
+- `api/src/debug/AndroidManifest.xml` — the `WRITE_EXTERNAL_STORAGE`
+  permission and `android:requestLegacyExternalStorage="true"`. Scoped
+  storage is enforced from API 29 and the opt-out stopped working at 30, so
+  from a floor of 31 the platform ignores both. Nothing relied on them:
+  `api` has no `androidTest` source set at all, only JVM tests under
+  `api/src/test`, which write nowhere. Neither string appears in `api`'s
+  merged debug manifest nor in the app's. The `INTERNET` permission and
+  `usesCleartextTraffic` in that file stay; MockWebServer needs them, and
+  the cleartext policy is ticket 19's.
+
 Kept, and why:
 
 - `notifications/NotificationsScreen.kt` and `timelime/TimelineTab.kt` check
@@ -60,18 +89,20 @@ Kept, and why:
   APIs need API 23. The comment is stale, but swapping in
   `NetworkCapabilities` is a behaviour change, not a deletion, and this ticket
   deletes only what the raise makes dead. Left for a later ticket.
-- Core library desugaring (`isCoreLibraryDesugaringEnabled`, the
-  `coreLibraryDesugaring` dependencies) is now largely redundant but removing
-  it is a dependency change, which this ticket rules out.
 - `compileSdk` and `targetSdk` stay at 35. Raising `targetSdk` is its own
   future ticket.
 - `.github/workflows/android.yml` names emulator `api-level: 34`, already
   above the new floor, so nothing to change; ticket 03 rewrites it anyway.
 
-Verified by hand, from the worktree: `:app:lintDebug :app:testDebugUnitTest
-:app:assembleDebug` and `:api:lintDebug :db:lintDebug :api:testDebugUnitTest
-:db:testDebugUnitTest` all pass, the debug APK builds, and the three lint HTML
-reports contain no `ObsoleteSdkInt` and no `NewApi`. One incidental note:
+Verified by hand, from the worktree: `:app:lintDebug :api:lintDebug
+:db:lintDebug :app:testDebugUnitTest :api:testDebugUnitTest
+:db:testDebugUnitTest :app:assembleDebug` passes, 146 unit tests green
+(app 4, api 135, db 7), the debug APK builds, and the three lint reports
+contain no `ObsoleteSdkInt` and no `NewApi`. Lint's exit code proves nothing
+here — `abortOnError` is false — so the reports were read. What they do
+report is unrelated to the floor: 224 `MissingTranslation` and 30
+`UnusedResources` in `app`, 29 `GradleDependency` in `api`, vector-drawable
+warnings in `db`. One incidental note:
 `NextcloudNewsDataSourceTest.classicSyncTest` failed once under load and
 passed on every rerun, on this branch and on the untouched base alike; it is a
 timing-sensitive MockWebServer test that upstream already annotated as

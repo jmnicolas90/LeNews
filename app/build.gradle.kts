@@ -89,8 +89,6 @@ dependencies {
     implementation(project(":api"))
     implementation(project(":db"))
 
-    coreLibraryDesugaring(libs.jdk.desugar)
-
     implementation(libs.corektx)
     implementation(libs.appcompat)
     implementation(libs.material)

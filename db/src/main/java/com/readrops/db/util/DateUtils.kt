@@ -20,8 +20,9 @@ object DateUtils {
      * Fri, 04 Jan 2019 22:21:46 GMT
      * Fri, 04 Jan 2019 22:21:46 +0000
      *
-     * Base pattern is "EEE, dd MMM yyyy HH:mm:ss" but as java.time android desugaring is very strict,
-     * using the date to guess the day of week prevents some parsing failures
+     * Base pattern is "EEE, dd MMM yyyy HH:mm:ss" but java.time is strict about the day of
+     * week matching the date, so dropping it and deriving the day from the date prevents
+     * some parsing failures
      */
     private const val RSS_2_BASE_PATTERN = "dd MMM yyyy HH:mm:ss"
 
@@ -56,7 +57,7 @@ object DateUtils {
         }
 
         // RSS2 base pattern, we remove the day of week to avoid some parsing failures
-        // from java.time android desugaring version
+        // when a feed states a day that does not match the date
         val formattedValue = if (value.contains(",") == true) {
             value.removeRange(0..4)
         } else {

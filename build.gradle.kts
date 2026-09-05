@@ -68,15 +68,9 @@ fun configure(extension: BaseExtension) = with(extension) {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-
-        isCoreLibraryDesugaringEnabled = true
     }
 
     lintOptions.isAbortOnError = false
-
-    /*dependencies {
-        add("coreLibraryDesugaring", libs.jdk.desugar)
-    }*/
 }
 
 tasks.register<Delete>("clean") {

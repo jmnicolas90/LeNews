@@ -39,8 +39,6 @@ android {
 dependencies {
     implementation(project(":db"))
 
-    coreLibraryDesugaring(libs.jdk.desugar)
-
     implementation(libs.coroutines.core)
 
     implementation(platform(libs.koin.bom))
