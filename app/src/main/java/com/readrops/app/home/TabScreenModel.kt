@@ -50,19 +50,16 @@ abstract class TabScreenModel(
                 .distinctUntilChanged()
                 .collect { account ->
                     if (account != null) {
-                        if (!account.isLocal) {
-                            if (account.login == null || account.password == null) {
-                                val encryptedPreferences = get<SharedPreferences>()
+                        if (account.login == null || account.password == null) {
+                            val encryptedPreferences = get<SharedPreferences>()
 
-                                account.login =
-                                    encryptedPreferences.getString(account.loginKey, null)
-                                account.password =
-                                    encryptedPreferences.getString(account.passwordKey, null)
-                            }
-
-                            // very important to avoid credentials conflicts between accounts
-                            get<AuthInterceptor>().credentials = Credentials.toCredentials(account)
+                            account.login = encryptedPreferences.getString(account.loginKey, null)
+                            account.password =
+                                encryptedPreferences.getString(account.passwordKey, null)
                         }
+
+                        // very important to avoid credentials conflicts between accounts
+                        get<AuthInterceptor>().credentials = Credentials.toCredentials(account)
 
                         currentAccount = account
                         repository = get(parameters = { parametersOf(account) })

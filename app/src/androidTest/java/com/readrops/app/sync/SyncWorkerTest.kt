@@ -14,12 +14,11 @@ import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.TestListenableWorkerBuilder
 import androidx.work.testing.WorkManagerTestInitHelper
 import androidx.work.workDataOf
-import com.readrops.api.utils.ApiUtils
 import com.readrops.app.testutil.ReadropsTestRule
 import com.readrops.app.testutil.TestUtils
+import com.readrops.app.testutil.okResponseWithBody
 import com.readrops.app.util.extensions.getSerializable
 import com.readrops.db.Database
-import com.readrops.db.entities.Feed
 import com.readrops.db.entities.account.Account
 import com.readrops.db.entities.account.AccountType
 import junit.framework.TestCase.assertNotNull
@@ -30,14 +29,14 @@ import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
-import okio.Buffer
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.koin.test.KoinTest
 import org.koin.test.inject
-import java.net.HttpURLConnection
+import java.net.URLDecoder
+import java.util.Collections
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -65,54 +64,38 @@ class SyncWorkerTest : KoinTest {
     private val mockServer = MockWebServer()
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
+    // written from the MockWebServer dispatcher threads, read from the test thread
+    private val editTagRequests = Collections.synchronizedList(mutableListOf<String>())
+
     @get:Rule
     val rule = ReadropsTestRule()
 
-    private val localAccount = Account(
-        name = "Local account",
-        type = AccountType.LOCAL,
+    private val account = Account(
+        name = "Account",
+        type = AccountType.FRESHRSS,
+        url = mockServer.url("/").toString(),
+        writeToken = "writeToken",
         isNotificationsEnabled = true
     )
 
-    private val feverAccount = Account(
-        name = "Fever account",
-        type = AccountType.FEVER,
-    )
-
-    private val localFeed = Feed(
-        name = "Hacker news",
-        url = mockServer.url("/local").toString(),
-        isNotificationEnabled = true
+    // an account with no url makes the synchronization fail before any request
+    private val brokenAccount = Account(
+        name = "Broken account",
+        type = AccountType.FRESHRSS
     )
 
     @Before
     fun before() = runTest {
-        //mockServer.start()
-
         val config = Configuration.Builder()
             .setMinimumLoggingLevel(Log.DEBUG)
             .setExecutor(SynchronousExecutor())
             .build()
         WorkManagerTestInitHelper.initializeTestWorkManager(context, config)
 
-        mockServer.dispatcher = object : Dispatcher() {
+        mockServer.dispatcher = greaderDispatcher("greader/items_1_item.json")
 
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                return MockResponse()
-                    .setResponseCode(HttpURLConnection.HTTP_OK)
-                    .setHeader(ApiUtils.CONTENT_TYPE_HEADER, "application/rss+xml")
-                    .setBody(Buffer().readFrom(TestUtils.loadResource("rss_feed_1_item.xml")))
-            }
-
-        }
-
-        localAccount.id = database.accountDao().insert(localAccount).toInt()
-        feverAccount.id = database.accountDao().insert(feverAccount).toInt()
-
-        localFeed.apply {
-            accountId = localAccount.id
-            id = database.feedDao().insert(localFeed).toInt()
-        }
+        account.id = database.accountDao().insert(account).toInt()
+        brokenAccount.id = database.accountDao().insert(brokenAccount).toInt()
     }
 
     @After
@@ -120,18 +103,69 @@ class SyncWorkerTest : KoinTest {
         mockServer.shutdown()
         database.clearAllTables()
         notificationManager.cancelAll()
+        editTagRequests.clear()
+    }
+
+    /**
+     * Answers the calls one synchronization makes, with a single new article.
+     *
+     * The article the notification is about is also the one id the unread ids call
+     * returns, so the synchronization gives it a row in ItemState, which is where a
+     * FreshRSS account keeps its read and starred state.
+     */
+    private fun greaderDispatcher(itemsResource: String) = object : Dispatcher() {
+
+        override fun dispatch(request: RecordedRequest): MockResponse {
+            val url = request.requestUrl!!
+
+            with(request.path!!) {
+                return when {
+                    contains("tag/list") -> {
+                        MockResponse.okResponseWithBody(TestUtils.loadResource("greader/folders.json"))
+                    }
+
+                    contains("subscription/list") -> {
+                        MockResponse.okResponseWithBody(TestUtils.loadResource("greader/feeds.json"))
+                    }
+
+                    contains("contents/user/-/state/com.google/reading-list") -> {
+                        MockResponse.okResponseWithBody(TestUtils.loadResource(itemsResource))
+                    }
+
+                    contains("contents/user/-/state/com.google/starred") -> {
+                        MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_empty.json"))
+                    }
+
+                    // the three ids calls differ by what they ask the server to
+                    // leave out: nothing for the starred ids, the read articles for
+                    // the unread ids, the unread ones for the read ids
+                    contains("stream/items/ids") -> when (url.queryParameter("xt")) {
+                        GOOGLE_READ ->
+                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_unread_ids.json"))
+
+                        GOOGLE_UNREAD ->
+                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_no_ids.json"))
+
+                        else ->
+                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_starred_ids.json"))
+                    }
+
+                    contains("edit-tag") -> {
+                        editTagRequests += URLDecoder.decode(request.body.readUtf8(), "UTF-8")
+                        MockResponse().setResponseCode(200).setBody("OK")
+                    }
+
+                    else -> MockResponse().setResponseCode(404)
+                }
+            }
+        }
     }
 
     @Test
     fun manualWorkerTest() = runTest {
         val worker = TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
             .setTags(listOf(SyncWorker.WORK_MANUAL))
-            .setInputData(
-                workDataOf(
-                    SyncWorker.ACCOUNT_ID_KEY to localAccount.id,
-                    SyncWorker.FEED_ID_KEY to localFeed.id
-                )
-            )
+            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         val result = worker.doWork()
@@ -146,12 +180,7 @@ class SyncWorkerTest : KoinTest {
     fun autoWorkerWithNotificationsTest() = runBlocking {
         val worker = TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
             .setTags(listOf(SyncWorker.WORK_AUTO))
-            .setInputData(
-                workDataOf(
-                    SyncWorker.ACCOUNT_ID_KEY to localAccount.id,
-                    SyncWorker.FEED_ID_KEY to localFeed.id
-                )
-            )
+            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         val result = worker.doWork()
@@ -159,22 +188,53 @@ class SyncWorkerTest : KoinTest {
         assertTrue { result is ListenableWorker.Result.Success }
         assertTrue { result.outputData.getBoolean(SyncWorker.END_SYNC_KEY, false) }
 
-        with(notificationManager.activeNotifications.first()) {
+        val notification = with(notificationManager.activeNotifications.first()) {
             assertEquals(SyncWorker.SYNC_RESULT_NOTIFICATION_ID, id)
             assertEquals(
-                "Hacker news",
+                "FreshRSS @ GitHub",
                 this.notification.extras.getString(Notification.EXTRA_TITLE)
             )
 
-            notification.actions.forEach { it.actionIntent.send() }
+            this.notification
+        }
 
-            // wait for global scope to execute in SyncBroadcastReceiver
-            delay(1000L)
+        // the actions are added in this order, and are triggered one at a time
+        // because each one waits on the state the other wrote
+        val (markReadAction, starAction) = notification.actions
 
-            val items = database.itemDao().selectItems(localFeed.id)
+        markReadAction.actionIntent.send()
+        delay(1000L) // wait for global scope to execute in SyncBroadcastReceiver
+        starAction.actionIntent.send()
+        delay(1000L)
 
-            assertTrue { items.first().isRead }
-            assertTrue { items.first().isStarred }
+        // a FreshRSS account keeps its read and starred state in ItemState, which is
+        // what the timeline reads; the Item row is not where the actions belong
+        val itemState = database.itemStateDao().selectItemState(account.id, ITEM_REMOTE_ID)
+        assertTrue { itemState.read }
+        assertTrue { itemState.starred }
+
+        // and both changes are queued for the next synchronization to upload
+        val feed = database.feedDao().selectFeeds(account.id).first()
+        val item = database.itemDao().selectItems(feed.id).first()
+        assertTrue { database.itemStateChangeDao().readStateChangeExists(item.id) }
+        assertTrue { database.itemStateChangeDao().starStateChangeExists(item.id) }
+
+        // the next synchronization uploads them
+        editTagRequests.clear()
+
+        val nextWorker =
+            TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
+                .setTags(listOf(SyncWorker.WORK_MANUAL))
+                .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
+                .build()
+
+        assertTrue { nextWorker.doWork() is ListenableWorker.Result.Success }
+
+        assertTrue {
+            editTagRequests.any { it.contains("a=$GOOGLE_READ") && it.contains(ITEM_REMOTE_ID) }
+        }
+        assertTrue {
+            editTagRequests.any { it.contains("a=$GOOGLE_STARRED") && it.contains(ITEM_REMOTE_ID) }
         }
     }
 
@@ -186,23 +246,13 @@ class SyncWorkerTest : KoinTest {
         val request1 = OneTimeWorkRequestBuilder<SyncWorker>()
             .addTag(SyncWorker.TAG)
             .addTag(SyncWorker.WORK_MANUAL)
-            .setInputData(
-                workDataOf(
-                    SyncWorker.ACCOUNT_ID_KEY to localAccount.id,
-                    SyncWorker.FEED_ID_KEY to localFeed.id
-                )
-            )
+            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         val request2 = OneTimeWorkRequestBuilder<SyncWorker>()
             .addTag(SyncWorker.TAG)
             .addTag(SyncWorker.WORK_MANUAL)
-            .setInputData(
-                workDataOf(
-                    SyncWorker.ACCOUNT_ID_KEY to localAccount.id,
-                    SyncWorker.FEED_ID_KEY to localFeed.id
-                )
-            )
+            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         workManager.enqueue(request1)
@@ -242,11 +292,7 @@ class SyncWorkerTest : KoinTest {
         val manualWorker =
             TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
                 .setTags(listOf(SyncWorker.WORK_MANUAL))
-                .setInputData(
-                    workDataOf(
-                        SyncWorker.ACCOUNT_ID_KEY to feverAccount.id,
-                    )
-                )
+                .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to brokenAccount.id))
                 .build()
 
         val result = manualWorker.doWork()
@@ -258,11 +304,7 @@ class SyncWorkerTest : KoinTest {
         val autoWorker =
             TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
                 .setTags(listOf(SyncWorker.WORK_AUTO))
-                .setInputData(
-                    workDataOf(
-                        SyncWorker.ACCOUNT_ID_KEY to feverAccount.id,
-                    )
-                )
+                .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to brokenAccount.id))
                 .build()
 
         val autoResult = autoWorker.doWork()
@@ -271,29 +313,14 @@ class SyncWorkerTest : KoinTest {
         assertFalse { autoResult.outputData.getBoolean(SyncWorker.SYNC_FAILURE_KEY, false) }
     }
 
-    @Test
-    fun localAccountErrorTest() = runTest {
-        mockServer.dispatcher = object : Dispatcher() {
+    companion object {
 
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                return MockResponse()
-                    .setResponseCode(HttpURLConnection.HTTP_NOT_FOUND)
-            }
-        }
+        // the one article in greader/items_1_item.json, as the unread ids call
+        // returns it: decimal 1625234531559678 is hexadecimal 0005c62466ee28fe
+        private const val ITEM_REMOTE_ID = "tag:google.com,2005:reader/item/0005c62466ee28fe"
 
-        val worker = TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
-            .setTags(listOf(SyncWorker.WORK_MANUAL))
-            .setInputData(
-                workDataOf(
-                    SyncWorker.ACCOUNT_ID_KEY to localAccount.id,
-                    SyncWorker.FEED_ID_KEY to localFeed.id
-                )
-            )
-            .build()
-
-        val result = worker.doWork()
-
-        assertTrue { result is ListenableWorker.Result.Success }
-        assertNotNull { result.outputData.getSerializable(SyncWorker.LOCAL_SYNC_ERRORS_KEY) }
+        private const val GOOGLE_READ = "user/-/state/com.google/read"
+        private const val GOOGLE_UNREAD = "user/-/state/com.google/unread"
+        private const val GOOGLE_STARRED = "user/-/state/com.google/starred"
     }
 }

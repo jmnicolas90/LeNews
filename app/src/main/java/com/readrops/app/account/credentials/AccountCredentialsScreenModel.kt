@@ -10,7 +10,6 @@ import com.readrops.app.util.Utils
 import com.readrops.app.util.components.TextFieldError
 import com.readrops.db.Database
 import com.readrops.db.entities.account.Account
-import com.readrops.db.entities.account.AccountType
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.update
@@ -27,7 +26,7 @@ class AccountCredentialsScreenModel(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     context: Context,
 ) : StateScreenModel<AccountCredentialsState>(
-    initAccountCredentialsState(account, context)
+    initAccountCredentialsState(context)
 ), KoinComponent {
     init {
         if (mode == AccountCredentialsScreenMode.EDIT_CREDENTIALS) {
@@ -134,33 +133,13 @@ class AccountCredentialsScreenModel(
     }
 
     companion object {
-        fun initAccountCredentialsState(account: Account, context: Context): AccountCredentialsState = when(account.type) {
-            AccountType.NEXTCLOUD_NEWS -> AccountCredentialsState(
-                url = context.getString(R.string.debug_nextcloud_news_url),
-                login = context.getString(R.string.debug_nextcloud_news_login),
-                password = context.getString(R.string.debug_nextcloud_news_password),
-            )
-            AccountType.FRESHRSS -> AccountCredentialsState(
+        // the debug build fills the fields in from local.properties, the release build leaves them empty
+        fun initAccountCredentialsState(context: Context): AccountCredentialsState =
+            AccountCredentialsState(
                 url = context.getString(R.string.debug_freshrss_url),
                 login = context.getString(R.string.debug_freshrss_login),
                 password = context.getString(R.string.debug_freshrss_password),
             )
-            AccountType.FEVER -> AccountCredentialsState(
-                url = context.getString(R.string.debug_fever_url),
-                login = context.getString(R.string.debug_fever_login),
-                password = context.getString(R.string.debug_fever_password),
-            )
-            AccountType.GREADER -> AccountCredentialsState(
-                url = context.getString(R.string.debug_greader_url),
-                login = context.getString(R.string.debug_greader_login),
-                password = context.getString(R.string.debug_greader_password),
-            )
-            null, AccountType.FEEDLY, AccountType.LOCAL -> AccountCredentialsState(
-                url = context.getString(R.string.debug_local_url),
-                login = context.getString(R.string.debug_local_login),
-                password = context.getString(R.string.debug_local_password),
-            )
-        }
     }
 }
 

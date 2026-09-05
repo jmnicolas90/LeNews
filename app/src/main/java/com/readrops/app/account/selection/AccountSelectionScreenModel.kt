@@ -1,35 +1,15 @@
 package com.readrops.app.account.selection
 
-import android.content.Context
-import android.net.Uri
-import androidx.core.net.toFile
 import cafe.adriel.voyager.core.model.StateScreenModel
-import cafe.adriel.voyager.core.model.screenModelScope
-import com.readrops.api.opml.OPMLParser
-import com.readrops.app.R
-import com.readrops.app.repositories.BaseRepository
-import com.readrops.app.util.accounterror.AccountError
 import com.readrops.db.Database
-import com.readrops.db.entities.Feed
-import com.readrops.db.entities.Folder
-import com.readrops.db.entities.account.Account
 import com.readrops.db.entities.account.AccountType
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.get
-import org.koin.core.parameter.parametersOf
 
 class AccountSelectionScreenModel(
-    private val database: Database,
-    context: Context,
-    private val dispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val database: Database
 ) : StateScreenModel<AccountSelectionState>(AccountSelectionState()), KoinComponent {
-
-    private val accountError = AccountError.Companion.DefaultAccountError(context)
 
     fun accountExists(): Boolean {
         val accountCount = runBlocking {
@@ -40,112 +20,14 @@ class AccountSelectionScreenModel(
     }
 
     fun createAccount(accountType: AccountType) {
-        if (accountType == AccountType.LOCAL) {
-            screenModelScope.launch(dispatcher) {
-                createLocalAccount()
-                mutableState.update { it.copy(navigation = Navigation.HomeScreen) }
-            }
-        } else {
-            mutableState.update {
-                it.copy(navigation = Navigation.AccountCredentialsScreen(accountType))
-            }
-        }
+        mutableState.update { it.copy(accountTypeToCreate = accountType) }
     }
 
-    fun resetNavigation() {
-        mutableState.update { it.copy(navigation = null) }
+    fun resetAccountTypeToCreate() {
+        mutableState.update { it.copy(accountTypeToCreate = null) }
     }
-
-    private suspend fun createLocalAccount(): Account {
-        val context = get<Context>()
-        val account = Account(
-            url = null,
-            name = context.getString(AccountType.LOCAL.nameRes),
-            type = AccountType.LOCAL,
-            isCurrentAccount = true
-        )
-
-        account.id = database.accountDao().insert(account).toInt()
-        return account
-    }
-
-    fun parseOPMLFile(uri: Uri, context: Context) {
-        screenModelScope.launch(dispatcher) {
-            val foldersAndFeeds: Map<Folder?, List<Feed>>
-
-            try {
-                val stream = context.contentResolver.openInputStream(uri)
-                if (stream == null) {
-                    mutableState.update { it.copy(error = accountError.genericMessage(NoSuchFileException(uri.toFile()))) }
-                    return@launch
-                }
-
-                foldersAndFeeds = OPMLParser.read(stream)
-            } catch (e: Exception) {
-                mutableState.update { it.copy(error = accountError.genericMessage(e)) }
-                return@launch
-            }
-
-            if (foldersAndFeeds.isEmpty()) {
-                mutableState.update { it.copy(error = context.getString(R.string.empty_file)) }
-                return@launch
-            }
-
-            mutableState.update {
-                it.copy(
-                    dialog = DialogState.OPMLImport,
-                    currentFeed = foldersAndFeeds.values.first().first().name,
-                    feedCount = 0,
-                    feedMax = foldersAndFeeds.values.flatten().size
-                )
-            }
-
-            val account = createLocalAccount()
-            val repository = get<BaseRepository> { parametersOf(account) }
-
-            repository.insertOPMLFoldersAndFeeds(
-                foldersAndFeeds = foldersAndFeeds,
-                onUpdate = { feed ->
-                    mutableState.update {
-                        it.copy(
-                            currentFeed = feed.name,
-                            feedCount = it.feedCount + 1
-                        )
-                    }
-                }
-            )
-
-            mutableState.update {
-                it.copy(
-                    dialog = null,
-                    navigation = Navigation.HomeScreen
-                )
-            }
-        }
-    }
-
-    fun resetException() = mutableState.update { it.copy(error = null) }
-
-    fun openDialog(dialog: DialogState) = mutableState.update { it.copy(dialog = dialog) }
-
-    fun closeDialog() = mutableState.update { it.copy(dialog = null) }
 }
 
 data class AccountSelectionState(
-    val error: String? = null,
-    val currentFeed: String? = null,
-    val feedCount: Int = 0,
-    val feedMax: Int = 0,
-    val dialog: DialogState? = null,
-    val navigation: Navigation? = null
+    val accountTypeToCreate: AccountType? = null
 )
-
-sealed class Navigation {
-    data object HomeScreen : Navigation()
-    data class AccountCredentialsScreen(val type: AccountType) : Navigation()
-}
-
-sealed interface DialogState {
-    data object OPMLImport : DialogState
-    data class AccountWarning(val type: AccountType) : DialogState
-}

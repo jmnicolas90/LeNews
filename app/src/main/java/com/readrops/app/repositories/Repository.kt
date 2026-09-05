@@ -1,7 +1,6 @@
 package com.readrops.app.repositories
 
 import androidx.room.withTransaction
-import com.readrops.api.services.fever.adapters.Favicon
 import com.readrops.db.Database
 import com.readrops.db.entities.Feed
 import com.readrops.db.entities.Folder
@@ -13,32 +12,15 @@ typealias ErrorResult = HashMap<Feed, Exception>
 
 data class SyncResult(
     val items: List<Item> = listOf(),
-    val feeds: List<Feed> = listOf(),
-    val favicons: Map<Feed, Favicon> = emptyMap() // only for Fever
+    val feeds: List<Feed> = listOf()
 )
 
 interface Repository {
 
-    /**
-     * This method is intended for remote accounts.
-     */
     suspend fun login(account: Account)
 
     /**
-     * Global synchronization for the local account.
-     * @param selectedFeeds feeds to be updated, will fetch all account feeds if list is empty
-     * @param onUpdate notify each feed update
-     * @return newly inserted items and feeds used by background synchronization and notifications,
-     * and errors per feed if occurred to be transmitted to the user
-     */
-    suspend fun synchronize(
-        selectedFeeds: List<Feed>,
-        onUpdate: suspend (Feed) -> Unit
-    ): Pair<SyncResult, ErrorResult>
-
-    /**
-     * Global synchronization for remote accounts. Unlike the local account, remote accounts
-     * won't benefit from synchronization status and granular synchronization
+     * Global synchronization
      * @return the result of the synchronization: newly inserted items and feeds
      */
     suspend fun synchronize(): SyncResult
@@ -86,10 +68,6 @@ abstract class BaseRepository(
                     )
                 }
 
-                account.isLocal -> {
-                    database.itemDao().updateReadState(item.id, item.isRead)
-                }
-
                 else -> {
                     database.itemStateChangeDao().upsertItemReadStateChange(item, account.id, false)
                     database.itemDao().updateReadState(item.id, item.isRead)
@@ -112,10 +90,6 @@ abstract class BaseRepository(
                             accountId = account.id
                         )
                     )
-                }
-
-                account.isLocal -> {
-                    database.itemDao().updateStarState(item.id, item.isStarred)
                 }
 
                 else -> {
@@ -154,10 +128,6 @@ abstract class BaseRepository(
                     )
                 }
 
-                account.isLocal -> {
-                    database.itemDao().setAllItemsRead(ids)
-                }
-
                 else -> {
                     items.forEach {
                         database.itemStateChangeDao()
@@ -179,10 +149,6 @@ abstract class BaseRepository(
                     database.itemStateDao().setAllItemsRead(accountId)
                 }
 
-                account.isLocal -> {
-                    database.itemDao().setAllItemsRead(account.id)
-                }
-
                 else -> {
                     database.itemStateChangeDao().upsertAllItemsReadStateChanges(accountId)
                     database.itemDao().setAllItemsRead(accountId)
@@ -199,10 +165,6 @@ abstract class BaseRepository(
                 account.config.useSeparateState -> {
                     database.itemStateChangeDao().upsertStarredItemReadStateChanges(accountId)
                     database.itemStateDao().setAllStarredItemsRead(accountId)
-                }
-
-                account.isLocal -> {
-                    database.itemDao().setAllStarredItemsRead(accountId)
                 }
 
                 else -> {
@@ -223,10 +185,6 @@ abstract class BaseRepository(
                     database.itemStateDao().setAllNewItemsRead(accountId)
                 }
 
-                account.isLocal -> {
-                    database.itemDao().setAllNewItemsRead(accountId)
-                }
-
                 else -> {
                     database.itemStateChangeDao().upsertNewItemReadStateChanges(accountId)
                     database.itemDao().setAllNewItemsRead(accountId)
@@ -244,10 +202,6 @@ abstract class BaseRepository(
                     database.itemStateChangeDao()
                         .upsertItemReadStateChangesByFeed(feedId, accountId)
                     database.itemStateDao().setAllItemsReadByFeed(feedId, accountId)
-                }
-
-                account.isLocal -> {
-                    database.itemDao().setAllItemsReadByFeed(feedId, accountId)
                 }
 
                 else -> {
@@ -270,10 +224,6 @@ abstract class BaseRepository(
                     database.itemStateDao().setAllItemsReadByFolder(folderId, accountId)
                 }
 
-                account.isLocal -> {
-                    database.itemDao().setAllItemsReadByFolder(folderId, accountId)
-                }
-
                 else -> {
                     database.itemStateChangeDao()
                         .upsertItemReadStateChangesByFolder(folderId, accountId)
@@ -281,33 +231,5 @@ abstract class BaseRepository(
                 }
             }
         }
-    }
-
-    suspend fun insertOPMLFoldersAndFeeds(
-        foldersAndFeeds: Map<Folder?, List<Feed>>,
-        onUpdate: (Feed) -> Unit
-    ): ErrorResult {
-        val errors = hashMapOf<Feed, Exception>()
-        val feedsToInsert = arrayListOf<Feed>()
-
-        for ((folder, feeds) in foldersAndFeeds) {
-            if (folder != null) {
-                folder.accountId = account.id
-
-                val dbFolder = database.folderDao().selectFolderByName(folder.name!!, account.id)
-
-                folder.id = dbFolder?.id ?: database.folderDao().insert(folder).toInt()
-            }
-
-            feeds.forEach { it.folderId = folder?.id }
-            feedsToInsert += feeds
-        }
-
-        errors += insertNewFeeds(
-            newFeeds = feedsToInsert,
-            onUpdate = onUpdate
-        )
-
-        return errors
     }
 }

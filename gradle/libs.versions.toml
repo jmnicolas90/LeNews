@@ -86,9 +86,6 @@ retrofit-convertermoshi = { module = "com.squareup.retrofit2:converter-moshi", v
 aboutlibraries = { module = "com.mikepenz.aboutlibraries.plugin:aboutlibraries-plugin", version.ref = "about_libraries" }
 aboutlibraries-composem3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "about_libraries" }
 
-konsumexml = "com.gitlab.mvysny.konsume-xml:konsume-xml:1.4"
-kotlinxmlbuilder = "org.redundent:kotlin-xml-builder:1.9.3"
-
 jsoup = "org.jsoup:jsoup:1.20.1"
 moshi = "com.squareup.moshi:moshi:1.15.1"
 

@@ -3,7 +3,6 @@ package com.readrops.app.item
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.media.MediaScannerConnection
 import android.net.Uri
@@ -33,7 +32,6 @@ import com.readrops.app.util.Utils
 import com.readrops.db.Database
 import com.readrops.db.entities.Item
 import com.readrops.db.entities.account.Account
-import com.readrops.db.entities.account.AccountType
 import com.readrops.db.filters.MainFilter
 import com.readrops.db.filters.QueryFilters
 import com.readrops.db.pojo.ItemWithFeed
@@ -102,15 +100,6 @@ class ItemScreenModel(
             database.accountDao().selectCurrentAccount()
                 .collect { account ->
                     this@ItemScreenModel.account = account!!
-
-                    // With Fever, we notify directly the server about state changes
-                    // so we need account credentials
-                    if (account.type == AccountType.FEVER) {
-                        get<SharedPreferences>().apply {
-                            account.login = getString(account.loginKey, null)
-                            account.password = getString(account.passwordKey, null)
-                        }
-                    }
 
                     repository = get { parametersOf(account) }
 

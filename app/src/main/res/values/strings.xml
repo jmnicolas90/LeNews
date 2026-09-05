@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">Readrops</string>
     <string name="add_feed">Add feed</string>
     <string name="settings">Settings</string>
@@ -53,10 +53,8 @@
     <string name="credentials">Credentials</string>
     <string name="filter_newest">Newest to oldest</string> <!-- keep for new filter -->
     <string name="filter_oldest">Oldest to newest</string> <!-- keep for new filter -->
-    <string name="login_failed">Login failed. Please check your credentials</string>
     <string name="new_account">New account</string>
     <string name="app_url" translatable="false">https://github.com/readrops/Readrops</string>
-    <string name="local">Local</string>
     <string name="delete">Delete</string>
     <string name="app_licence">App released under the GPLv3 licence</string>
     <string name="get_feeds_colors">Get feeds colors</string>
@@ -64,9 +62,6 @@
     <string name="open_items_in">Open items in</string>
     <string name="external_navigator">External web browser</string>
     <string name="share_url">Share URL</string>
-    <string name="opml_import_export">OPML Import/Export</string>
-    <string name="opml_import">OPML import</string>
-    <string name="opml_export">OPML export</string>
     <string name="image_options">Image Options</string>
     <string name="download_image">Download image</string>
     <string name="share_image">Share image</string>
@@ -100,16 +95,6 @@
     <string name="mark_items_read_on_scroll">Mark items read on scroll</string>
     <string name="new_articles">New articles</string>
     <string name="filters">Filters</string>
-    <plurals name="error_occurred">
-        <item quantity="one">An error occurred</item>
-        <item quantity="other">Some errors occurred</item>
-    </plurals>
-    <string name="details">Details</string>
-    <string name="synchronization_errors">Synchronization errors</string>
-    <plurals name="error_occurred_feed">
-        <item quantity="one">An error occurred for the following feed:</item>
-        <item quantity="other">Some errors occurred for the following feeds:</item>
-    </plurals>
     <string name="unreachable_feed_http_error">Unreachable feed, HTTP error %1$s</string>
     <string name="network_failure">Network failure: %1$s</string>
     <string name="processing_feed_error">Processing feed error</string>
@@ -148,7 +133,6 @@
     <string name="disable_battery_optimization">Disable battery optimization</string>
     <string name="disable_battery_optimization_subtitle">Can help with background synchronization not being killed by the system</string>
     <string name="battery_optimization_already_disabled">Battery optimization already disabled for this app</string>
-    <string name="opml_export_success">OPML export success</string>
     <string name="add_to_favorite">Add to favorites</string>
     <string name="grant_access_notifications">Grant access to Notifications</string>
     <string name="system_notifications_disabled">System notifications are currently disabled. Click here to enable them</string>
@@ -163,7 +147,6 @@
     <string name="delete_feed_question">Do you want to delete feed %1$s?</string>
     <string name="delete_folder_question">Do you want to delete folder %1$s? All linked feeds will also be deleted.</string>
     <string name="update_color">Update color</string>
-    <string name="external">External</string>
     <string name="mark_all_articles_read">Mark all articles as read</string>
     <string name="mark_all_articles_read_question">Do you really want to mark all items as read?</string>
     <string name="readrops_crashed">Readrops crashed.</string>
@@ -179,7 +162,6 @@
     <string name="litecoin_copy_address">Litecoin (copy address)</string>
     <string name="donation_text">I you find my work useful and you would like to support me, you can consider making me a donation.</string>
     <string name="downloaded_file">Downloaded file!</string>
-    <string name="provide_full_url">Please provide the full API URL</string>
     <string name="provide_root_url">Please provide the service root URL</string>
     <string name="order_field_tooltip">RSS feeds always contain old articles it is unlikely you will see in your timeline if you order it by date. Ordering by article identifier lets you show all new inserted articles whatever date they might have.</string>
     <string name="date">Date</string>
@@ -192,9 +174,11 @@
     <string name="selected">(%1$s selected)</string>
     <string name="add_selected_feeds">Add %1$s selected feeds</string>
     <string name="enter_url">Enter an URL</string>
-    <string name="feed_already_exists">Feed already exists</string>
-    <string name="invalid_folder">Invalid folder</string>
-    <string name="invalid_feed">Invalid feed</string>
+    <!-- FreshRSS answers HTTP 400 for both "already subscribed" and "no feed
+         there", so this message names both. Untranslated on purpose: which of
+         the 14 inherited locales LeNews keeps is still an open product call,
+         and inventing translations would pre-empt it. -->
+    <string name="freshrss_feed_not_added" tools:ignore="MissingTranslation">FreshRSS could not add this feed: it is not a feed it can read, or it is already subscribed</string>
     <string name="error_image_download">An error occurred while downloading the image</string>
     <string name="enable_notifications">Enable notifications</string>
     <string name="account_notifications_disabled">Account notifications are currently disabled</string>
@@ -213,11 +197,6 @@
     <string name="load_color_new_favicon">Load color from a new favicon</string>
     <string name="error_occurred_reloading_favicon_color">An error occurred while reloading favicon color</string>
     <string name="use_default_color">Use default color</string>
-    <string name="warning">Warning</string>
-    <string name="understand">I understand</string>
-    <string name="greader_warning">Google Reader is a very old API and lack documentation. It may not be implemented in every aggregator the same way and thus might not work well.\n\nIf you encounter any synchronization problem, please report them to Readrops Github repository.</string>
-    <string name="fever_warning">Fever is a very old, limited and depreciated API. It doesn\'t support feed and folder management. It is also poorly documented, may not be implemented in every aggregator the same way and thus might not work well.\n\nIf you encounter any synchronization problem, please report them to Readrops Github repository.</string>
-    <string name="api">API</string>
 
     <!-- custom share intent text -->
     <string name="use_custom_share_intent_tpl">Customize the text when sharing to other apps</string>
@@ -240,6 +219,5 @@
     <string name="swipe_to_left_action">Swipe to left action</string>
     <string name="freshrss_delete_folder_question">Do you want to delete folder %1$s? All linked feeds will be put in the default folder.</string>
     <string name="no_network">No network connection available</string>
-    <string name="empty_file">File is empty</string>
     <string name="color_contrast_too_low">Contrast with background is too low. The default color will be used instead when using this theme.</string>
 </resources>

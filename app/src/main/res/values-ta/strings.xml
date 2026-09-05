@@ -192,7 +192,6 @@
     <string name="order_by">வழங்கியவர்</string>
     <string name="with_direction">திசையுடன்</string>
     <string name="enter_url">ஒரு முகவரி ஐ உள்ளிடவும்</string>
-    <string name="feed_already_exists">ஊட்டம் ஏற்கனவே உள்ளது</string>
     <string name="invalid_folder">தவறான கோப்புறை</string>
     <string name="open_feed_in">திறந்த தீவனம்</string>
     <string name="local_view">உள்ளக பார்வை</string>

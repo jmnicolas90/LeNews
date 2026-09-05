@@ -91,10 +91,10 @@ interface FeedDao : BaseDao<Feed> {
      */
     @Transaction
     suspend fun upsertFeeds(feeds: List<Feed>, account: Account): List<Feed> {
-        val localFeedIds = selectFeedRemoteIds(account.id)
+        val storedFeedIds = selectFeedRemoteIds(account.id)
 
-        val feedsToInsert = feeds.filter { feed -> localFeedIds.none { localFeedId -> feed.remoteId == localFeedId } }
-        val feedsToDelete = localFeedIds.filter { localFeedId -> feeds.none { feed -> localFeedId == feed.remoteId } }
+        val feedsToInsert = feeds.filter { feed -> storedFeedIds.none { storedFeedId -> feed.remoteId == storedFeedId } }
+        val feedsToDelete = storedFeedIds.filter { storedFeedId -> feeds.none { feed -> storedFeedId == feed.remoteId } }
 
         feeds.forEach { feed ->
             feed.folderId = if (feed.remoteFolderId == null) {

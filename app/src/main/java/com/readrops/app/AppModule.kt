@@ -21,11 +21,8 @@ import com.readrops.app.item.ItemScreenModel
 import com.readrops.app.more.preferences.PreferencesScreenModel
 import com.readrops.app.notifications.NotificationsScreenModel
 import com.readrops.app.repositories.BaseRepository
-import com.readrops.app.repositories.FeverRepository
 import com.readrops.app.repositories.GReaderRepository
 import com.readrops.app.repositories.GetFoldersWithFeeds
-import com.readrops.app.repositories.LocalRSSRepository
-import com.readrops.app.repositories.NextcloudNewsRepository
 import com.readrops.app.sync.SyncAnalyzer
 import com.readrops.app.sync.Synchronizer
 import com.readrops.app.timelime.TimelineScreenModel
@@ -33,7 +30,6 @@ import com.readrops.app.util.DataStorePreferences
 import com.readrops.app.util.Preferences
 import com.readrops.db.entities.Feed
 import com.readrops.db.entities.account.Account
-import com.readrops.db.entities.account.AccountType
 import com.readrops.db.filters.QueryFilters
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,9 +44,9 @@ val appModule = module {
 
     factory { FeedScreenModel(get(), get(), androidContext()) }
 
-    factory { (url: String?) -> NewFeedScreenModel(get(), get(), androidContext(), url) }
+    factory { (url: String?) -> NewFeedScreenModel(get(), androidContext(), url) }
 
-    factory { AccountSelectionScreenModel(get(), get()) }
+    factory { AccountSelectionScreenModel(get()) }
 
     factory { AccountScreenModel(get(), androidContext()) }
 
@@ -77,28 +73,11 @@ val appModule = module {
     single { GetFoldersWithFeeds(get()) }
 
     factory<BaseRepository> { (account: Account) ->
-        when (account.type) {
-            AccountType.LOCAL -> LocalRSSRepository(get(), get(), account)
-            AccountType.FRESHRSS, AccountType.GREADER -> GReaderRepository(
-                database = get(),
-                account = account,
-                dataSource = get(parameters = { parametersOf(Credentials.toCredentials(account)) })
-            )
-
-            AccountType.NEXTCLOUD_NEWS -> NextcloudNewsRepository(
-                database = get(),
-                account = account,
-                dataSource = get(parameters = { parametersOf(Credentials.toCredentials(account)) })
-            )
-
-            AccountType.FEVER -> FeverRepository(
-                database = get(),
-                account = account,
-                feverDataSource = get(parameters = { parametersOf(Credentials.toCredentials(account)) })
-            )
-
-            else -> throw IllegalArgumentException("Unknown account type")
-        }
+        GReaderRepository(
+            database = get(),
+            account = account,
+            dataSource = get(parameters = { parametersOf(Credentials.toCredentials(account)) })
+        )
     }
 
     single {

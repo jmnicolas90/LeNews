@@ -70,22 +70,9 @@ class SyncWorker(
         return try {
             val synchronizer = get<Synchronizer>()
 
-            val (syncResults, errorResult) = synchronizer.synchronizeAccounts(
+            val syncResults = synchronizer.synchronizeAccounts(
                 notificationBuilder = notificationBuilder,
-                inputData = SyncInputData(
-                    accountId = inputData.getInt(ACCOUNT_ID_KEY, -1),
-                    feedId = inputData.getInt(FEED_ID_KEY, -1),
-                    folderId = inputData.getInt(FOLDER_ID_KEY, -1)
-                ),
-                onUpdate = { feed, feedMax, feedCount ->
-                    setProgress(
-                        workDataOf(
-                            FEED_NAME_KEY to feed.name,
-                            FEED_MAX_KEY to feedMax,
-                            FEED_COUNT_KEY to feedCount
-                        )
-                    )
-                }
+                accountId = inputData.getInt(ACCOUNT_ID_KEY, -1)
             )
 
             notificationManager.cancel(SYNC_NOTIFICATION_ID)
@@ -94,11 +81,7 @@ class SyncWorker(
                 displaySyncResults(syncResults)
             }
 
-            return Result.success(workDataOf(END_SYNC_KEY to true).apply {
-                if (errorResult.isNotEmpty() && isManual) {
-                    putSerializable(LOCAL_SYNC_ERRORS_KEY, errorResult)
-                }
-            })
+            return Result.success(workDataOf(END_SYNC_KEY to true))
         } catch (e: Exception) {
             Log.e(TAG, "${e.printStackTrace()}")
 
@@ -146,11 +129,11 @@ class SyncWorker(
                 .setAutoCancel(true)
 
             notificationContent.item?.let { item ->
-                val itemId = item.id
-
+                // the actions write through the account's repository, so they need
+                // to know which account the article belongs to
                 notificationBuilder
-                    .addAction(getMarkReadAction(itemId))
-                    .addAction(getMarkFavoriteAction(itemId))
+                    .addAction(getMarkReadAction(item.id, notificationContent.accountId))
+                    .addAction(getMarkFavoriteAction(item.id, notificationContent.accountId))
             }
 
             notificationContent.largeIcon?.let { notificationBuilder.setLargeIcon(it) }
@@ -161,10 +144,11 @@ class SyncWorker(
         }
     }
 
-    private fun getMarkReadAction(itemId: Int): Action {
+    private fun getMarkReadAction(itemId: Int, accountId: Int): Action {
         val intent = Intent(applicationContext, SyncBroadcastReceiver::class.java).apply {
             action = SyncBroadcastReceiver.ACTION_MARK_READ
             putExtra(ITEM_ID_KEY, itemId)
+            putExtra(ACCOUNT_ID_KEY, accountId)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -183,10 +167,11 @@ class SyncWorker(
             .build()
     }
 
-    private fun getMarkFavoriteAction(itemId: Int): Action {
+    private fun getMarkFavoriteAction(itemId: Int, accountId: Int): Action {
         val intent = Intent(applicationContext, SyncBroadcastReceiver::class.java).apply {
             action = SyncBroadcastReceiver.ACTION_SET_FAVORITE
             putExtra(ITEM_ID_KEY, itemId)
+            putExtra(ACCOUNT_ID_KEY, accountId)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -218,13 +203,7 @@ class SyncWorker(
         const val SYNC_FAILURE_KEY = "SYNC_FAILURE"
         const val SYNC_FAILURE_EXCEPTION_KEY = "SYNC_FAILURE_EXCEPTION"
         const val ACCOUNT_ID_KEY = "ACCOUNT_ID"
-        const val FEED_ID_KEY = "FEED_ID"
         const val ITEM_ID_KEY = "ITEM_ID"
-        const val FOLDER_ID_KEY = "FOLDER_ID"
-        const val FEED_NAME_KEY = "FEED_NAME"
-        const val FEED_MAX_KEY = "FEED_MAX"
-        const val FEED_COUNT_KEY = "FEED_COUNT"
-        const val LOCAL_SYNC_ERRORS_KEY = "LOCAL_SYNC_ERRORS"
 
         suspend fun startNow(context: Context, data: Data, onUpdate: (WorkInfo) -> Unit) {
             val request = OneTimeWorkRequestBuilder<SyncWorker>()

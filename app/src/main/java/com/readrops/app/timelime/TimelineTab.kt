@@ -19,10 +19,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDrawerState
@@ -58,7 +56,6 @@ import com.readrops.app.timelime.dialog.TimelineDialogs
 import com.readrops.app.timelime.drawer.TimelineDrawer
 import com.readrops.app.util.components.LoadingScreen
 import com.readrops.app.util.components.Placeholder
-import com.readrops.app.util.components.RefreshScreen
 import com.readrops.app.util.extensions.isError
 import com.readrops.app.util.extensions.isLoading
 import com.readrops.app.util.extensions.isNotEmpty
@@ -201,26 +198,6 @@ object TimelineTab : Tab {
             }
         }
 
-        LaunchedEffect(state.localSyncErrors) {
-            if (state.localSyncErrors != null) {
-                val action = snackbarHostState.showSnackbar(
-                    message = context.resources.getQuantityString(
-                        R.plurals.error_occurred,
-                        state.localSyncErrors!!.size
-                    ),
-                    actionLabel = context.getString(R.string.details),
-                    duration = SnackbarDuration.Short
-                )
-
-                if (action == SnackbarResult.ActionPerformed) {
-                    screenModel.openDialog(DialogState.ErrorList(state.localSyncErrors!!))
-                } else {
-                    // remove errors from state
-                    screenModel.closeDialog(DialogState.ErrorList(state.localSyncErrors!!))
-                }
-            }
-        }
-
         LaunchedEffect(state.syncError) {
             if (state.syncError != null) {
                 snackbarHostState.showSnackbar(state.syncError!!)
@@ -284,12 +261,6 @@ object TimelineTab : Tab {
                         .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
                 ) {
                     when {
-                        state.displayRefreshScreen -> RefreshScreen(
-                            currentFeed = state.currentFeed,
-                            feedCount = state.feedCount,
-                            feedMax = state.feedMax
-                        )
-
                         items.isLoading() -> {
                             LoadingScreen(isRefreshing = state.isRefreshing)
                         }

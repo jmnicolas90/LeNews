@@ -129,7 +129,6 @@
     <string name="selected">（已选择 %1$s）</string>
     <string name="add_selected_feeds">添加 %1$s 个所选订阅</string>
     <string name="enter_url">输入 URL</string>
-    <string name="feed_already_exists">订阅已存在</string>
     <string name="invalid_folder">无效的文件夹</string>
     <string name="invalid_feed">无效的订阅</string>
     <string name="error_image_download">下载图片时出错</string>

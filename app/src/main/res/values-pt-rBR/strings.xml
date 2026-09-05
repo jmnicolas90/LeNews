@@ -142,7 +142,6 @@
     <string name="selected">(%1$s selecionado)</string>
     <string name="add_selected_feeds">Adicionar %1$s feeds selecionados</string>
     <string name="enter_url">Insira uma URL</string>
-    <string name="feed_already_exists">O Feed já existe</string>
     <string name="invalid_folder">Pasta inválida</string>
     <string name="invalid_feed">Feed inválido</string>
     <string name="error_image_download">Um erro ocorreu ao baixar a imagem</string>

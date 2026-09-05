@@ -38,11 +38,6 @@ class GReaderRepository(
         account.displayedName = userInfo.userName
     }
 
-    override suspend fun synchronize(
-        selectedFeeds: List<Feed>,
-        onUpdate: suspend (Feed) -> Unit
-    ): Pair<SyncResult, ErrorResult> = throw NotImplementedError("This method can't be called here")
-
     override suspend fun synchronize(): SyncResult {
         val itemStateChanges = database.itemStateChangeDao()
             .selectItemStateChanges(account.id)

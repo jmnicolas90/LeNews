@@ -180,7 +180,6 @@
     <string name="api">API</string>
     <string name="selected">(%1$s seleccionado)</string>
     <string name="enter_url">Introduzca una URL</string>
-    <string name="feed_already_exists">El feed ya existe</string>
     <string name="invalid_folder">Carpeta no válida</string>
     <string name="error_image_download">Ocurrió un error mientras se descargaba la imagen</string>
     <string name="enable_notifications">Permitir notificaciones</string>

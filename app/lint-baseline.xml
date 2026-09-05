@@ -2,6 +2,116 @@
 <issues format="6" by="lint 8.10.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.10.0)" variant="all" version="8.10.0">
 
     <issue
+        id="MissingDefaultResource"
+        message="The plurals &quot;error_occurred_feed&quot; in values-zh-rCN has no declaration in the base `values` folder; this can lead to crashes when the resource is queried in a configuration that does not match this qualifier"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="78"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="MissingDefaultResource"
+        message="The plurals &quot;error_occurred&quot; in values-fr has no declaration in the base `values` folder; this can lead to crashes when the resource is queried in a configuration that does not match this qualifier"
+        errorLine1="    &lt;plurals name=&quot;error_occurred&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="99"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="MissingDefaultResource"
+        message="The plurals &quot;error_occurred_feed&quot; in values-de has no declaration in the base `values` folder; this can lead to crashes when the resource is queried in a configuration that does not match this qualifier"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="103"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="MissingDefaultResource"
+        message="The plurals &quot;error_occurred_feed&quot; in values-ja has no declaration in the base `values` folder; this can lead to crashes when the resource is queried in a configuration that does not match this qualifier"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="104"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="MissingDefaultResource"
+        message="The plurals &quot;error_occurred_feed&quot; in values-fr has no declaration in the base `values` folder; this can lead to crashes when the resource is queried in a configuration that does not match this qualifier"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="105"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="MissingDefaultResource"
+        message="The plurals &quot;error_occurred_feed&quot; in values-pt-rBR has no declaration in the base `values` folder; this can lead to crashes when the resource is queried in a configuration that does not match this qualifier"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="113"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="MissingDefaultResource"
+        message="The plurals &quot;error_occurred_feed&quot; in values-es has no declaration in the base `values` folder; this can lead to crashes when the resource is queried in a configuration that does not match this qualifier"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="116"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="MissingDefaultResource"
+        message="The plurals &quot;error_occurred_feed&quot; in values-zh-rTW has no declaration in the base `values` folder; this can lead to crashes when the resource is queried in a configuration that does not match this qualifier"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="143"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="MissingDefaultResource"
+        message="The plurals &quot;error_occurred_feed&quot; in values-ta has no declaration in the base `values` folder; this can lead to crashes when the resource is queried in a configuration that does not match this qualifier"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="150"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="MissingDefaultResource"
+        message="The plurals &quot;error_occurred_feed&quot; in values-nl has no declaration in the base `values` folder; this can lead to crashes when the resource is queried in a configuration that does not match this qualifier"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="153"
+            column="14"/>
+    </issue>
+
+    <issue
         id="VectorRaster"
         message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
         errorLine1="    android:width=&quot;512dp&quot;"
@@ -608,34 +718,12 @@
 
     <issue
         id="MissingTranslation"
-        message="&quot;login_failed&quot; is not translated in &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;login_failed&quot;>Login failed. Please check your credentials&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="56"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
         message="&quot;new_account&quot; is not translated in &quot;tr&quot; (Turkish)"
         errorLine1="    &lt;string name=&quot;new_account&quot;>New account&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="57"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;local&quot; is not translated in &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;local&quot;>Local&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="59"
+            line="56"
             column="13"/>
     </issue>
 
@@ -646,7 +734,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="60"
+            line="58"
             column="13"/>
     </issue>
 
@@ -657,7 +745,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="61"
+            line="59"
             column="13"/>
     </issue>
 
@@ -668,7 +756,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="62"
+            line="60"
             column="13"/>
     </issue>
 
@@ -679,7 +767,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="63"
+            line="61"
             column="13"/>
     </issue>
 
@@ -690,7 +778,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="64"
+            line="62"
             column="13"/>
     </issue>
 
@@ -701,7 +789,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="65"
+            line="63"
             column="13"/>
     </issue>
 
@@ -712,40 +800,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="66"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;opml_import_export&quot; is not translated in &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>OPML Import/Export&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="67"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;opml_import&quot; is not translated in &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;opml_import&quot;>OPML import&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="68"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;opml_export&quot; is not translated in &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;opml_export&quot;>OPML export&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="69"
+            line="64"
             column="13"/>
     </issue>
 
@@ -756,7 +811,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="70"
+            line="65"
             column="13"/>
     </issue>
 
@@ -767,7 +822,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="71"
+            line="66"
             column="13"/>
     </issue>
 
@@ -778,7 +833,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="72"
+            line="67"
             column="13"/>
     </issue>
 
@@ -789,7 +844,7 @@
         errorLine2="            ~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="73"
+            line="68"
             column="13"/>
     </issue>
 
@@ -800,7 +855,7 @@
         errorLine2="            ~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="74"
+            line="69"
             column="13"/>
     </issue>
 
@@ -811,7 +866,7 @@
         errorLine2="            ~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="75"
+            line="70"
             column="13"/>
     </issue>
 
@@ -822,7 +877,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="76"
+            line="71"
             column="13"/>
     </issue>
 
@@ -833,7 +888,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="77"
+            line="72"
             column="13"/>
     </issue>
 
@@ -844,7 +899,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="78"
+            line="73"
             column="13"/>
     </issue>
 
@@ -855,7 +910,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="79"
+            line="74"
             column="13"/>
     </issue>
 
@@ -866,7 +921,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="80"
+            line="75"
             column="13"/>
     </issue>
 
@@ -877,7 +932,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="81"
+            line="76"
             column="13"/>
     </issue>
 
@@ -888,7 +943,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="82"
+            line="77"
             column="13"/>
     </issue>
 
@@ -899,7 +954,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="83"
+            line="78"
             column="13"/>
     </issue>
 
@@ -910,7 +965,7 @@
         errorLine2="            ~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="84"
+            line="79"
             column="13"/>
     </issue>
 
@@ -921,7 +976,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="85"
+            line="80"
             column="13"/>
     </issue>
 
@@ -932,7 +987,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="86"
+            line="81"
             column="13"/>
     </issue>
 
@@ -943,7 +998,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="87"
+            line="82"
             column="13"/>
     </issue>
 
@@ -954,7 +1009,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="88"
+            line="83"
             column="13"/>
     </issue>
 
@@ -965,7 +1020,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="89"
+            line="84"
             column="13"/>
     </issue>
 
@@ -976,7 +1031,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="90"
+            line="85"
             column="13"/>
     </issue>
 
@@ -987,7 +1042,7 @@
         errorLine2="            ~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="91"
+            line="86"
             column="13"/>
     </issue>
 
@@ -998,7 +1053,7 @@
         errorLine2="            ~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="92"
+            line="87"
             column="13"/>
     </issue>
 
@@ -1009,7 +1064,7 @@
         errorLine2="            ~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="93"
+            line="88"
             column="13"/>
     </issue>
 
@@ -1020,7 +1075,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="94"
+            line="89"
             column="13"/>
     </issue>
 
@@ -1031,7 +1086,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="95"
+            line="90"
             column="13"/>
     </issue>
 
@@ -1042,7 +1097,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="96"
+            line="91"
             column="13"/>
     </issue>
 
@@ -1053,7 +1108,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="98"
+            line="93"
             column="13"/>
     </issue>
 
@@ -1064,7 +1119,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="99"
+            line="94"
             column="13"/>
     </issue>
 
@@ -1075,7 +1130,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="100"
+            line="95"
             column="13"/>
     </issue>
 
@@ -1086,7 +1141,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="101"
+            line="96"
             column="13"/>
     </issue>
 
@@ -1097,52 +1152,8 @@
         errorLine2="            ~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="102"
+            line="97"
             column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;error_occurred&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;plurals name=&quot;error_occurred&quot;>"
-        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="103"
-            column="14"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;details&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;details&quot;>Details&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="107"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;synchronization_errors&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>Synchronization errors&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="108"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;error_occurred_feed&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
-        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="109"
-            column="14"/>
     </issue>
 
     <issue
@@ -1152,7 +1163,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="113"
+            line="98"
             column="13"/>
     </issue>
 
@@ -1163,7 +1174,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="114"
+            line="99"
             column="13"/>
     </issue>
 
@@ -1174,7 +1185,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="115"
+            line="100"
             column="13"/>
     </issue>
 
@@ -1185,7 +1196,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="116"
+            line="101"
             column="13"/>
     </issue>
 
@@ -1196,7 +1207,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="117"
+            line="102"
             column="13"/>
     </issue>
 
@@ -1207,7 +1218,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="118"
+            line="103"
             column="13"/>
     </issue>
 
@@ -1218,7 +1229,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="119"
+            line="104"
             column="13"/>
     </issue>
 
@@ -1229,7 +1240,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="120"
+            line="105"
             column="13"/>
     </issue>
 
@@ -1240,7 +1251,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="121"
+            line="106"
             column="13"/>
     </issue>
 
@@ -1251,7 +1262,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="122"
+            line="107"
             column="13"/>
     </issue>
 
@@ -1262,7 +1273,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="123"
+            line="108"
             column="13"/>
     </issue>
 
@@ -1273,7 +1284,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="124"
+            line="109"
             column="13"/>
     </issue>
 
@@ -1284,7 +1295,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="125"
+            line="110"
             column="13"/>
     </issue>
 
@@ -1295,7 +1306,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="126"
+            line="111"
             column="13"/>
     </issue>
 
@@ -1306,7 +1317,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="127"
+            line="112"
             column="13"/>
     </issue>
 
@@ -1317,7 +1328,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="128"
+            line="113"
             column="13"/>
     </issue>
 
@@ -1328,7 +1339,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="129"
+            line="114"
             column="13"/>
     </issue>
 
@@ -1339,7 +1350,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="130"
+            line="115"
             column="13"/>
     </issue>
 
@@ -1350,7 +1361,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="133"
+            line="118"
             column="13"/>
     </issue>
 
@@ -1361,7 +1372,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="134"
+            line="119"
             column="13"/>
     </issue>
 
@@ -1372,7 +1383,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="135"
+            line="120"
             column="13"/>
     </issue>
 
@@ -1383,7 +1394,7 @@
         errorLine2="            ~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="136"
+            line="121"
             column="13"/>
     </issue>
 
@@ -1394,7 +1405,7 @@
         errorLine2="            ~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="137"
+            line="122"
             column="13"/>
     </issue>
 
@@ -1405,7 +1416,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="138"
+            line="123"
             column="13"/>
     </issue>
 
@@ -1416,7 +1427,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="139"
+            line="124"
             column="13"/>
     </issue>
 
@@ -1427,7 +1438,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="140"
+            line="125"
             column="13"/>
     </issue>
 
@@ -1438,7 +1449,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="141"
+            line="126"
             column="13"/>
     </issue>
 
@@ -1449,7 +1460,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="142"
+            line="127"
             column="13"/>
     </issue>
 
@@ -1460,7 +1471,7 @@
         errorLine2="            ~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="143"
+            line="128"
             column="13"/>
     </issue>
 
@@ -1471,7 +1482,7 @@
         errorLine2="            ~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="144"
+            line="129"
             column="13"/>
     </issue>
 
@@ -1482,7 +1493,7 @@
         errorLine2="            ~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="145"
+            line="130"
             column="13"/>
     </issue>
 
@@ -1493,7 +1504,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="146"
+            line="131"
             column="13"/>
     </issue>
 
@@ -1504,7 +1515,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="147"
+            line="132"
             column="13"/>
     </issue>
 
@@ -1515,7 +1526,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="148"
+            line="133"
             column="13"/>
     </issue>
 
@@ -1526,7 +1537,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="149"
+            line="134"
             column="13"/>
     </issue>
 
@@ -1537,18 +1548,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="150"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;opml_export_success&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>OPML export success&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="151"
+            line="135"
             column="13"/>
     </issue>
 
@@ -1559,7 +1559,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="152"
+            line="136"
             column="13"/>
     </issue>
 
@@ -1570,7 +1570,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="153"
+            line="137"
             column="13"/>
     </issue>
 
@@ -1581,7 +1581,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="154"
+            line="138"
             column="13"/>
     </issue>
 
@@ -1592,7 +1592,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="155"
+            line="139"
             column="13"/>
     </issue>
 
@@ -1603,7 +1603,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="156"
+            line="140"
             column="13"/>
     </issue>
 
@@ -1614,7 +1614,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="157"
+            line="141"
             column="13"/>
     </issue>
 
@@ -1625,7 +1625,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="158"
+            line="142"
             column="13"/>
     </issue>
 
@@ -1636,7 +1636,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="159"
+            line="143"
             column="13"/>
     </issue>
 
@@ -1647,7 +1647,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="160"
+            line="144"
             column="13"/>
     </issue>
 
@@ -1658,7 +1658,7 @@
         errorLine2="            ~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="161"
+            line="145"
             column="13"/>
     </issue>
 
@@ -1669,7 +1669,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="162"
+            line="146"
             column="13"/>
     </issue>
 
@@ -1680,7 +1680,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="163"
+            line="147"
             column="13"/>
     </issue>
 
@@ -1691,7 +1691,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="164"
+            line="148"
             column="13"/>
     </issue>
 
@@ -1702,18 +1702,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="165"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;external&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;external&quot;>External&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="166"
+            line="149"
             column="13"/>
     </issue>
 
@@ -1724,7 +1713,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="167"
+            line="150"
             column="13"/>
     </issue>
 
@@ -1735,7 +1724,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="168"
+            line="151"
             column="13"/>
     </issue>
 
@@ -1746,7 +1735,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="169"
+            line="152"
             column="13"/>
     </issue>
 
@@ -1757,7 +1746,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="170"
+            line="153"
             column="13"/>
     </issue>
 
@@ -1768,7 +1757,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="171"
+            line="154"
             column="13"/>
     </issue>
 
@@ -1779,7 +1768,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="172"
+            line="155"
             column="13"/>
     </issue>
 
@@ -1790,7 +1779,7 @@
         errorLine2="            ~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="173"
+            line="156"
             column="13"/>
     </issue>
 
@@ -1801,7 +1790,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="178"
+            line="161"
             column="13"/>
     </issue>
 
@@ -1812,7 +1801,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="179"
+            line="162"
             column="13"/>
     </issue>
 
@@ -1823,7 +1812,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="180"
+            line="163"
             column="13"/>
     </issue>
 
@@ -1834,18 +1823,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="181"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;provide_full_url&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;provide_full_url&quot;>Please provide the full API URL&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="182"
+            line="164"
             column="13"/>
     </issue>
 
@@ -1856,7 +1834,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="183"
+            line="165"
             column="13"/>
     </issue>
 
@@ -1867,7 +1845,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="184"
+            line="166"
             column="13"/>
     </issue>
 
@@ -1878,7 +1856,7 @@
         errorLine2="            ~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="185"
+            line="167"
             column="13"/>
     </issue>
 
@@ -1889,7 +1867,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="186"
+            line="168"
             column="13"/>
     </issue>
 
@@ -1900,7 +1878,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="187"
+            line="169"
             column="13"/>
     </issue>
 
@@ -1911,7 +1889,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="188"
+            line="170"
             column="13"/>
     </issue>
 
@@ -1922,7 +1900,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="189"
+            line="171"
             column="13"/>
     </issue>
 
@@ -1933,7 +1911,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="190"
+            line="172"
             column="13"/>
     </issue>
 
@@ -1944,7 +1922,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="191"
+            line="173"
             column="13"/>
     </issue>
 
@@ -1955,7 +1933,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="192"
+            line="174"
             column="13"/>
     </issue>
 
@@ -1966,7 +1944,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="193"
+            line="175"
             column="13"/>
     </issue>
 
@@ -1977,40 +1955,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="194"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;feed_already_exists&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;feed_already_exists&quot;>Feed already exists&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="195"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;invalid_folder&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;invalid_folder&quot;>Invalid folder&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="196"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;invalid_feed&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;invalid_feed&quot;>Invalid feed&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="197"
+            line="176"
             column="13"/>
     </issue>
 
@@ -2021,7 +1966,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="198"
+            line="178"
             column="13"/>
     </issue>
 
@@ -2032,7 +1977,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="199"
+            line="179"
             column="13"/>
     </issue>
 
@@ -2043,7 +1988,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="200"
+            line="180"
             column="13"/>
     </issue>
 
@@ -2054,7 +1999,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="201"
+            line="181"
             column="13"/>
     </issue>
 
@@ -2065,7 +2010,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="202"
+            line="182"
             column="13"/>
     </issue>
 
@@ -2076,7 +2021,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="203"
+            line="183"
             column="13"/>
     </issue>
 
@@ -2087,7 +2032,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="204"
+            line="184"
             column="13"/>
     </issue>
 
@@ -2098,7 +2043,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="205"
+            line="185"
             column="13"/>
     </issue>
 
@@ -2109,7 +2054,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="206"
+            line="186"
             column="13"/>
     </issue>
 
@@ -2120,7 +2065,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="207"
+            line="187"
             column="13"/>
     </issue>
 
@@ -2131,7 +2076,7 @@
         errorLine2="            ~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="208"
+            line="188"
             column="13"/>
     </issue>
 
@@ -2142,7 +2087,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="209"
+            line="189"
             column="13"/>
     </issue>
 
@@ -2153,7 +2098,7 @@
         errorLine2="            ~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="210"
+            line="190"
             column="13"/>
     </issue>
 
@@ -2164,7 +2109,7 @@
         errorLine2="            ~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="211"
+            line="191"
             column="13"/>
     </issue>
 
@@ -2175,7 +2120,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="212"
+            line="192"
             column="13"/>
     </issue>
 
@@ -2186,7 +2131,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="213"
+            line="193"
             column="13"/>
     </issue>
 
@@ -2197,7 +2142,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="214"
+            line="194"
             column="13"/>
     </issue>
 
@@ -2208,62 +2153,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="215"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;warning&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;warning&quot;>Warning&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="216"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;understand&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;understand&quot;>I understand&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="217"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;greader_warning&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;greader_warning&quot;>Google Reader is a very old API and lack documentation. It may not be implemented in every aggregator the same way and thus might not work well.\n\nIf you encounter any synchronization problem, please report them to Readrops Github repository.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="218"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;fever_warning&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;fever_warning&quot;>Fever is a very old, limited and depreciated API. It doesn\&apos;t support feed and folder management. It is also poorly documented, may not be implemented in every aggregator the same way and thus might not work well.\n\nIf you encounter any synchronization problem, please report them to Readrops Github repository.&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="219"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;api&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;api&quot;>API&lt;/string>"
-        errorLine2="            ~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="220"
+            line="195"
             column="13"/>
     </issue>
 
@@ -2274,7 +2164,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="223"
+            line="198"
             column="13"/>
     </issue>
 
@@ -2285,7 +2175,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="224"
+            line="199"
             column="13"/>
     </issue>
 
@@ -2296,7 +2186,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="225"
+            line="200"
             column="13"/>
     </issue>
 
@@ -2307,7 +2197,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="226"
+            line="201"
             column="13"/>
     </issue>
 
@@ -2318,7 +2208,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="227"
+            line="202"
             column="13"/>
     </issue>
 
@@ -2329,7 +2219,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="228"
+            line="203"
             column="13"/>
     </issue>
 
@@ -2340,7 +2230,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="229"
+            line="204"
             column="13"/>
     </issue>
 
@@ -2351,7 +2241,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="230"
+            line="205"
             column="13"/>
     </issue>
 
@@ -2362,7 +2252,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="231"
+            line="206"
             column="13"/>
     </issue>
 
@@ -2373,7 +2263,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="232"
+            line="207"
             column="13"/>
     </issue>
 
@@ -2384,7 +2274,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="233"
+            line="208"
             column="13"/>
     </issue>
 
@@ -2395,7 +2285,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="234"
+            line="209"
             column="13"/>
     </issue>
 
@@ -2406,7 +2296,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="235"
+            line="210"
             column="13"/>
     </issue>
 
@@ -2417,7 +2307,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="236"
+            line="211"
             column="13"/>
     </issue>
 
@@ -2428,7 +2318,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="237"
+            line="212"
             column="13"/>
     </issue>
 
@@ -2439,7 +2329,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="238"
+            line="213"
             column="13"/>
     </issue>
 
@@ -2450,7 +2340,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="239"
+            line="214"
             column="13"/>
     </issue>
 
@@ -2461,7 +2351,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="240"
+            line="215"
             column="13"/>
     </issue>
 
@@ -2472,7 +2362,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="241"
+            line="216"
             column="13"/>
     </issue>
 
@@ -2483,18 +2373,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="242"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;empty_file&quot; is not translated in &quot;de&quot; (German), &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;ta&quot; (Tamil), &quot;es&quot; (Spanish), &quot;nl&quot; (Dutch), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;empty_file&quot;>File is empty&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="243"
+            line="217"
             column="13"/>
     </issue>
 
@@ -2505,7 +2384,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="244"
+            line="218"
             column="13"/>
     </issue>
 
@@ -2516,8 +2395,1614 @@
         errorLine2="                                             ^">
         <location
             file="src/main/res/values/strings.xml"
-            line="229"
+            line="204"
             column="46"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>OPML-eksport&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nb-rNO/strings.xml"
+            line="12"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>OPML-import&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nb-rNO/strings.xml"
+            line="13"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>本機&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="18"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>匯入/匯出 OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="24"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>匯入 OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="25"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>匯出 OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="26"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>Local&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="27"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>உள்நுழைவு தோல்வியடைந்தது. உங்கள் சான்றுகளை சரிபார்க்கவும்&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="27"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>உள்ளக&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="29"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>OPML-Export&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="30"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>Esportazione OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-it/strings.xml"
+            line="31"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>OPML-Import&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="31"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>Importazione OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-it/strings.xml"
+            line="32"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>OPML-Import/Export&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="32"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>Importazione/esportazione OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-it/strings.xml"
+            line="33"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>Inicio de sesión fallido. Por favor, revisa tus credenciales&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="34"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>Local&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="35"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>OPML இறக்குமதி&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="35"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>OPML ஏற்றுமதி&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="36"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>Lokal&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="39"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>Locale&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-it/strings.xml"
+            line="39"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>Lokaal&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="39"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>Importar/Exportar OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="39"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>Importación de OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="40"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>本地&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="41"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>Anmeldung fehlgeschlagen. Bitte überprüfen Sie Ihre Anmeldedaten&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="41"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>Accesso non riuscito. Per favore controlla le tue credenziali&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-it/strings.xml"
+            line="41"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>Exportación de OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="41"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export_success&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>成功匯出 OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="43"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>Opml-bestand im-/exporteren&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="46"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>OPML 导入/导出&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="49"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>Opml-bestand importeren&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="50"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>导入 OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="50"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>Opml-bestand exporteren&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="51"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>导出 OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="51"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;api&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;api&quot;>API&lt;/string>"
+        errorLine2="            ~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="53"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>La connexion a échoué. Veuillez vérifier vos identifiants&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="53"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>Gagal masuk. Silakan periksa kredensial Anda&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-in/strings.xml"
+            line="54"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>ログインに失敗しました。認証情報を確認してください&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="55"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>Local&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="56"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>Lokal&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-in/strings.xml"
+            line="56"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>ローカル&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="57"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>Kunne ikke logge inn. Sjekk brukernavn og passord.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nb-rNO/strings.xml"
+            line="58"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;details&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;details&quot;>விவரங்கள்&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="59"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;synchronization_errors&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>ஒத்திசைவு பிழைகள்&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="60"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>OPML インポート&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="63"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>Import/Export OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="63"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>OPML エクスポート&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="64"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>Import OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="64"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>Impor/Ekspor OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-in/strings.xml"
+            line="64"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>Export OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="65"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>Impor OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-in/strings.xml"
+            line="65"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>Ekspor OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-in/strings.xml"
+            line="66"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;details&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;details&quot;>详情&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="76"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;synchronization_errors&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>同步错误&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="77"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>Não foi possível fazer login. Por favor, verifique suas credenciais&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="79"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>Importar/Exportar OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="81"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>Importar do OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="82"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>Exportar ao OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="83"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;local&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;local&quot;>Lokal&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nb-rNO/strings.xml"
+            line="85"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;provide_full_url&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;provide_full_url&quot;>முழு பநிஇ முகவரி ஐ வழங்கவும்&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="86"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>OPML インポート/エクスポート&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>OPML-import/-eksport&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nb-rNO/strings.xml"
+            line="93"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_feed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_feed&quot;>தவறான ஊட்டம்&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="94"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;details&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;details&quot;>Detalhes&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="95"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;synchronization_errors&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>Erros de sincronização&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="96"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>登入失敗。請檢查您的身份驗證資訊&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="99"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>Het inloggen is mislukt - controleer je inloggegevens&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="100"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;details&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;details&quot;>詳細&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="102"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;details&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;details&quot;>Détails&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="103"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export_success&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>Exportación OPML exitosa&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="103"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export_success&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>OPML 导出成功&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="103"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;synchronization_errors&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>同期エラー&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="103"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;synchronization_errors&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>Erreurs de synchronisation&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="104"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;synchronization_errors&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>同步錯誤&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="106"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;api&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;api&quot;>பநிஇ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="108"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_folder&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_folder&quot;>Ungültiger Ordner&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="112"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_feed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_feed&quot;>Ungültiger Feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="113"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;details&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;details&quot;>Detalles&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="115"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export_success&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>Het opml-bestand is geëxporteerd&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="119"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;provide_full_url&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;provide_full_url&quot;>請提供完整的 API URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="119"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;provide_full_url&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;provide_full_url&quot;>请提供完整的 API URL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="120"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;external&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;external&quot;>Extern&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="123"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;details&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;details&quot;>Details&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="124"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;provide_full_url&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;provide_full_url&quot;>Voer de volledige api-url in&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="130"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_folder&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_folder&quot;>无效的文件夹&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="133"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_feed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_feed&quot;>无效的订阅&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="134"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;external&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;external&quot;>Externo&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="135"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;warning&quot;>Aviso&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="135"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;understand&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;understand&quot;>Eu compreendo&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="136"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;api&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;api&quot;>API&lt;/string>"
+        errorLine2="            ~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="137"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_import_export&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>OPML இறக்குமதி/ஏற்றுமதி&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="139"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;synchronization_errors&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>Synchronisatiefouten&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="139"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;empty_file&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;empty_file&quot;>O arquivo está vazio&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="140"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export_success&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>OPML エクスポートが完了しました&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ja/strings.xml"
+            line="142"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;synchronization_errors&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>Synchronisationsfehler&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="144"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export_success&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>Export OPML réussi&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="145"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_folder&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_folder&quot;>Pasta inválida&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="146"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_feed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_feed&quot;>Feed inválido&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="147"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;details&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;details&quot;>Details&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="149"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;warning&quot;>警告&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="149"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;provide_full_url&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;provide_full_url&quot;>Por favor, proporciona la URL completa de la API&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="151"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_feed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_feed&quot;>不可用的 feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="154"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;synchronization_errors&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>Errores de sincronización&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="154"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_folder&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_folder&quot;>不可用的資料夾&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="155"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;login_failed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>登录失败，请检查您的凭据&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="157"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;external&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;external&quot;>Externe&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="160"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export_success&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>OPML-Export erfolgreich&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="160"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;external&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;external&quot;>Externo&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="162"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;fever_warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;fever_warning&quot;>Fever é uma API muito antiga, limitada e depreciada. Não suporta o gerenciamento de feeds e pastas. Também é mal documentado, pode não ser implementado para cada agregador da mesma forma e, portanto, pode não funcionar bem.\n\nSe você encontrar qualquer problema de sincronização, por favor, informe-os ao repositório do Readrops no Github.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="164"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;warning&quot;>警告&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="164"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;greader_warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;greader_warning&quot;>Google Reader API 非常老舊且缺乏文檔，每個聚合器實作方式可能都不一樣，因此可能不起作用。\n\n如果您遇到任何同步問題，請將其回報至 Readrops 的 Github 倉庫。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="166"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;fever_warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;fever_warning&quot;>Fever API 非常老舊、備受限制且已被棄用，不支持管理 feed 和資料夾，文檔狀態也很糟糕，每個聚合器實作方式可能都不一樣，因此可能不起作用。\n\n如果您遇到任何同步問題，請將其回報至 Readrops 的 Github 倉庫。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="167"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;greader_warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;greader_warning&quot;>Google Reader é uma API muito antiga e falta de documentação. Pode não ser implementado para cada agregador da mesma forma e, portanto, pode não funcionar bem.\n\nSe você encontrar qualquer problema de sincronização, por favor, informe-os ao repositório do Readrops no Github.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="167"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;external&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;external&quot;>Extern&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="169"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;understand&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;understand&quot;>我了解&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="169"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export_success&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>OPML ஏற்றுமதி செய்&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="172"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;provide_full_url&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;provide_full_url&quot;>Merci de fournir l\&apos;URL entière de l\&apos;API&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="172"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;empty_file&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;empty_file&quot;>檔案是空的&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="173"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;provide_full_url&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;provide_full_url&quot;>Bitte geben Sie die vollständige API-URL an&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="174"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;warning&quot;>Advertencia&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="178"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;greader_warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;greader_warning&quot;>Google Reader es una API muy antigua a la que le falta documentación. Puede que no se aplique igual en todos los agregadores y por tanto puede que no funcione bien.\n\nSi encuentra algún problema de sincronización, por favor repórtelo al repositorio de GitHub de Readrops.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="179"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;api&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;api&quot;>API&lt;/string>"
+        errorLine2="            ~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="180"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;external&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;external&quot;>வெளிப்புறம்&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="182"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_folder&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_folder&quot;>Carpeta no válida&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="184"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_folder&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_folder&quot;>Dossier invalide&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="186"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;opml_export_success&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>Sucesso na exportação OPML&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="186"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_feed&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_feed&quot;>Flux invalide&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="187"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;external&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;external&quot;>外部&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="191"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;invalid_folder&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;invalid_folder&quot;>தவறான கோப்புறை&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="196"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;understand&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;understand&quot;>知道了&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="202"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;warning&quot;>எச்சரிக்கை&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="202"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;api&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;api&quot;>API&lt;/string>"
+        errorLine2="            ~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="203"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;understand&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;understand&quot;>எனக்கு புரிகிறது&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="203"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;fever_warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;fever_warning&quot;>காய்ச்சல் மிகவும் பழமையான, வரையறுக்கப்பட்ட மற்றும் மதிப்பிழந்த பநிஇ. இது தீவனம் மற்றும் கோப்புறை நிர்வாகத்தை ஆதரிக்காது. இது மோசமாக ஆவணப்படுத்தப்பட்டுள்ளது, ஒவ்வொரு திரட்டியிலும் அதே வழியில் செயல்படுத்தப்படாமல் போகலாம், இதனால் நன்றாக வேலை செய்யாது.\n\n ஏதேனும் ஒத்திசைவு சிக்கலை நீங்கள் சந்தித்தால், தயவுசெய்து அவற்றை அறிவிலிமையம் களஞ்சியத்தை ரீட் ராப் செய்ய புகாரளிக்கவும்.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="204"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;greader_warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;greader_warning&quot;>கூகிள் ரீடர் மிகவும் பழைய பநிஇ மற்றும் ஆவணங்கள் இல்லாதது. இது ஒவ்வொரு திரட்டலிலும் ஒரே மாதிரியாக செயல்படுத்தப்படாமல் போகலாம், இதனால் சரியாக வேலை செய்யாது.\n\n ஏதேனும் ஒத்திசைவு சிக்கலை நீங்கள் சந்தித்தால், தயவுசெய்து அவற்றை அறிவிலிமையம் களஞ்சியத்தை ரீட் ராப் செய்ய புகாரளிக்கவும்.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ta/strings.xml"
+            line="205"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;warning&quot;>Attention&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="206"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;understand&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;understand&quot;>J\&apos;accepte&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="207"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;greader_warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;greader_warning&quot;>&quot;Google Reader est une très vielle API et reste peu documentée. Il est probable qu&apos;elle ne soit pas implémentée de la même manière dans chaque agrégateur et ainsi ne pas fonctionner correctement.\n\nSi vous rencontrez des problèmes de synchronisation, merci de les remonter sur le dépôt Github de Readrops. &quot;&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="208"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;fever_warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;fever_warning&quot;>Fever est une vielle API, limitée et dépréciée. Elle ne supporte pas la gestion des flux et des dossiers. Elle est également mal documentée et risque de ne pas être implémentée de la même manière chez chaque agrégateur, ne permettant pas son bon fonctionnement.\n\nSi vous rencontrez des problèmes de synchronisation, merci de les remonter sur le dépôt Github de Readrops.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="209"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;api&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;api&quot;>API&lt;/string>"
+        errorLine2="            ~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="210"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;provide_full_url&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;provide_full_url&quot;>Por favor, forneça a URL completa da API&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="213"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;greader_warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;greader_warning&quot;>Google Reader 是非常古老的 API，且缺乏文档。在每个聚合器的实现方式可能不尽相同，因此可能无法很好地运行。\n\n如果遇到任何同步问题，请向 Readrops GitHub 仓库报告。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="221"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;fever_warning&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;fever_warning&quot;>Fever 是非常古老、有限和过时的 API。它不支持 Feed 和文件夹管理。此外，它的文档也不完善，在每个聚合器的实现方式可能不尽相同，因此可能无法很好地运行。\n\n如果遇到任何同步问题，请向 Readrops GitHub 仓库报告。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="222"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;empty_file&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;empty_file&quot;>文件为空&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="226"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;empty_file&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;empty_file&quot;>Le fichier est vide&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="233"
+            column="13"/>
     </issue>
 
     <issue
@@ -2560,7 +4045,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="138"
+            line="123"
             column="5"/>
     </issue>
 
@@ -2764,11 +4249,44 @@
 
     <issue
         id="UnusedResources"
+        message="The resource `R.string.opml_export` appears to be unused"
+        errorLine1="    &lt;string name=&quot;opml_export&quot;>OPML-Export&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="30"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.opml_import` appears to be unused"
+        errorLine1="    &lt;string name=&quot;opml_import&quot;>OPML-Import&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="31"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
         message="The resource `R.string.mark_unread` appears to be unused"
         errorLine1="    &lt;string name=&quot;mark_unread&quot;>Mark as non read&lt;/string> &lt;!-- To check -->"
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
+            line="32"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.opml_import_export` appears to be unused"
+        errorLine1="    &lt;string name=&quot;opml_import_export&quot;>OPML-Import/Export&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
             line="32"
             column="13"/>
     </issue>
@@ -2781,6 +4299,28 @@
         <location
             file="src/main/res/values/strings.xml"
             line="39"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.local` appears to be unused"
+        errorLine1="    &lt;string name=&quot;local&quot;>Lokal&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="39"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.login_failed` appears to be unused"
+        errorLine1="    &lt;string name=&quot;login_failed&quot;>Anmeldung fehlgeschlagen. Bitte überprüfen Sie Ihre Anmeldedaten&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="41"
             column="13"/>
     </issue>
 
@@ -2824,7 +4364,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="66"
+            line="64"
             column="13"/>
     </issue>
 
@@ -2835,7 +4375,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="76"
+            line="71"
             column="13"/>
     </issue>
 
@@ -2846,7 +4386,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="94"
+            line="89"
             column="13"/>
     </issue>
 
@@ -2857,6 +4397,50 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
+            line="98"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.plurals.error_occurred` appears to be unused"
+        errorLine1="    &lt;plurals name=&quot;error_occurred&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="99"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.plurals.error_occurred_feed` appears to be unused"
+        errorLine1="    &lt;plurals name=&quot;error_occurred_feed&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="103"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.invalid_folder` appears to be unused"
+        errorLine1="    &lt;string name=&quot;invalid_folder&quot;>Ungültiger Ordner&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="112"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.invalid_feed` appears to be unused"
+        errorLine1="    &lt;string name=&quot;invalid_feed&quot;>Ungültiger Feed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
             line="113"
             column="13"/>
     </issue>
@@ -2868,7 +4452,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="131"
+            line="116"
             column="13"/>
     </issue>
 
@@ -2879,7 +4463,29 @@
         errorLine2="            ~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="137"
+            line="122"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.details` appears to be unused"
+        errorLine1="    &lt;string name=&quot;details&quot;>Details&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="124"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.synchronization_errors` appears to be unused"
+        errorLine1="    &lt;string name=&quot;synchronization_errors&quot;>Synchronisationsfehler&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="144"
             column="13"/>
     </issue>
 
@@ -2890,7 +4496,73 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="162"
+            line="146"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.opml_export_success` appears to be unused"
+        errorLine1="    &lt;string name=&quot;opml_export_success&quot;>OPML-Export erfolgreich&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="160"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.external` appears to be unused"
+        errorLine1="    &lt;string name=&quot;external&quot;>Extern&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="169"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.provide_full_url` appears to be unused"
+        errorLine1="    &lt;string name=&quot;provide_full_url&quot;>Bitte geben Sie die vollständige API-URL an&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="174"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.warning` appears to be unused"
+        errorLine1="    &lt;string name=&quot;warning&quot;>Advertencia&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="178"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.greader_warning` appears to be unused"
+        errorLine1="    &lt;string name=&quot;greader_warning&quot;>Google Reader es una API muy antigua a la que le falta documentación. Puede que no se aplique igual en todos los agregadores y por tanto puede que no funcione bien.\n\nSi encuentra algún problema de sincronización, por favor repórtelo al repositorio de GitHub de Readrops.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="179"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.api` appears to be unused"
+        errorLine1="    &lt;string name=&quot;api&quot;>API&lt;/string>"
+        errorLine2="            ~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es/strings.xml"
+            line="180"
             column="13"/>
     </issue>
 
@@ -2901,7 +4573,7 @@
         errorLine2="            ~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="210"
+            line="190"
             column="13"/>
     </issue>
 
@@ -2912,7 +4584,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="213"
+            line="193"
             column="13"/>
     </issue>
 
@@ -2923,7 +4595,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="225"
+            line="200"
             column="13"/>
     </issue>
 
@@ -2934,7 +4606,40 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="226"
+            line="201"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.understand` appears to be unused"
+        errorLine1="    &lt;string name=&quot;understand&quot;>J\&apos;accepte&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="207"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.fever_warning` appears to be unused"
+        errorLine1="    &lt;string name=&quot;fever_warning&quot;>Fever est une vielle API, limitée et dépréciée. Elle ne supporte pas la gestion des flux et des dossiers. Elle est également mal documentée et risque de ne pas être implémentée de la même manière chez chaque agrégateur, ne permettant pas son bon fonctionnement.\n\nSi vous rencontrez des problèmes de synchronisation, merci de les remonter sur le dépôt Github de Readrops.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="209"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.empty_file` appears to be unused"
+        errorLine1="    &lt;string name=&quot;empty_file&quot;>Le fichier est vide&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="233"
             column="13"/>
     </issue>
 
@@ -2945,7 +4650,7 @@
         errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/com/readrops/app/account/credentials/AccountCredentialsScreenModel.kt"
-            line="94"
+            line="93"
             column="25"/>
     </issue>
 

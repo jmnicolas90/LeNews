@@ -108,7 +108,6 @@
     <string name="selected">(%1$s ausgewählt)</string>
     <string name="add_selected_feeds">%1$s ausgewählte Feeds hinzufügen</string>
     <string name="enter_url">Gib eine URL an</string>
-    <string name="feed_already_exists">Feed existiert bereits</string>
     <string name="invalid_folder">Ungültiger Ordner</string>
     <string name="invalid_feed">Ungültiger Feed</string>
     <string name="error_image_download">Beim Herunterladen des Bildes ist ein Fehler aufgetreten</string>

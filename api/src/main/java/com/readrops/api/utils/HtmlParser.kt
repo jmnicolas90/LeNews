@@ -1,7 +1,6 @@
 package com.readrops.api.utils
 
 import android.nfc.FormatException
-import com.readrops.api.localfeed.LocalRSSHelper
 import com.readrops.api.utils.ApiUtils.isHtml
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,7 +24,7 @@ object HtmlParser {
         return document.select("link")
             .filter { element ->
                 val type = element.attributes()["type"]
-                LocalRSSHelper.isRSSType(type)
+                ApiUtils.isFeedContentType(type)
             }.map {
                 ParsingResult(
                     url = it.absUrl("href"),
