@@ -203,7 +203,7 @@
     <string name="delete_folder_question">Você quer excluir a pasta %1$s? Todos os feeds vinculados também serão excluídos.</string>
     <string name="update_color">Atualizar a cor</string>
     <string name="mark_all_articles_read">Marcar todos os artigos como lido</string>
-    <string name="readrops_crashed">Readrops falhou.</string>
+    <string name="app_crashed">LeNews falhou.</string>
     <string name="crash_message">Eu vejo isso, significa que o aplicativo correu para um erro inesperado. Por favor, se puder, informe o erro no Github.</string>
     <string name="report_error_github">Relatar o erro no Github</string>
     <string name="copy_error_clipboard">Copiar erro para a área de transferência</string>

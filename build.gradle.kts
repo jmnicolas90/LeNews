@@ -182,9 +182,10 @@ val bannedDependencyModuleFragment = "play-services"
 subprojects {
     // Collected from the variant API rather than hard-coded to debug and
     // release, so that a build type or product flavour added later is guarded
-    // the day it appears. This project already has a third build type, `beta`.
-    // "May never enter the graph" is not a constraint that should depend on
-    // someone remembering to extend a list.
+    // the day it appears — upstream had a third build type, `beta`, and this
+    // guard covered it without being told to. "May never enter the graph" is
+    // not a constraint that should depend on someone remembering to extend a
+    // list.
     val guardedConfigurations = mutableListOf<String>()
     val modulePath = path
 

@@ -1,0 +1,18 @@
+package app.lenews.db
+
+import androidx.room.Room
+import org.koin.dsl.module
+
+val dbModule = module {
+
+    single(createdAtStart = true) {
+        Room.databaseBuilder(get(), Database::class.java, "lenews-db")
+            .addMigrations(
+                MigrationFrom1To2,
+                MigrationFrom2To3,
+                MigrationFrom3To4,
+                MigrationFrom4To5
+            )
+            .build()
+    }
+}

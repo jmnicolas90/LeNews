@@ -1,0 +1,23 @@
+package app.lenews.more.preferences.components
+
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import app.lenews.util.theme.spacing
+
+@Composable
+fun PreferenceHeader(
+    text: String
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.secondary,
+        modifier = Modifier.padding(
+            horizontal = MaterialTheme.spacing.mediumSpacing,
+            vertical = MaterialTheme.spacing.shortSpacing
+        )
+    )
+}

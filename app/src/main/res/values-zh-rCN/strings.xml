@@ -110,7 +110,7 @@
     <string name="update_color">更新颜色</string>
     <string name="mark_all_articles_read">将所有文章标记为已读</string>
     <string name="mark_all_articles_read_question">是否确定要将所有文章标记为已读？</string>
-    <string name="readrops_crashed">Readrops 崩溃了。</string>
+    <string name="app_crashed">LeNews 崩溃了。</string>
     <string name="report_error_github">在 GitHub 上报告错误</string>
     <string name="copy_error_clipboard">将错误消息复制到剪贴板</string>
     <string name="copied">已复制！</string>

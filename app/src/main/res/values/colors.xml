@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#FF0062A2</color>
-    <color name="splash">#FFD1E4FF</color>
+    <!--
+        These two only dress the splash screen, and they follow the launcher
+        icon: `primary` is the circle drawn behind ic_launcher_foreground and is
+        the launcher background colour, `splash` is the window behind it. Both
+        moved off upstream's blue when the placeholder icon replaced upstream's
+        logo.
+    -->
+    <color name="primary">#FF14213D</color>
+    <color name="splash">#FFE8ECF4</color>
 </resources>

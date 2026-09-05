@@ -155,7 +155,7 @@ jobs:
       # and swiftshader is what works there.
       #
       # The permission the tests need is granted by the test rules
-      # (ReadropsTestRule), not by an adb line here, so the same tests pass when
+      # (LeNewsTestRule), not by an adb line here, so the same tests pass when
       # someone runs them by hand.
       - name: G7 instrumented tests
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
