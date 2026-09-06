@@ -47,10 +47,8 @@ class SyncWorker(
         if (infos.any { it.state == WorkInfo.State.RUNNING && it.id != id }) {
             return if (isManual) {
                 Result.failure(
-                    workDataOf(
-                        SYNC_FAILURE_KEY to true,
-                        SYNC_FAILURE_MESSAGE_KEY to
-                                applicationContext.getString(R.string.background_sync_already_running)
+                    failureData(
+                        applicationContext.getString(R.string.background_sync_already_running)
                     )
                 )
             } else {
@@ -81,20 +79,25 @@ class SyncWorker(
 
             notificationManager.cancel(SYNC_NOTIFICATION_ID)
             if (isManual) {
-                // the message travels in the output Data, which is what
-                // WorkManager actually delivers to whoever is watching the work
-                Result.failure(
-                    workDataOf(
-                        SYNC_FAILURE_KEY to true,
-                        SYNC_FAILURE_MESSAGE_KEY to
-                                GReaderError(applicationContext).genericMessage(e)
-                    )
-                )
+                Result.failure(failureData(GReaderError(applicationContext).genericMessage(e)))
             } else {
                 Result.failure()
             }
         }
     }
+
+    /**
+     * What a failed sync tells whoever is watching the work.
+     *
+     * It goes in the output `Data`, which is what WorkManager delivers — there
+     * is no state shared between the worker and the screen, so a second sync
+     * running at the same time cannot overwrite this one's answer. The message
+     * is bounded because `Data` is: see [SyncFailureMessage].
+     */
+    private fun failureData(message: String) =
+        SyncFailureMessage.failureData(message) { droppedCharacters ->
+            applicationContext.getString(R.string.sync_failure_message_cut, droppedCharacters)
+        }
 
     /**
      * The new articles notification, or the removal of the last one.
@@ -209,10 +212,20 @@ class SyncWorker(
         const val SYNC_FAILURE_KEY = "SYNC_FAILURE"
 
         /**
-         * What went wrong, already turned into the sentence the screen shows.
+         * What went wrong, already turned into the sentence the screen shows,
+         * and cut to length if it was long (see [SyncFailureMessage]).
+         *
          * A String rather than an exception because `Data` carries only
          * primitives, and the exception has to be read where it was caught
          * anyway to be turned into something a reader can act on.
+         *
+         * These three keys are the whole of what a sync reports. There is no
+         * per-feed failure among them because a sync has none to report: it
+         * pulls every feed in the same calls and writes them in one
+         * transaction, so it succeeds whole or fails whole. The one place this
+         * app does collect a failure per feed is adding feeds
+         * (`Repository.insertNewFeeds`), which runs in the screen that asked
+         * for it and never goes near WorkManager.
          */
         const val SYNC_FAILURE_MESSAGE_KEY = "SYNC_FAILURE_MESSAGE"
 

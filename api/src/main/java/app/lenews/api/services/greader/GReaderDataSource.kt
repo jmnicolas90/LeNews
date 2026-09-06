@@ -14,12 +14,13 @@ import java.util.Properties
 class GReaderDataSource(private val service: GReaderService) {
 
     suspend fun login(login: String, password: String): String {
-        val response = service.login(login, password)
-
         val properties = Properties()
-        properties.load(StringReader(response.string()))
 
-        response.close()
+        // read inside use, so the body is closed whether or not it parses
+        service.login(login, password).use { response ->
+            properties.load(StringReader(response.string()))
+        }
+
         return properties.getProperty("Auth")
     }
 

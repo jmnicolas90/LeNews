@@ -23,6 +23,7 @@ import app.lenews.testutil.stubServerOverTls
 import app.lenews.testutil.tlsUrl
 import app.lenews.db.Database
 import app.lenews.db.deleteWhatRetentionDrops
+import app.lenews.db.entities.Item
 import app.lenews.db.entities.account.Account
 import app.lenews.R
 import kotlinx.coroutines.delay
@@ -146,6 +147,32 @@ class SyncWorkerTest : KoinTest {
     }
 
     /**
+     * The article, once it is as [description] says it should be.
+     *
+     * A notification action is a broadcast: `send()` is back as soon as the
+     * system has delivered it, while the write it starts runs after `onReceive`
+     * has returned, in the application's own scope. So the row is read until it
+     * has changed rather than once, after a delay chosen by hope.
+     */
+    private suspend fun awaitArticle(description: String, predicate: (Item?) -> Boolean): Item? {
+        val deadline = SystemClock.uptimeMillis() + ARTICLE_TIMEOUT_MS
+        var article = database.itemDao().select(ARTICLE_ID)
+
+        while (true) {
+            if (predicate(article)) {
+                return article
+            }
+            if (SystemClock.uptimeMillis() >= deadline) {
+                break
+            }
+            delay(ARTICLE_POLL_MS)
+            article = database.itemDao().select(ARTICLE_ID)
+        }
+
+        fail("$description — still not so after $ARTICLE_TIMEOUT_MS ms")
+    }
+
+    /**
      * Answers the calls one synchronization makes, with a single new article.
      *
      * The article the notification is about is also the one id the unread ids
@@ -254,9 +281,9 @@ class SyncWorkerTest : KoinTest {
         val (markReadAction, starAction) = notification.actions
 
         markReadAction.actionIntent.send()
-        delay(1000L) // wait for global scope to execute in SyncBroadcastReceiver
+        awaitArticle("the mark read action wrote the article") { it?.isRead == true }
         starAction.actionIntent.send()
-        delay(1000L)
+        awaitArticle("the star action wrote the article") { it?.isStarred == true }
 
         // read and starred state lives on the article row, dated
         val item = assertNotNull(database.itemDao().select(ARTICLE_ID))
@@ -320,8 +347,11 @@ class SyncWorkerTest : KoinTest {
 
         val (markReadAction, starAction) = notification.actions
 
+        // there is nothing to wait for here — the point is that neither action
+        // writes anything — so both are sent and the receiver is given time to
+        // have run in the application scope it writes in
         markReadAction.actionIntent.send()
-        delay(1000L) // wait for global scope to execute in SyncBroadcastReceiver
+        delay(1000L)
         starAction.actionIntent.send()
         delay(1000L)
 
@@ -464,5 +494,8 @@ class SyncWorkerTest : KoinTest {
         // test framework's own timeout when it is not
         private const val NOTIFICATION_TIMEOUT_MS = 5_000L
         private const val NOTIFICATION_POLL_MS = 50L
+
+        private const val ARTICLE_TIMEOUT_MS = 5_000L
+        private const val ARTICLE_POLL_MS = 50L
     }
 }

@@ -170,6 +170,10 @@
          http://. Untranslated for the same reason as the two strings above. -->
     <string name="url_must_be_https" tools:ignore="MissingTranslation">The address must start with https://. LeNews never sends your password or your token in the clear.</string>
     <string name="url_must_have_no_user_name" tools:ignore="MissingTranslation">The address must be the server address alone. Your login and password go in the fields below.</string>
+    <!-- Follows a sync failure message that was too long for WorkManager to
+         carry, so the reader sees that it was cut rather than that it stopped.
+         Untranslated for the same reason as the strings above. -->
+    <string name="sync_failure_message_cut" tools:ignore="MissingTranslation">\u2026 (characters cut: %1$d)</string>
     <string name="error_image_download">An error occurred while downloading the image</string>
     <string name="enable_notifications">Enable notifications</string>
     <string name="account_notifications_disabled">Account notifications are currently disabled</string>

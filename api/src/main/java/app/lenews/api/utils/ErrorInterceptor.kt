@@ -11,7 +11,11 @@ class ErrorInterceptor : Interceptor {
         val response = chain.proceed(request)
 
         if (!response.isSuccessful && response.code !in 300..308) {
-            throw HttpException(response)
+            // closed before the throw, because nothing downstream will: the
+            // exception travels instead of the response, and a body left open
+            // holds its connection out of the pool until the garbage collector
+            // notices. The status code and text are read out of it first.
+            response.use { throw HttpException(it) }
         }
 
         return response
