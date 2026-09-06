@@ -24,6 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import app.lenews.db.Database
+import app.lenews.db.entities.ItemState
 import app.lenews.db.filters.MainFilter
 import app.lenews.db.filters.OrderField
 import app.lenews.db.filters.OrderType
@@ -31,6 +32,7 @@ import app.lenews.db.filters.QueryFilters
 import app.lenews.db.filters.SubFilter
 import app.lenews.db.queries.FeedUnreadCountQueryBuilder
 import app.lenews.db.queries.ItemsQueryBuilder
+import kotlinx.coroutines.runBlocking
 import org.junit.Assume
 import org.junit.Test
 import java.io.File
@@ -43,20 +45,32 @@ import kotlin.math.max
  * This is a measurement, not a test with an assertion: nothing here fails on a
  * slow number. It seeds a real on-disk Room database (the point is disk I/O and
  * the SQLite planner, so no in-memory database), times every query cold and
- * warm and captures `EXPLAIN QUERY PLAN` for each, in three passes: as the
- * schema stands, then with the obvious missing indexes created **on the test
- * database only**, then with `ANALYZE` run on top of them. The third pass is
- * there because the second one changes almost nothing: without statistics the
- * planner keeps the join order it already had. The app's entities and schema
- * are untouched; the fix lands with ticket 13's schema reset.
+ * warm and captures `EXPLAIN QUERY PLAN` for each, in five passes, all of them
+ * against indexes created **on the test database only**: as the schema stands;
+ * with an index on `Item.remote_id` alone, without and then with `ANALYZE`,
+ * which isolates the one index the drawer needs from the four that follow; then
+ * with all five indexes and no statistics; then with `ANALYZE` on top. The
+ * no-statistics passes are there because they change almost nothing: without
+ * statistics the planner keeps the join order it already had. The app's
+ * entities and schema are untouched; the fix lands with ticket 13's schema
+ * reset.
+ *
+ * The sync, mark-all-read and tag rows run the production code rather than a
+ * stand-in: the real `ItemStateDao` and `TagDao` suspend methods, called from a
+ * coroutine, and a faithful copy of `GReaderRepository.insertItemsIds` (the
+ * `db` module cannot depend on `app`, so the algorithm is copied). Raw
+ * `executeInsert` statements are used for fixture setup only, plus one clearly
+ * labelled comparison row.
  *
  * Two runs:
  *
- *  - `controlDatabaseOf10000Articles` — the control, always runs, about three
- *    seconds end to end. This is what the gate's G7 stage pays.
+ *  - `controlDatabaseOf10000Articles` — the control, always runs, about
+ *    twenty-two seconds end to end. This is what the gate's G7 stage pays, and
+ *    most of it is the sync's id mapping, which costs over a second a call
+ *    whatever the size of the database.
  *  - `yearSizedDatabaseOf110000Articles` — a year of one FreshRSS account at
  *    about 300 articles a day, 219 MB on disk. Skipped unless asked for; about
- *    eighteen seconds on this emulator.
+ *    fifty-five seconds on this emulator.
  *
  * The full run, from the repository root, with the emulator already booted:
  *
@@ -173,6 +187,23 @@ private class Benchmark(private val articleCount: Int) {
     private val tagsOfArticleSql =
         "Select Tag.* From Tag Inner Join TagJoin on Tag.id = TagJoin.tag_id Where item_id = "
 
+    /**
+     * Copied from `ItemStateDao.setAllItemsReadByUpdate` and
+     * `setAllItemsReadByInsert`, with the bound account id spelled out, so their
+     * plans can be captured. Room compiles those two methods into exactly this
+     * text; if the DAO changes, change it here too.
+     */
+    private val markAllReadUpdateSql =
+        """Update ItemState set read = 1 Where remote_id In (Select Item.remote_id From Item 
+        Inner Join Feed On Feed.id = Item.feed_id Where account_id = $ACCOUNT_ID)"""
+
+    private val markAllReadInsertSql =
+        """Insert Or Ignore Into ItemState(read, starred, remote_id, account_id) Select 1 as read, 0 as starred, 
+        Item.remote_id as remote_id, account_id From Item Inner Join Feed On Feed.id = Item.feed_id Where Feed.account_id = $ACCOUNT_ID"""
+
+    /** How many `ItemState` rows mark-all-read left behind, set by each round. */
+    private var markAllReadStateRows = 0
+
     fun run() {
         line("# Timeline slowness — $articleCount articles")
         line("")
@@ -193,46 +224,72 @@ private class Benchmark(private val articleCount: Int) {
 
         val pageOneIds = firstPageArticleIds()
 
-        line("## Before the added indexes")
+        val passes = ArrayList<Pass>()
+
+        line("## Pass 1 — as the schema stands, no added index")
         line("")
-        val before = measureEverything(pageOneIds, withIndexes = false)
-        table(before)
+        passes += Pass(
+            "No index",
+            measureEverything(pageOneIds, hasPubDateIndex = false, includeSyncPath = true)
+        )
+        table(passes.last().measurements)
 
         line("")
-        val indexMillis = measureMillis { createIndexes() }
-        line("Creating the five indexes took ${format(indexMillis)}.")
+        val remoteIdMillis = measureMillis { createRemoteIdIndex() }
+        line("Creating Item(remote_id) took ${format(remoteIdMillis)}.")
         line("")
 
-        line("## After the added indexes")
+        line("## Pass 2 — Item(remote_id) alone, no ANALYZE")
         line("")
-        val after = measureEverything(pageOneIds, withIndexes = true)
-        table(after)
+        passes += Pass("remote_id", measureEverything(pageOneIds, hasPubDateIndex = false))
+        table(passes.last().measurements)
 
         line("")
-        val analyzeMillis = measureMillis { writable().execSQL("ANALYZE") }
+        var analyzeMillis = measureMillis { writable().execSQL("ANALYZE") }
         line("Running ANALYZE took ${format(analyzeMillis)}.")
         line("")
 
-        line("## After the added indexes and ANALYZE")
+        line("## Pass 3 — Item(remote_id) alone, after ANALYZE")
         line("")
-        val analyzed = measureEverything(pageOneIds, withIndexes = true)
-        table(analyzed)
+        passes += Pass("remote_id + ANALYZE", measureEverything(pageOneIds, hasPubDateIndex = false))
+        table(passes.last().measurements)
+
+        line("")
+        val forgetMillis = measureMillis { forgetStatistics() }
+        val remainingMillis = measureMillis { createRemainingIndexes() }
+        line("Forgetting the statistics took ${format(forgetMillis)} and creating the other " +
+                "four indexes ${format(remainingMillis)}.")
+        line("")
+
+        line("## Pass 4 — all five indexes, no statistics")
+        line("")
+        passes += Pass("All five", measureEverything(pageOneIds, hasPubDateIndex = true))
+        table(passes.last().measurements)
+
+        line("")
+        analyzeMillis = measureMillis { writable().execSQL("ANALYZE") }
+        line("Running ANALYZE took ${format(analyzeMillis)}.")
+        line("")
+
+        line("## Pass 5 — all five indexes and ANALYZE")
+        line("")
+        passes += Pass(
+            "All five + ANALYZE",
+            measureEverything(pageOneIds, hasPubDateIndex = true, includeSyncPath = true)
+        )
+        table(passes.last().measurements)
 
         line("")
         line("## Side by side (warm median, milliseconds)")
         line("")
-        line("| Query | Rows | No index | Indexes | Indexes + ANALYZE |")
-        line("| --- | ---: | ---: | ---: | ---: |")
-        after.indices.forEach { position ->
-            val indexed = after[position]
-            val plain = before.getOrNull(position)
-            val plainMillis = if (plain != null && plain.name == indexed.name) {
-                format(plain.warmMillis)
-            } else {
-                "-"
+        line("| Query | Rows | " + passes.joinToString(" | ") { it.name } + " |")
+        line("| --- | ---: |" + " ---: |".repeat(passes.size))
+        passes.last().measurements.forEach { row ->
+            val cells = passes.joinToString(" | ") { pass ->
+                pass.measurements.firstOrNull { it.name == row.name }
+                    ?.let { format(it.warmMillis) } ?: "-"
             }
-            line("| ${indexed.name} | ${indexed.rows} | $plainMillis | " +
-                    "${format(indexed.warmMillis)} | ${format(analyzed[position].warmMillis)} |")
+            line("| ${row.name} | ${row.rows} | $cells |")
         }
 
         line("")
@@ -247,7 +304,20 @@ private class Benchmark(private val articleCount: Int) {
 
     // region measurement
 
-    private fun measureEverything(pageOneIds: List<Int>, withIndexes: Boolean): List<Measurement> = buildList {
+    /**
+     * [includeSyncPath] adds the three rows that cost seconds rather than
+     * milliseconds — the id mapping, the mapping with the three inserts, and
+     * mark-all-read with the sync that follows it. None of them is sensitive to
+     * the index arrangement in the way the timeline is (the mapping is pure
+     * Kotlin, and the two writes only pay index maintenance), so they run in the
+     * first pass and the last one and are left out of the three in between.
+     * That is what keeps the control, which the gate pays for, cheap.
+     */
+    private fun measureEverything(
+        pageOneIds: List<Int>,
+        hasPubDateIndex: Boolean,
+        includeSyncPath: Boolean = false,
+    ): List<Measurement> = buildList {
         add(measure("timeline all — Paging COUNT(*)", pagingCount(timelineAllSql)))
         add(measure("timeline all — page 1 (LIMIT 50 OFFSET 0)", pagingPage(timelineAllSql, 0)))
         add(measure("timeline all — page 2 (LIMIT 50 OFFSET 50)", pagingPage(timelineAllSql, PAGE_SIZE)))
@@ -258,11 +328,18 @@ private class Benchmark(private val articleCount: Int) {
         add(measure("timeline unread — deep page (LIMIT 50 OFFSET 5000)", pagingPage(timelineUnreadSql, DEEP_OFFSET)))
         add(measure("drawer — unread count per feed", feedUnreadCountSql))
         add(measure("drawer — unread count of the last 24 hours", unreadNewCountSql))
-        add(measureTagsOfPage(pageOneIds))
+        add(measureTagsByDao(pageOneIds))
+        add(measureTagsByRawSql(pageOneIds))
         add(measureStateDelete())
-        add(measureStateReinsert())
+        add(measureRawStateReinsert())
 
-        if (withIndexes) {
+        if (includeSyncPath) {
+            add(measureIdMapping())
+            add(measureStateInsert())
+            addAll(measureMarkAllRead())
+        }
+
+        if (hasPubDateIndex) {
             // What the same page costs when the planner is made to walk the
             // pub_date index instead of sorting everything it joined. Not a
             // query the app runs: a ceiling for what a design could reach.
@@ -308,9 +385,42 @@ private class Benchmark(private val articleCount: Int) {
         return Measurement(name, rows, cold, warm, explain(sql), sql)
     }
 
-    /** The per-article tag query the timeline runs once for every visible article. */
-    private fun measureTagsOfPage(pageOneIds: List<Int>): Measurement {
-        val name = "tags — selectAllByItem × ${pageOneIds.size} (one page)"
+    /**
+     * The per-article tag query as the timeline actually runs it.
+     * `TimelineScreenModel.buildPager()` maps every page of `PagingData` through
+     * `database.tagDao().selectAllByItem(item.id)` — a suspend Room call per
+     * article, from a coroutine, which means Room's transaction executor, a
+     * generated `Tag` materialisation and a coroutine resumption each time. That
+     * is what is measured here: fifty real DAO calls, not fifty cursors.
+     */
+    private fun measureTagsByDao(pageOneIds: List<Int>): Measurement {
+        val name = "tags — TagDao.selectAllByItem × ${pageOneIds.size} (suspend, as the screen model)"
+        reopen()
+
+        var rows = 0
+        val cold = measureMillis {
+            rows = runBlocking { pageOneIds.sumOf { database!!.tagDao().selectAllByItem(it).size } }
+        }
+        val warm = List(7) {
+            measureMillis {
+                runBlocking { pageOneIds.forEach { id -> database!!.tagDao().selectAllByItem(id) } }
+            }
+        }.sorted()[3]
+
+        return Measurement(
+            name, rows, cold, warm,
+            explain(tagsOfArticleSql + pageOneIds.first()),
+            "TagDao.selectAllByItem(id) × ${pageOneIds.size}, awaited one after another"
+        )
+    }
+
+    /**
+     * The same fifty queries as raw SQL on the open connection, with no Room and
+     * no coroutine around them. The gap between this row and the one above is
+     * what Room costs on this pattern, and it is why the two are kept apart.
+     */
+    private fun measureTagsByRawSql(pageOneIds: List<Int>): Measurement {
+        val name = "tags — the same ${pageOneIds.size} queries as raw SQL"
         reopen()
 
         var rows = 0
@@ -327,9 +437,10 @@ private class Benchmark(private val articleCount: Int) {
     }
 
     /**
-     * `GReaderRepository.insertItemsIds` starts by throwing away every state row
-     * of the account. `ItemStateDao.deleteItemStates` is one Room call, so one
-     * transaction of its own.
+     * The first statement of `GReaderRepository.insertItemsIds`: every state row
+     * of the account is thrown away. `ItemStateDao.deleteItemStates` is a real
+     * suspend Room call here, one transaction of its own, exactly as the sync
+     * issues it.
      */
     private fun measureStateDelete(): Measurement {
         val sql = "Delete From ItemState Where account_id = $ACCOUNT_ID"
@@ -337,23 +448,73 @@ private class Benchmark(private val articleCount: Int) {
 
         reopen()
         val deleted = count("Select count(*) From ItemState Where account_id = $ACCOUNT_ID")
-        val cold = measureMillis { writable().execSQL(sql) }
+        val cold = measureMillis { runBlocking { database!!.itemStateDao().deleteItemStates(ACCOUNT_ID) } }
         val warm = List(3) {
             seedItemStates()
-            measureMillis { writable().execSQL(sql) }
+            measureMillis { runBlocking { database!!.itemStateDao().deleteItemStates(ACCOUNT_ID) } }
         }.sorted()[1]
         seedItemStates()
 
-        return Measurement("sync — deleteItemStates", deleted.toInt(), cold, warm, plan, sql)
+        return Measurement(
+            "sync — deleteItemStates", deleted.toInt(), cold, warm, plan,
+            "ItemStateDao.deleteItemStates(accountId) — $sql"
+        )
     }
 
     /**
-     * And then puts them all back. The repository issues three separate
-     * `insert(List)` calls — unread ids, read ids, leftover starred ids — with
-     * no transaction around the three, so this reproduces that shape rather
-     * than one tidy transaction.
+     * The id mapping alone, with no database in it: the `starredIds.any` scan
+     * and the `starredIds.remove` that `insertItemsIds` runs over every unread
+     * and every read id. It is a linear scan of the starred list per id, so it
+     * is quadratic in the two capped lists, and it is production code rather
+     * than a detail of this benchmark — hence a row of its own.
      */
-    private fun measureStateReinsert(): Measurement {
+    private fun measureIdMapping(): Measurement {
+        reopen()
+        val cold = measureMillis { mapItemStatesAsTheRepositoryDoes(syncIdLists()) }
+        val warm = repeated(cold) { measureMillis { mapItemStatesAsTheRepositoryDoes(syncIdLists()) } }
+        val mapped = mapItemStatesAsTheRepositoryDoes(syncIdLists()).sumOf { it.size }
+
+        return Measurement(
+            "sync — insertItemsIds id mapping, no database", mapped, cold, warm,
+            "no plan (Kotlin, not SQL)",
+            "unreadIds.map { starredIds.any { … }; starredIds.remove(it) } and the same over readIds"
+        )
+    }
+
+    /**
+     * The rest of `insertItemsIds`: the mapping above followed by the three
+     * `ItemStateDao.insert(List)` calls — unread ids, read ids, leftover starred
+     * ids — with no transaction around the three. Room's generated insert
+     * adapter binds and executes one statement per row inside a transaction per
+     * call, and that per-row work is the thing the previous round's raw
+     * `executeInsert` row left out.
+     */
+    private fun measureStateInsert(): Measurement {
+        reopen()
+        val rows = itemStateRows().size
+
+        runBlocking { database!!.itemStateDao().deleteItemStates(ACCOUNT_ID) }
+        val cold = measureMillis { runBlocking { insertStateRowsAsTheRepositoryDoes(syncIdLists()) } }
+        val warm = repeated(cold) {
+            runBlocking { database!!.itemStateDao().deleteItemStates(ACCOUNT_ID) }
+            measureMillis { runBlocking { insertStateRowsAsTheRepositoryDoes(syncIdLists()) } }
+        }
+
+        return Measurement(
+            "sync — insertItemsIds mapping and the three ItemStateDao.insert calls", rows, cold, warm,
+            explain("Insert Into ItemState(read, starred, remote_id, account_id) Values (0, 0, 'x', $ACCOUNT_ID)"),
+            "ItemStateDao.insert(List<ItemState>) × 3, one Room transaction each, " +
+                    "over the ids mapped as GReaderRepository.insertItemsIds maps them"
+        )
+    }
+
+    /**
+     * The same rows put back with compiled statements and `executeInsert`, which
+     * is what the fixture seeding uses. **Not the production path** — it is kept
+     * as one labelled row because it is what the first round of this ticket
+     * measured, and the difference between the two is what Room costs.
+     */
+    private fun measureRawStateReinsert(): Measurement {
         val rows = itemStateRows()
 
         reopen()
@@ -365,11 +526,142 @@ private class Benchmark(private val articleCount: Int) {
         }.sorted()[1]
 
         return Measurement(
-            "sync — reinsert every ItemState row", rows.size, cold, warm,
+            "sync — the same rows by raw executeInsert (not the production path)",
+            rows.size, cold, warm,
             explain("Insert Into ItemState(read, starred, remote_id, account_id) Values (0, 0, 'x', $ACCOUNT_ID)"),
             "Insert Into ItemState(read, starred, remote_id, account_id) Values (?, ?, ?, ?) — " +
-                    "three Room insert(List) calls, one transaction each"
+                    "compiled statement, three transactions"
         )
+    }
+
+    /**
+     * Mark-all-read, and the sync that follows it. This is where the API caps
+     * stop bounding `ItemState`.
+     *
+     * The FAB in `TimelineTab` calls `TimelineScreenModel.setAllItemsRead()`,
+     * which for a FreshRSS account reaches `Repository.setAllItemsRead()` and so
+     * `ItemStateDao.setAllItemsRead(accountId)`: an update of every state row
+     * that exists, then `setAllItemsReadByInsert`, an
+     * `Insert Or Ignore … Select` that writes a state row for **every stored
+     * article**. `ItemState` stops being a few thousand rows and becomes as
+     * large as `Item`; the next sync's `deleteItemStates` then deletes all of
+     * them and puts the few thousand capped ones back.
+     *
+     * Each round restores the fixture, so the pass that follows sees the same
+     * database it would have seen without this measurement.
+     */
+    private fun measureMarkAllRead(): List<Measurement> {
+        reopen()
+        val before = count("Select count(*) From ItemState Where account_id = $ACCOUNT_ID").toInt()
+
+        val cold = markAllReadRound()
+        val rounds = List(if (cold.sum() > 500) 1 else 3) { markAllReadRound() }
+        val after = markAllReadStateRows
+
+        val markPlan = explain(markAllReadUpdateSql) + " // " + explain(markAllReadInsertSql)
+        val warm = { position: Int -> rounds.map { it[position] }.sorted()[rounds.size / 2] }
+
+        return listOf(
+            Measurement(
+                "mark all read — ItemStateDao.setAllItemsRead ($before rows before, $after after)",
+                after, cold[0], warm(0), markPlan,
+                "ItemStateDao.setAllItemsRead(accountId) — setAllItemsReadByUpdate then " +
+                        "setAllItemsReadByInsert, one Room transaction"
+            ),
+            Measurement(
+                "after mark all read — sync deleteItemStates", after, cold[1], warm(1),
+                explain("Select * From ItemState Where account_id = $ACCOUNT_ID"),
+                "ItemStateDao.deleteItemStates(accountId) over $after rows"
+            ),
+            Measurement(
+                "after mark all read — sync insertItemsIds inserts", before, cold[2], warm(2),
+                explain("Insert Into ItemState(read, starred, remote_id, account_id) Values (0, 0, 'x', $ACCOUNT_ID)"),
+                "ItemStateDao.insert(List<ItemState>) × 3 — back to the capped $before rows"
+            ),
+        )
+    }
+
+    /** Milliseconds for mark-all-read, the delete that follows, and the reinsert. */
+    private fun markAllReadRound(): DoubleArray {
+        val dao = database!!.itemStateDao()
+        val ids = syncIdLists()
+
+        val mark = measureMillis { runBlocking { dao.setAllItemsRead(ACCOUNT_ID) } }
+        markAllReadStateRows = count("Select count(*) From ItemState Where account_id = $ACCOUNT_ID").toInt()
+        val delete = measureMillis { runBlocking { dao.deleteItemStates(ACCOUNT_ID) } }
+        val insert = measureMillis { runBlocking { insertStateRowsAsTheRepositoryDoes(ids) } }
+
+        return doubleArrayOf(mark, delete, insert)
+    }
+
+    /**
+     * The three id lists `insertItemsIds` is called with, in the shapes the
+     * Google Reader data source hands them over: the capped unread ids, the
+     * capped read ids, and every starred id as a `MutableList` the mapping is
+     * free to remove from.
+     */
+    private fun syncIdLists(): SyncIds {
+        val rows = itemStateRows()
+        return SyncIds(
+            unreadIds = rows.filter { !it.read }.map { it.remoteId },
+            readIds = rows.filter { it.read && !it.starredOnly }.map { it.remoteId },
+            starredIds = rows.filter { it.starred }.map { it.remoteId }.toMutableList(),
+        )
+    }
+
+    /**
+     * The mapping half of `GReaderRepository.insertItemsIds`, copied faithfully
+     * from `app/src/main/java/app/lenews/repositories/GReaderRepository.kt`
+     * (lines 203-253) at commit `96f4c9e0`. The `db` module cannot depend on
+     * `app`, so the algorithm is copied rather than called; the linear
+     * `starredIds.any` scan and the `starredIds.remove` are the production code,
+     * not a shortcut taken here. **If that method changes, change this.**
+     */
+    private fun mapItemStatesAsTheRepositoryDoes(ids: SyncIds): List<List<ItemState>> {
+        val starredIds = ids.starredIds
+
+        val unread = ids.unreadIds.map { id ->
+            val starred = starredIds.any { starredId -> starredId == id }
+
+            if (starred) {
+                starredIds.remove(id)
+            }
+
+            ItemState(id = 0, read = false, starred = starred, remoteId = id, accountId = ACCOUNT_ID)
+        }
+
+        val read = ids.readIds.map { id ->
+            val starred = starredIds.any { starredId -> starredId == id }
+            if (starred) {
+                starredIds.remove(id)
+            }
+
+            ItemState(id = 0, read = true, starred = starred, remoteId = id, accountId = ACCOUNT_ID)
+        }
+
+        // insert starred items ids which are read
+        val starredOnly = starredIds.map { id ->
+            ItemState(0, read = true, starred = true, remoteId = id, accountId = ACCOUNT_ID)
+        }
+
+        return listOf(unread, read, starredOnly)
+    }
+
+    /**
+     * `insertItemsIds` without its opening `deleteItemStates`, which is measured
+     * as a row of its own so the two halves are visible. The three
+     * `insert(List)` calls are the real DAO, with no transaction around them —
+     * the repository has none either.
+     */
+    private suspend fun insertStateRowsAsTheRepositoryDoes(ids: SyncIds) {
+        val dao = database!!.itemStateDao()
+        val (unread, read, starredOnly) = mapItemStatesAsTheRepositoryDoes(ids)
+
+        dao.insert(unread)
+        dao.insert(read)
+        if (starredOnly.isNotEmpty()) {
+            dao.insert(starredOnly)
+        }
     }
 
     private fun insertItemStatesAsTheSyncDoes(rows: List<StateRow>) {
@@ -585,19 +877,38 @@ private class Benchmark(private val articleCount: Int) {
     // region indexes
 
     /**
-     * The obvious missing indexes, on the test database only. No `ANALYZE` is
-     * run: the app never runs one either, so the planner sees the same default
-     * cost estimates it sees on a phone.
+     * The one index the two drawer counts need, on the test database only, and
+     * nothing else. It is created on its own because the first round of this
+     * ticket created all five at once and then credited the unread timeline's
+     * `SEARCH Item USING bench_Item_remote_id` to the whole set: this index has
+     * to be measured alone before that claim can be made.
      */
-    private fun createIndexes() {
+    private fun createRemoteIdIndex() {
+        writable().execSQL("Create Index If Not Exists bench_Item_remote_id On Item(remote_id)")
+    }
+
+    /** The other four obvious missing indexes, on the test database only. */
+    private fun createRemainingIndexes() {
         val db = writable()
         listOf(
-            "Create Index If Not Exists bench_Item_remote_id On Item(remote_id)",
             "Create Index If Not Exists bench_Item_pub_date On Item(pub_date)",
             "Create Index If Not Exists bench_Item_read On Item(read)",
             "Create Index If Not Exists bench_Item_feed_id_pub_date On Item(feed_id, pub_date)",
             "Create Index If Not Exists bench_ItemState_account_id On ItemState(account_id)",
         ).forEach { db.execSQL(it) }
+    }
+
+    /**
+     * `ANALYZE` writes `sqlite_stat1`, and the planner keeps reading it for as
+     * long as it has rows. Emptying it puts the planner back on its default
+     * estimates, which is the state a phone is in: the app never runs `ANALYZE`.
+     * Without this, the "all five indexes, no statistics" pass would silently
+     * inherit the statistics of the pass before it.
+     */
+    private fun forgetStatistics() {
+        val db = writable()
+        db.execSQL("Delete From sqlite_stat1")
+        db.execSQL("Analyze sqlite_master")
     }
 
     // endregion
@@ -706,6 +1017,17 @@ private class Benchmark(private val articleCount: Int) {
         line("</details>")
     }
 
+    /**
+     * The warm median. A measurement that already took more than half a second
+     * cold is repeated once rather than three times: the expensive rows here are
+     * stable to well under a percent, and repeating them seven times would put
+     * the control over a minute for no extra information.
+     */
+    private inline fun repeated(coldMillis: Double, block: () -> Double): Double {
+        val repeats = if (coldMillis > 500) 1 else 3
+        return List(repeats) { block() }.sorted()[repeats / 2]
+    }
+
     private fun format(millis: Double) = "%.1f".format(millis)
 
     private fun megabytes(bytes: Long) = "%.0f".format(bytes / 1024.0 / 1024.0)
@@ -732,6 +1054,19 @@ private data class Measurement(
     val warmMillis: Double,
     val plan: String,
     val sql: String,
+)
+
+/** One pass of every measurement, under one index and statistics arrangement. */
+private data class Pass(
+    val name: String,
+    val measurements: List<Measurement>,
+)
+
+/** The three lists `GReaderRepository.insertItemsIds` takes. */
+private data class SyncIds(
+    val unreadIds: List<String>,
+    val readIds: List<String>,
+    val starredIds: MutableList<String>,
 )
 
 private data class StateRow(
