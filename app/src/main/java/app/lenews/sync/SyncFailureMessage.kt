@@ -16,9 +16,11 @@
  */
 package app.lenews.sync
 
+import androidx.work.Data
+import androidx.work.workDataOf
+
 /**
- * Keeps the sentence a failed sync reports short enough for WorkManager to
- * carry.
+ * What a failed sync reports, and the bound that keeps it deliverable.
  *
  * WorkManager stores a worker's output `Data` and refuses one whose serialized
  * form is over 10 KB — and it refuses it by throwing, from inside the machinery
@@ -35,6 +37,11 @@ package app.lenews.sync
  * needs, and even at the four bytes a character UTF-8 spends in the worst case
  * it is a fifth of what `Data` allows — so the bound holds whatever alphabet
  * the message arrives in.
+ *
+ * [failureData] builds the whole output the worker returns, rather than only
+ * the message, so that a test can exercise the encoding the app actually ships
+ * instead of a `Data` assembled beside it. `SyncWorker.failureData` does
+ * nothing but call it with the notice read out of `strings.xml`.
  */
 object SyncFailureMessage {
 
@@ -56,4 +63,18 @@ object SyncFailureMessage {
         } else {
             message.take(MAX_CHARACTERS) + cutNotice(message.length - MAX_CHARACTERS)
         }
+
+    /**
+     * The output `Data` a failed sync returns: the flag the screen watches for
+     * and [message] bounded by [bounded].
+     *
+     * Each call builds its own `Data`, so two syncs failing at once carry two
+     * answers and neither can overwrite the other, and the answer survives the
+     * process being killed because WorkManager stores it.
+     */
+    fun failureData(message: String, cutNotice: (droppedCharacters: Int) -> String): Data =
+        workDataOf(
+            SyncWorker.SYNC_FAILURE_KEY to true,
+            SyncWorker.SYNC_FAILURE_MESSAGE_KEY to bounded(message, cutNotice)
+        )
 }

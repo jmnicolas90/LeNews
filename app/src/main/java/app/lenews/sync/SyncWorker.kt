@@ -94,12 +94,10 @@ class SyncWorker(
      * running at the same time cannot overwrite this one's answer. The message
      * is bounded because `Data` is: see [SyncFailureMessage].
      */
-    private fun failureData(message: String) = workDataOf(
-        SYNC_FAILURE_KEY to true,
-        SYNC_FAILURE_MESSAGE_KEY to SyncFailureMessage.bounded(message) { droppedCharacters ->
+    private fun failureData(message: String) =
+        SyncFailureMessage.failureData(message) { droppedCharacters ->
             applicationContext.getString(R.string.sync_failure_message_cut, droppedCharacters)
         }
-    )
 
     /**
      * The new articles notification, or the removal of the last one.

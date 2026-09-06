@@ -117,10 +117,15 @@ worst case, a fifth of what `Data` allows. Both failure paths in `SyncWorker`
 go through one `failureData(message)`.
 
 **Tested.** `SyncFailureMessageTest`, a JVM test: a short message is left
-alone, a message of exactly the bound is left alone, a long one is cut from its
-beginning and says how much went, half a million four-byte characters come out
-under 3 KB, and two `Data` built for two failures each answer with their own
-message — the round trip that would have failed when the map was still there.
+alone, a message of exactly the bound is left alone, and a long one is cut from
+its beginning and says how much went. The last two tests go through
+`SyncFailureMessage.failureData`, which is the whole of what
+`SyncWorker.failureData` does, and read the answer back with
+`Data.fromByteArray` out of the bytes `Data.toByteArray()` produced: 20,000
+characters of a three-byte letter come out of the encoder small enough for
+WorkManager to store, and two failures built one after the other each come back
+from their own bytes with their own message and their own flag — which is what
+the shared map could not do.
 
 ### 3. No `GlobalScope`, no disposal writes against a `lateinit`
 
@@ -169,3 +174,38 @@ nothing is written and there is nothing to poll for.
 - **`GReaderService.getWriteToken()` returns a `ResponseBody` and is read with
   `.string()`**, which closes it. Left as it is: it is correct, and making it
   look like the others would be churn.
+
+### Review round (2026-09-06)
+
+One finding, accepted: the two `Data` tests **did not exercise the code the app
+ships**. They built two `Data` by hand with `workDataOf` and read them back in
+memory, and the large-message test weighed the bounded `String` rather than the
+serialized `Data`, so deleting the bound from `SyncWorker.failureData` — the
+very defect section 2 above closes — would have left both green.
+
+**Changed.** The build of the output `Data` moved out of `SyncWorker` into
+`SyncFailureMessage.failureData(message, cutNotice)`, which is now the one place
+the two keys and the bound are put together; the worker's own `failureData` does
+nothing but call it with the notice read out of `strings.xml`, so there is no
+second encoder for a test to miss. Nothing about what the worker returns
+changed.
+
+The two tests were rewritten against it, and both now serialize with
+`Data.toByteArray()` and restore with `Data.fromByteArray`, which is the trip
+the answer really makes — WorkManager stores those bytes, and a process killed
+and restarted reads the answer back out of them:
+
+- **`anOversizedMessageStillFitsTheOutputData`** encodes 20,000 characters of a
+  letter that is three bytes in UTF-8 — 60 KB unbounded, nearly six times what
+  `Data` accepts — and asserts the serialized output is within
+  `Data.MAX_DATA_BYTES` and that the restored message still begins with the
+  message that arrived.
+- **`twoFailuresAtOnceKeepTheirOwnAnswerThroughSerialization`** builds two
+  failures through the same function and asserts each restored `Data` carries
+  its own message and its own flag.
+
+**The bound was removed to check the test is honest**: with
+`failureData` putting the message in unbounded, `anOversizedMessageStillFitsTheOutputData`
+fails with `IllegalStateException` from `toByteArray()` — WorkManager refusing
+the payload, which is exactly the failure the bound exists to prevent. The bound
+was put back and the whole gate run green.
