@@ -75,10 +75,31 @@ open; and the Environment note said the file holds an `sdk.dir`, which was wrong
 in the *other* direction — it described a file that did not exist and gave it a
 key the file now deliberately does not have.
 
-**Not covered here.** Whether the Caddy root is installed as a user CA on the
+**Not covered here** *(checklist item 3 has since been confirmed — see below)*.
+Whether the Caddy root is installed as a user CA on the
 *phone* — checklist item 3 — cannot be checked from this machine and the phone
 is out of bounds; it is the user's to confirm before a debug build on the phone
 reaches `rss.lan`. Nor was `rss.lan` reached from the `bench-pixel6-aosp`
 emulator: that AVD has neither the root certificate nor a tested route, and it
 does not need one, because G7 uses MockWebServer. Tickets 14 to 16 verifying
 against this account is what will settle both.
+
+## Checklist item 3, confirmed (2026-09-06)
+
+The debug APK was installed on the user's Samsung (Galaxy A06, Android 16) at
+their request, and they logged in and synced against `ledev` on `rss.lan`. The
+Caddy root was already installed as a user CA — put there earlier for unrelated
+development — and the logcat captured over the session shows **no TLS failure of
+any kind**. The sync worker reported `SUCCESS` in 503 ms.
+
+The store on the phone afterwards, which also confirms this ticket's own record
+of the account from the other side: **1,572 articles, 19 feeds, 6 folders** — the
+same 19 subscriptions and 6 categories the `Answer` above read off the API. Also
+**0 pending changes** against 12 articles read during the session, so every
+decision was written and uploaded.
+
+Read with the pull-and-query pattern of ticket 14 rather than on the device: this
+Samsung has no `sqlite3` binary, unlike the emulator. The pulled copy was deleted
+afterwards. No credential appears anywhere in the log — zero matches for
+`GoogleLogin`, `auth=`, the account name or the server address under the app's
+process.

@@ -146,16 +146,26 @@ header in the same commit.**
   read, sync twice and the read is still there, which is the server having taken
   it — and left the account as found. `local.properties`
   lives in the main checkout only, so a worktree that needs the debug account has
-  to be given a copy of that gitignored file, deleted again afterwards. Still
-  open: the same root on the **phone**, which cannot be checked from this
-  machine — the app is now the reason it matters, since without that root a debug
-  build on the phone cannot reach `rss.lan` at all. The second sample of the
+  to be given a copy of that gitignored file, deleted again afterwards. **The
+  same root on the phone is confirmed too**, since 2026-09-06: at the user's
+  request the debug APK was installed on their Samsung (Galaxy A06, Android 16)
+  and they signed in and synced against `ledev`, and the logcat over that session
+  carries no handshake failure, no trust-anchor error and no certificate
+  complaint — the root had been installed there earlier for unrelated
+  development. That was the app's first run on real hardware. Note what it does
+  **not** license: the phone is still out of bounds by default, and it was
+  touched because the user asked in that turn, not because this paragraph now
+  says the certificate works. The second sample of the
   article rate is rough but taken: 119 new
   articles in the 1 h 47 min between two syncs on 2026-09-06, which is well over
   a few hundred a day. The
   instrumented gate stage needs no network at all: it uses MockWebServer on the
   emulator. A real phone is often attached to this machine over adb and is out
-  of bounds; G7 pins the serial so nothing can reach it.
+  of bounds; G7 pins the serial so nothing can reach it. When the user does ask
+  for something on the phone, pin `-s <serial>` on every adb call for the same
+  reason — the emulator is usually up at the same time. Note the Samsung has **no
+  `sqlite3` binary**, unlike the emulator, so reading a store off it means the
+  pull-and-query pattern of ticket 14 rather than a shell query.
 
 ## The gate
 

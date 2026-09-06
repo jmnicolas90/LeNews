@@ -189,7 +189,15 @@ the worktree and no credential was read.
   Caddy root is installed there cannot be checked from this machine, the phone is
   out of bounds, and this ticket does not change that. What is now settled is the
   emulator half: with the root present the sync works, without it the app refuses
-  the server. `CLAUDE.md` still records the phone as open.
+  the server. ~~`CLAUDE.md` still records the phone as open.~~
+
+  **Settled on the phone too, 2026-09-06, by the user.** The debug APK was
+  installed on their Samsung at their request and they signed in and synced. The
+  root was already there — installed earlier for unrelated development, not for
+  this — and the logcat captured across the session carries **no handshake
+  failure, no trust-anchor error and no certificate complaint of any kind**. So
+  the `<domain-config>` for `rss.lan` does on real hardware what it does on the
+  emulator. The ticket's policy is unchanged; only the unknown is gone.
 - **`rss.lan` is written into the app.** The user-CA exception names one host, so
   another self-hosted FreshRSS behind a private authority would not be reachable
   without editing this file. That follows from the ticket's own policy — one

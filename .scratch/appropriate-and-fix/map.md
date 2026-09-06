@@ -98,9 +98,19 @@ Decided in conversation on 2026-09-05. Not tickets.
 - ~~**What the history list looks like.**~~ Decided by [ticket 16](issues/16-history-list.md) taking the cheapest fit, as this entry allowed: a **fourth main filter** of the timeline beside All, New and Stars, reached from the drawer, showing the moment the article became read — with the hour — in place of its publication date, and composing with a feed or a folder like any other main filter.
 - **Translations.** Upstream ships 14 languages via Weblate. Deleting three services orphans many strings and the Weblate link goes with the scrub (ticket 06). Keep all, or English + French only? A product call nobody has made.
 - **New-article notifications.** Readrops notifies on new items after background sync. Untouched by the destination, but the sync analyzer is per-account code that ticket 13's single-account collapse will brush against. Keep as is, unless it gets in the way.
-- **Release signing and publishing.** A keystore has to exist, live somewhere safe, and be reachable from a release process without leaking into the repo. Sharpens once the rename lands and there is a first release worth cutting.
+- ~~**Release signing and publishing.**~~ Sharpened into [ticket 23](issues/23-release-signing.md) on 2026-09-06, as this entry said it would once the rename landed. It has, and the gap turned out to bite sooner than "a first release worth cutting": there is no `signingConfig` at all, so `assembleRelease` yields `app-release-unsigned.apk`, which cannot be installed — the debug build is the only one that can reach a phone, and the performance of a real build is therefore unmeasurable on hardware.
 - **Regenerating screenshots and store metadata** under the new name. `fastlane/metadata` is upstream's and is deleted by ticket 06; what replaces it, if anything, is undecided.
 - **`targetSdk 36`.** `compileSdk`/`targetSdk` are 35. Ding raised to 36 as its own ticket; same here, once the gate exists to catch what it breaks.
+
+## Open tickets
+
+<!-- tickets not yet resolved; the Decisions log above covers the resolved ones -->
+
+- [23 — Where the release keystore lives, and how a release build gets signed](issues/23-release-signing.md) — `grilling`. No `signingConfig` in `app/build.gradle.kts`, so the release APK is unsigned and uninstallable. The fog is where the key lives, how the password reaches Gradle without entering the tree, what CI does without a key, and whether a debug-signed release build is a sanctioned interim.
+- [24 — Decide whether LeNews needs a baseline profile of its own](issues/24-baseline-profile.md) — `task`, blocked by 23. The release APK carries only the profile Compose and AndroidX embed; no `androidx.baselineprofile` plugin, no generator module. Measure a release build on hardware first and let the numbers decide, ticket 11's standard; closing it as not needed is a valid answer.
+- [25 — Fix the misspelled `timelime` package](issues/25-rename-timelime-package.md) — `task`. Upstream's typo, carried through ticket 05's rename: `app.lenews.timelime` should be `timeline`. Cosmetic, appears in every stack trace, cheapest before a release ships with it.
+
+All three came out of installing the debug APK on the user's Samsung on 2026-09-06 and reading logcat while they used it — the first time LeNews has run on real hardware.
 
 ## Out of scope
 
