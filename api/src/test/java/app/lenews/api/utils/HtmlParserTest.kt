@@ -1,41 +1,29 @@
 package app.lenews.api.utils
 
 import android.nfc.FormatException
+import app.lenews.api.HttpClients
 import app.lenews.api.TestUtils
 import kotlinx.coroutines.test.runTest
-import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okio.Buffer
 import org.junit.After
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
-import org.koin.dsl.module
-import org.koin.test.KoinTest
-import org.koin.test.KoinTestRule
-import org.koin.test.get
 import java.net.HttpURLConnection
-import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class HtmlParserTest : KoinTest {
+class HtmlParserTest {
 
     private val mockServer = MockWebServer()
 
-    @get:Rule
-    val koinTestRule = KoinTestRule.create {
-        modules(module {
-            single {
-                OkHttpClient.Builder()
-                    .callTimeout(1, TimeUnit.MINUTES)
-                    .readTimeout(1, TimeUnit.HOURS)
-                    .build()
-            }
-        })
-    }
+    /**
+     * The plain client, which is the one the new-feed screen fetches with: the
+     * URL a user types is not the FreshRSS server and carries no credentials.
+     */
+    private val client = HttpClients("LeNews/0.0.0-test").plain
 
     @Before
     fun before() {
@@ -57,7 +45,7 @@ class HtmlParserTest : KoinTest {
                 .setBody(Buffer().readFrom(stream))
         )
 
-        val links = HtmlParser.getFeedLink(mockServer.url("/rss").toString(), get())
+        val links = HtmlParser.getFeedLink(mockServer.url("/rss").toString(), client)
 
         assertTrue { links.size == 2 }
         assertTrue { links.all { it.label!!.contains("The Mozilla Blog") } }
@@ -73,7 +61,7 @@ class HtmlParserTest : KoinTest {
                 .setBody(Buffer().readFrom(stream))
         )
 
-        HtmlParser.getFeedLink(mockServer.url("/rss").toString(), get())
+        HtmlParser.getFeedLink(mockServer.url("/rss").toString(), client)
     }
 
     @Test(expected = FormatException::class)
@@ -83,7 +71,7 @@ class HtmlParserTest : KoinTest {
                 .addHeader(ApiUtils.CONTENT_TYPE_HEADER, "application/rss+xml")
         )
 
-        HtmlParser.getFeedLink(mockServer.url("/rss").toString(), get())
+        HtmlParser.getFeedLink(mockServer.url("/rss").toString(), client)
     }
 
     @Test
@@ -96,7 +84,7 @@ class HtmlParserTest : KoinTest {
                 .setBody(Buffer().readFrom(stream))
         )
 
-        val document = HtmlParser.getHTMLHeadFromUrl(mockServer.url("/rss").toString(), get())
+        val document = HtmlParser.getHTMLHeadFromUrl(mockServer.url("/rss").toString(), client)
         val link = HtmlParser.getFaviconLink(document)
         assertTrue { link!!.contains("apple-touch-icon") }
     }
@@ -111,7 +99,7 @@ class HtmlParserTest : KoinTest {
                 .setBody(Buffer().readFrom(stream))
         )
 
-        val document = HtmlParser.getHTMLHeadFromUrl(mockServer.url("/rss").toString(), get())
+        val document = HtmlParser.getHTMLHeadFromUrl(mockServer.url("/rss").toString(), client)
         val link = HtmlParser.getFaviconLink(document)
         assertNull(link)
     }
@@ -126,7 +114,7 @@ class HtmlParserTest : KoinTest {
                 .setBody(Buffer().readFrom(stream))
         )
 
-        val document = HtmlParser.getHTMLHeadFromUrl(mockServer.url("/rss").toString(), get())
+        val document = HtmlParser.getHTMLHeadFromUrl(mockServer.url("/rss").toString(), client)
         val link = HtmlParser.getFeedImage(document)
 
         assertEquals(
@@ -145,7 +133,7 @@ class HtmlParserTest : KoinTest {
                 .setBody(Buffer().readFrom(stream))
         )
 
-        val document = HtmlParser.getHTMLHeadFromUrl(mockServer.url("/rss").toString(), get())
+        val document = HtmlParser.getHTMLHeadFromUrl(mockServer.url("/rss").toString(), client)
         val description = HtmlParser.getFeedDescription(document)
 
         assertEquals("The Mozilla Blog", description)
@@ -161,7 +149,7 @@ class HtmlParserTest : KoinTest {
                 .setBody(Buffer().readFrom(stream))
         )
 
-        val document = HtmlParser.getHTMLHeadFromUrl(mockServer.url("/rss").toString(), get())
+        val document = HtmlParser.getHTMLHeadFromUrl(mockServer.url("/rss").toString(), client)
         val description = HtmlParser.getFeedDescription(document)
 
         assertEquals("Μενέξενς", description)

@@ -8,7 +8,8 @@ import cafe.adriel.voyager.core.model.screenModelScope
 import android.nfc.FormatException
 import app.lenews.api.services.Credentials
 import app.lenews.api.utils.ApiUtils
-import app.lenews.api.utils.AuthInterceptor
+import app.lenews.api.HttpClients
+import app.lenews.api.PLAIN_CLIENT
 import app.lenews.api.utils.HtmlParser
 import app.lenews.R
 import app.lenews.repositories.BaseRepository
@@ -30,6 +31,8 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.parameter.parametersOf
+import org.koin.core.qualifier.named
+import okhttp3.OkHttpClient
 
 class NewFeedScreenModel(
     private val database: Database,
@@ -131,7 +134,8 @@ class NewFeedScreenModel(
                 // web page can be read for feed links; anything else is handed to the
                 // account as it was typed, and the server says whether it is a feed.
                 val rssUrls = try {
-                    HtmlParser.getFeedLink(url, get())
+                    // whatever URL the user typed, which is not the FreshRSS server
+                    HtmlParser.getFeedLink(url, get<OkHttpClient>(named(PLAIN_CLIENT)))
                 } catch (e: FormatException) {
                     insertFeeds(
                         listOf(
@@ -199,9 +203,9 @@ class NewFeedScreenModel(
             account.password = getString(Account.PASSWORD_KEY, null)
         }
 
-        get<AuthInterceptor>().apply {
-            credentials = Credentials.toCredentials(account)
-        }
+        // Before the repository is resolved: the repository keeps the client
+        // it is built with, so the credentials have to be in place first.
+        get<HttpClients>().useCredentials(Credentials.toCredentials(account))
 
         val repository = get<BaseRepository> { parametersOf(account) }
 

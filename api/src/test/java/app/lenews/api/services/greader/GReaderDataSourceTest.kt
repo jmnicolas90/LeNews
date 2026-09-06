@@ -1,6 +1,7 @@
 package app.lenews.api.services.greader
 
 import app.lenews.api.TestUtils
+import app.lenews.api.PLAIN_CLIENT
 import app.lenews.api.apiModule
 import app.lenews.api.enqueueOK
 import app.lenews.api.enqueueOKStream
@@ -37,11 +38,14 @@ class GReaderDataSourceTest : KoinTest {
 
     @get:Rule
     val koinTestRule = KoinTestRule.create {
-        modules(apiModule, module {
+        modules(apiModule(USER_AGENT), module {
             single {
                 Retrofit.Builder()
                     .baseUrl("http://localhost:8080/")
-                    .client(get())
+                    // no credentials are set in this suite, so the plain client
+                    // is what the authenticated one would be anyway; naming it
+                    // says the fixtures assert nothing about the token
+                    .client(get(named(PLAIN_CLIENT)))
                     .addConverterFactory(MoshiConverterFactory.create(get(named("greaderMoshi"))))
                     .build()
                     .create(GReaderService::class.java)
@@ -60,24 +64,40 @@ class GReaderDataSourceTest : KoinTest {
         mockServer.shutdown()
     }
 
+    /**
+     * ClientLogin goes out form-encoded, with the two fields the protocol names,
+     * and the answer the fixture holds still parses into the token.
+     */
     @Test
     fun loginTest() = runTest {
         val responseBody = TestUtils.loadResource("services/greader/login_response_body")
         mockServer.enqueueOKStream(responseBody)
 
-        val authString = freshRSSDataSource.login("Login", "Password")
+        val authString = freshRSSDataSource.login("Login", "P@ssword&more")
         assertEquals("login/p1f8vmzid4hzzxf31mgx50gt8pnremgp4z8xe44a", authString)
 
         val request = mockServer.takeRequest()
-        val requestBody = request.body.readUtf8()
 
-        assertTrue {
-            requestBody.contains("name=\"Email\"") && requestBody.contains("Login")
-        }
+        assertEquals(
+            "application/x-www-form-urlencoded",
+            request.headers["Content-Type"],
+            "multipart is what stricter Google Reader servers reject"
+        )
+        assertEquals(
+            "Email=Login&Passwd=" + URLEncoder.encode("P@ssword&more", "UTF-8"),
+            request.body.readUtf8()
+        )
+    }
 
-        assertTrue {
-            requestBody.contains("name=\"Passwd\"") && requestBody.contains("Password")
-        }
+    @Test
+    fun everyRequestSaysItIsLeNews() = runTest {
+        mockServer.enqueueOKStream(
+            TestUtils.loadResource("services/greader/writetoken_response_body")
+        )
+
+        freshRSSDataSource.getWriteToken()
+
+        assertEquals(USER_AGENT, mockServer.takeRequest().headers["User-Agent"])
     }
 
     @Test
@@ -616,6 +636,8 @@ class GReaderDataSourceTest : KoinTest {
     """.trimIndent()
 
     private companion object {
+
+        const val USER_AGENT = "LeNews/0.0.0-test"
 
         /** Five ids and no continuation, which is one whole id list. */
         val FIVE_IDS = """

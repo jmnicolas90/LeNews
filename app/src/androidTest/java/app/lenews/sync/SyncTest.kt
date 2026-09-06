@@ -18,7 +18,7 @@ package app.lenews.sync
 
 import app.lenews.api.services.Credentials
 import app.lenews.api.services.greader.GReaderDataSource
-import app.lenews.api.utils.AuthInterceptor
+import app.lenews.api.HttpClients
 import app.lenews.api.utils.exceptions.ParseException
 import app.lenews.db.Database
 import app.lenews.db.entities.Item
@@ -62,12 +62,17 @@ class SyncTest : KoinTest {
     @Before
     fun before() {
         mockServer.dispatcher = server
+        // The account is logged in, so every call these tests make goes out on
+        // the authenticated client — and the stub answers 401 to any that does
+        // not carry this token.
+        server.token = SERVER_TOKEN
 
         runBlocking {
             database.accountDao().upsert(
                 Account(
                     name = "Account",
                     url = mockServer.url("/remote").toString(),
+                    token = SERVER_TOKEN,
                     writeToken = "writeToken"
                 )
             )
@@ -779,6 +784,31 @@ class SyncTest : KoinTest {
     }
 
     /**
+     * Every call a sync makes carries the account's token, and so goes out on
+     * the authenticated client. The stub refuses any that does not, so a sync
+     * wired to the plain client would fail every test in this file rather than
+     * pass quietly; this one says it in one place.
+     */
+    @Test
+    fun everyCallASyncMakesCarriesTheToken() = runTest {
+        server.readingListPages = listOf(listOf(FreshRSSStub.articleJson(ARTICLE_A)))
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        synchronize()
+
+        val received = server.received
+        assertTrue(received.isNotEmpty(), "the sync made no request at all")
+
+        val bare = received.filter { it.authorization != FreshRSSStub.AUTH_PREFIX + SERVER_TOKEN }
+        assertEquals(
+            emptyList<String>(),
+            bare.map { it.path },
+            "these sync requests went out without the account's token"
+        )
+    }
+
+    /**
      * Runs one sync through the repository rather than through [Synchronizer],
      * so that [GReaderRepository.afterTheStoreIsWritten] can be used to fail
      * the transaction where the model says everything must roll back.
@@ -796,7 +826,9 @@ class SyncTest : KoinTest {
         failInsideTheTransaction: Boolean = false
     ): GReaderRepository {
         val account = storedAccount()
-        getKoin().get<AuthInterceptor>().credentials = Credentials.toCredentials(account)
+        // The host rule comes from the stub's own URL: the test says nothing
+        // about which host and port MockWebServer picked.
+        getKoin().get<HttpClients>().useCredentials(Credentials.toCredentials(account))
 
         val dataSource = getKoin().get<GReaderDataSource> {
             parametersOf(Credentials.toCredentials(account))
@@ -817,6 +849,9 @@ class SyncTest : KoinTest {
         database.itemDao().selectEveryArticle().sortedBy { it.id }
 
     private companion object {
+        /** The token the stub issued to this account and demands on every call. */
+        const val SERVER_TOKEN = "aTokenTheServerIssued"
+
         const val ARTICLE_A = 1625234531559678L
         const val ARTICLE_B = 1625234531559679L
         const val ARTICLE_C = 1625234531559680L

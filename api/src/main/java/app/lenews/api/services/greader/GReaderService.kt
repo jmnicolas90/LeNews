@@ -5,9 +5,7 @@ import app.lenews.api.services.greader.adapters.GReaderFolders
 import app.lenews.api.services.greader.adapters.GReaderItemIdsPage
 import app.lenews.api.services.greader.adapters.GReaderItemsPage
 import app.lenews.db.entities.Feed
-import okhttp3.RequestBody
 import okhttp3.ResponseBody
-import retrofit2.http.Body
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
@@ -16,8 +14,17 @@ import retrofit2.http.Query
 
 interface GReaderService {
 
+    /**
+     * ClientLogin, form-encoded as the Google Reader protocol specifies. This
+     * used to be sent as `multipart/form-data`, which FreshRSS accepts and
+     * stricter Google Reader servers reject.
+     */
+    @FormUrlEncoded
     @POST("accounts/ClientLogin")
-    suspend fun login(@Body body: RequestBody?): ResponseBody
+    suspend fun login(
+        @Field("Email") login: String,
+        @Field("Passwd") password: String
+    ): ResponseBody
 
     @GET("reader/api/0/token")
     suspend fun getWriteToken(): ResponseBody

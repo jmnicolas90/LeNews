@@ -36,6 +36,13 @@ import java.util.Collections
  * page a request asks for is read back out of the `c` parameter it carries: a
  * client that dropped the continuation gets the first page again and the test
  * sees it.
+ *
+ * It also checks credentials, which is what makes a test prove that the calls
+ * went out on the authenticated client: with a [token] set, every call but
+ * ClientLogin is answered `401 Unauthorized` unless it carries exactly
+ * `Authorization: GoogleLogin auth=<token>`. ClientLogin is the one call that
+ * must carry none, and the header every request arrived with is recorded so a
+ * test can say so itself.
  */
 class FreshRSSStub : Dispatcher() {
 
@@ -85,25 +92,76 @@ class FreshRSSStub : Dispatcher() {
     /** Run just before an `edit-tag` request is answered, with the request body. */
     var onStateUpload: ((String) -> Unit)? = null
 
-    private val recorded = Collections.synchronizedList(mutableListOf<Pair<String, String>>())
+    /**
+     * The token this server issues at ClientLogin and demands on every other
+     * call. Null means it demands nothing and answers no login, which is what a
+     * test that says nothing about credentials gets.
+     */
+    var token: String? = null
+
+    /** What the write token call answers, once the caller is authenticated. */
+    var writeToken: String = "writeToken"
+
+    /** What user info answers, once the caller is authenticated. */
+    var userName: String = "ledev"
+
+    private val recorded = Collections.synchronizedList(mutableListOf<Received>())
+
+    /** Every request, in the order they arrived. */
+    val received: List<Received>
+        get() = synchronized(recorded) { recorded.toList() }
 
     /** The path and body of every request, in the order they arrived. */
     val requests: List<Pair<String, String>>
-        get() = synchronized(recorded) { recorded.toList() }
+        get() = received.map { it.path to it.body }
 
     fun requestsTo(pathPart: String): List<Pair<String, String>> =
         requests.filter { (path, _) -> path.contains(pathPart) }
 
+    fun receivedFor(pathPart: String): List<Received> =
+        received.filter { it.path.contains(pathPart) }
+
     fun forget() = synchronized(recorded) { recorded.clear() }
+
+    /** One request as it arrived: where it went, what it carried, who it said it was. */
+    data class Received(val path: String, val body: String, val authorization: String?)
 
     override fun dispatch(request: RecordedRequest): MockResponse {
         val path = request.path.orEmpty()
         val url = request.requestUrl
         val body = request.body.readUtf8()
-        recorded += path to body
+        val authorization = request.getHeader(AUTHORIZATION)
+        recorded += Received(path, body, authorization)
 
         // the page a paged call asks for, read out of the continuation it sent
         val continuation = url?.queryParameter("c")
+
+        val endpoint = path.substringBefore('?')
+        val issuedToken = token
+
+        // ClientLogin is the one call with no token to send, so it is the one
+        // call answered without asking for one.
+        if (endpoint.endsWith("/accounts/ClientLogin")) {
+            return if (issuedToken == null) {
+                MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_FOUND)
+            } else {
+                okWith("SID=aSessionId\nLSID=null\nAuth=$issuedToken\n")
+            }
+        }
+
+        if (issuedToken != null && authorization != "$AUTH_PREFIX$issuedToken") {
+            return MockResponse()
+                .setResponseCode(HttpURLConnection.HTTP_UNAUTHORIZED)
+                .setBody("Unauthorized")
+        }
+
+        if (endpoint.endsWith("/reader/api/0/token")) {
+            return okWith(writeToken)
+        }
+
+        if (endpoint.endsWith("/user-info")) {
+            return okWith("""{ "userName": "$userName" }""")
+        }
 
         return when {
             path.contains("edit-tag") -> {
@@ -223,6 +281,11 @@ class FreshRSSStub : Dispatcher() {
     }
 
     companion object {
+
+        const val AUTHORIZATION = "Authorization"
+
+        /** What a FreshRSS token looks like on the wire. */
+        const val AUTH_PREFIX = "GoogleLogin auth="
 
         const val FEED_REMOTE_ID = "feed/2"
         const val READ = "user/-/state/com.google/read"
