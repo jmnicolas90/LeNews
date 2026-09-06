@@ -49,7 +49,7 @@ here is every file this fork created that is not Markdown. `git log
 produced; it follows a file through the ticket 05 rename, so a file added under
 `com/readrops/` and moved to `app/lenews/` still counts as created here.
 
-Carrying the header — sixty-five files:
+Carrying the header — sixty-six files:
 
 | File | Language |
 | --- | --- |
@@ -58,6 +58,7 @@ Carrying the header — sixty-five files:
 | `scripts/check-no-personal-email.sh` | shell |
 | `scripts/android-sdk-path.sh` | shell |
 | `scripts/codex-review.sh` | shell |
+| `scripts/create-release-keystore.sh` | shell |
 | `.github/workflows/ci.yml` | YAML |
 | `app/src/main/res/drawable/ic_launcher_background.xml` | XML |
 | `app/src/main/res/drawable/ic_launcher_foreground.xml` | XML |

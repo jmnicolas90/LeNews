@@ -181,10 +181,16 @@ The dependency was then removed and G4 is green again.
 
 ### G6 — signing
 
-None needed. No `signingConfig` is set on the release build type, so
-`assembleRelease` produces `app-release-unsigned.apk`. The stage runs unchanged
-here and on a runner with no secrets. Signing is a release-process problem, and
-the map already lists it under *Not yet specified*.
+None needed by the stage itself. **Corrected by [ticket 26](26-signing-config-and-keystore.md)
+on 2026-09-06**: when this was written no `signingConfig` was set on the release
+build type at all, so `assembleRelease` produced `app-release-unsigned.apk`
+everywhere. Signing is now presence-based on the four `lenews.release.*`
+properties [ticket 23](23-release-signing.md) put in
+`~/.gradle/gradle.properties`, so G6 produces a signed APK on the machine that
+holds the key and the same unsigned one on a runner, which has none of them. The
+stage still runs unchanged in both places, because what it asks is whether the
+release build works. Checking the signature is the release procedure's job, not
+the gate's.
 
 ### G7 — the instrumented stage
 
