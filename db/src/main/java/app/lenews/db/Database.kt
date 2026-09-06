@@ -38,6 +38,18 @@ abstract class Database : RoomDatabase() {
     abstract fun folderDao(): FolderDao
 
     abstract fun pendingChangeDao(): PendingChangeDao
+
+    /**
+     * Runs `PRAGMA optimize`, which the article store model asks for at the end
+     * of every sync transaction and once when the database is created.
+     *
+     * It goes through the support database rather than through a DAO because
+     * Room's `@Query` takes statements, not pragmas. Called from inside a
+     * transaction it runs in that transaction, on the same connection.
+     */
+    fun optimize() {
+        openHelper.writableDatabase.execSQL("PRAGMA optimize")
+    }
 }
 
 /**

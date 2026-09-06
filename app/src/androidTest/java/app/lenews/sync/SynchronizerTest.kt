@@ -87,9 +87,21 @@ class SynchronizerTest : KoinTest {
                             MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items.json"))
                         }
 
-                        // unread ids & starred ids
+                        // the content of named articles, which nothing here needs
+                        contains("stream/items/contents") -> {
+                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_empty.json"))
+                        }
+
+                        // the ids the server holds and the unread ones, which
+                        // name other articles than the one delivered here, and
+                        // nothing starred
                         contains("stream/items/ids") -> {
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_starred_ids.json"))
+                            val fixture = if (contains("starred")) {
+                                "greader/items_no_ids.json"
+                            } else {
+                                "greader/items_starred_ids.json"
+                            }
+                            MockResponse.okResponseWithBody(TestUtils.loadResource(fixture))
                         }
 
                         else -> MockResponse().setResponseCode(404)
@@ -145,14 +157,17 @@ class SynchronizerTest : KoinTest {
                             MockResponse.okResponseWithBody(TestUtils.loadResource("greader/feeds.json"))
                         }
 
-                        // the id lists: nothing unread, and the article starred,
-                        // which is what the server says about an article read
-                        // and starred on the web
+                        // the id lists: the server holds this one article, does
+                        // not call it unread and does call it starred, which is
+                        // what it says about an article read and starred on the
+                        // web
                         contains("stream/items/ids") -> {
-                            val fixture = if (contains("starred")) {
-                                "greader/items_starred_ids_one.json"
-                            } else {
-                                "greader/items_no_ids.json"
+                            val fixture = when {
+                                contains("s=user/-/state/com.google/starred") ->
+                                    "greader/items_starred_ids_one.json"
+
+                                contains("xt=") -> "greader/items_no_ids.json"
+                                else -> "greader/items_all_ids_one.json"
                             }
                             MockResponse.okResponseWithBody(TestUtils.loadResource(fixture))
                         }

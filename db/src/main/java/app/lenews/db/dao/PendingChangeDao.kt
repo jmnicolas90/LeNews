@@ -101,6 +101,20 @@ interface PendingChangeDao : BaseDao<PendingChange> {
     )
     suspend fun queueReadForUnreadSince(since: Long)
 
+    /**
+     * Clears the read half of the rows a batch uploaded, **only where it still
+     * holds the value that was uploaded**. A decision the user made while the
+     * batch was in flight no longer matches, so it stays queued and the next
+     * sync sends it. Same for [clearUploadedStarred].
+     */
+    @Query("Update PendingChange Set read = Null Where article_id In (:ids) And read = :uploaded")
+    suspend fun clearUploadedRead(ids: List<Long>, uploaded: Boolean)
+
+    @Query(
+        "Update PendingChange Set starred = Null Where article_id In (:ids) And starred = :uploaded"
+    )
+    suspend fun clearUploadedStarred(ids: List<Long>, uploaded: Boolean)
+
     @Query("Delete From PendingChange")
     suspend fun deleteAll()
 

@@ -18,7 +18,6 @@ import androidx.work.testing.WorkManagerTestInitHelper
 import app.lenews.testutil.LeNewsTestRule
 import app.lenews.testutil.TestUtils
 import app.lenews.testutil.okResponseWithBody
-import app.lenews.util.extensions.getSerializable
 import app.lenews.db.Database
 import app.lenews.db.entities.account.Account
 import app.lenews.R
@@ -171,18 +170,25 @@ class SyncWorkerTest : KoinTest {
                         MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_empty.json"))
                     }
 
-                    // the three ids calls differ by what they ask the server to
-                    // leave out: nothing for the starred ids, the read articles for
-                    // the unread ids, the unread ones for the read ids
-                    contains("stream/items/ids") -> when (url.queryParameter("xt")) {
-                        GOOGLE_READ ->
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_unread_ids.json"))
+                    // the content of named articles, which this account never
+                    // needs: nothing is starred that the store does not hold
+                    contains("stream/items/contents") -> {
+                        MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_empty.json"))
+                    }
 
-                        GOOGLE_UNREAD ->
+                    // the three id lists differ by the stream they name and by
+                    // what they ask the server to leave out: the starred stream,
+                    // the reading list without its read articles, and the whole
+                    // reading list
+                    contains("stream/items/ids") -> when {
+                        url.queryParameter("s") == GOOGLE_STARRED ->
                             MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_no_ids.json"))
 
+                        url.queryParameter("xt") == GOOGLE_READ ->
+                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_unread_ids.json"))
+
                         else ->
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_starred_ids.json"))
+                            MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_all_ids_one.json"))
                     }
 
                     contains("edit-tag") -> {
@@ -311,12 +317,9 @@ class SyncWorkerTest : KoinTest {
         // the payload itself, not a lambda that is never run: assertNotNull { }
         // takes the lambda object as its argument, so what used to stand here
         // asserted that a function object is not null and never read the Data
-        val failure = assertIs<Exception>(
-            failedWorkInfo.outputData.getSerializable(SyncWorker.SYNC_FAILURE_EXCEPTION_KEY)
-        )
         assertEquals(
             context.getString(R.string.background_sync_already_running),
-            failure.message
+            failedWorkInfo.outputData.getString(SyncWorker.SYNC_FAILURE_MESSAGE_KEY)
         )
     }
 
@@ -350,15 +353,15 @@ class SyncWorkerTest : KoinTest {
         assertTrue { result is ListenableWorker.Result.Failure }
         assertTrue { result.outputData.getBoolean(SyncWorker.SYNC_FAILURE_KEY, false) }
 
-        // the payload, not a lambda: the worker wraps the cause of what it
-        // caught, and for an account with no url that is Koin failing to build
-        // the FreshRSS data source
-        val failure = assertIs<Exception>(
-            result.outputData.getSerializable(SyncWorker.SYNC_FAILURE_EXCEPTION_KEY)
+        // the payload, not a lambda: the worker turns what it caught into a
+        // sentence and puts it in the output Data, and for an account with no
+        // url that is Koin failing to build the repository
+        val message = assertNotNull(
+            result.outputData.getString(SyncWorker.SYNC_FAILURE_MESSAGE_KEY),
+            "the failure payload carries no message"
         )
-        val message = assertNotNull(failure.message, "the failure payload carries no message")
         assertTrue(
-            message.contains("GReaderDataSource"),
+            message.contains("BaseRepository"),
             "the failure payload does not say what failed: $message"
         )
 
@@ -381,7 +384,6 @@ class SyncWorkerTest : KoinTest {
         private const val ARTICLE_ID = 1625234531559678L
 
         private const val GOOGLE_READ = "user/-/state/com.google/read"
-        private const val GOOGLE_UNREAD = "user/-/state/com.google/unread"
         private const val GOOGLE_STARRED = "user/-/state/com.google/starred"
 
         // far more than the system needs when it is idle, far less than the

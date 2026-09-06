@@ -18,8 +18,6 @@ import app.lenews.util.PAGING_PAGE_SIZE
 import app.lenews.util.PAGING_PREFETCH_DISTANCE
 import app.lenews.util.Preferences
 import app.lenews.util.Utils
-import app.lenews.util.extensions.clearSerializables
-import app.lenews.util.extensions.getSerializable
 import app.lenews.util.extensions.isConnected
 import app.lenews.db.Database
 import app.lenews.db.entities.Feed
@@ -235,13 +233,13 @@ class TimelineScreenModel(
                     }
 
                     workInfo.outputData.getBoolean(SyncWorker.SYNC_FAILURE_KEY, false) -> {
-                        val error =
-                            workInfo.outputData.getSerializable(SyncWorker.SYNC_FAILURE_EXCEPTION_KEY) as Exception?
-                        workInfo.outputData.clearSerializables()
+                        val error = workInfo.outputData
+                            .getString(SyncWorker.SYNC_FAILURE_MESSAGE_KEY)
+                            .orEmpty()
 
                         _timelineState.update {
                             it.copy(
-                                syncError = accountError.genericMessage(error!!),
+                                syncError = error,
                                 isRefreshing = false,
                                 hideReadAllFAB = false
                             )

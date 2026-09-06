@@ -29,6 +29,19 @@ interface ItemDao : BaseDao<Item> {
     @Query("Select * From Article Limit 1")
     suspend fun selectFirst(): Item?
 
+    @Query("Select * From Article")
+    suspend fun selectEveryArticle(): List<Item>
+
+    /** Which of these ids the store already holds, asked one chunk at a time. */
+    @Query("Select id From Article Where id In (:ids)")
+    suspend fun selectHeldIds(ids: List<Long>): List<Long>
+
+    @Query("Select id From Article Where read = 0")
+    suspend fun selectUnreadIds(): List<Long>
+
+    @Query("Select id From Article Where starred = 1")
+    suspend fun selectStarredIds(): List<Long>
+
     @Query("Select * From Article Where feed_id = :feedId")
     suspend fun selectItems(feedId: Int): List<Item>
 
@@ -115,18 +128,58 @@ interface ItemDao : BaseDao<Item> {
     @Query("Update Article Set read = 1, read_at = :now Where read = 0 And id In (:itemIds)")
     suspend fun markRead(itemIds: List<Long>, now: Long)
 
-    @Query("Update Article Set read = 0, read_at = Null Where read = 1 And id In (:itemIds)")
-    suspend fun markUnread(itemIds: List<Long>)
+    //endregion
 
-    @Query("Update Article Set starred = 1 Where starred = 0 And id In (:itemIds)")
-    suspend fun star(itemIds: List<Long>)
+    //region the state a sync learned
 
     /**
-     * Unstars every article the starred list left out. SQLite accepts an empty
-     * list here, which is what an account with no starred article gives.
+     * Steps 4c and 4d of `docs/article-store.md` §3: the state the three id
+     * lists of a sync decided.
+     *
+     * Each of these skips an article with a pending value for the half it
+     * writes, because the phone's decision wins over the server's answer until
+     * it has been uploaded. The skip is a subquery on `PendingChange` rather
+     * than a list the caller filters, so it is read when the statement runs —
+     * inside the sync transaction, after the queue was cleared of what the
+     * server took, and including anything the user queued meanwhile.
+     *
+     * The caller gives these ids in chunks, so no statement binds more values
+     * than SQLite will take, and the ids it gives are the ones whose state
+     * actually differs, so a sync that changes nothing writes no row.
      */
-    @Query("Update Article Set starred = 0 Where starred = 1 And id Not In (:starredIds)")
-    suspend fun unstarOutside(starredIds: List<Long>)
+    @Query(
+        """Update Article Set read = 1, read_at = :syncStart
+        Where read = 0 And id In (:itemIds)
+        And Not Exists (Select 1 From PendingChange
+            Where PendingChange.article_id = Article.id And PendingChange.read Is Not Null)"""
+    )
+    suspend fun markReadFromSync(itemIds: List<Long>, syncStart: Long)
+
+    @Query(
+        """Update Article Set read = 0, read_at = Null
+        Where read = 1 And id In (:itemIds)
+        And Not Exists (Select 1 From PendingChange
+            Where PendingChange.article_id = Article.id And PendingChange.read Is Not Null)"""
+    )
+    suspend fun markUnreadFromSync(itemIds: List<Long>)
+
+    @Query(
+        """Update Article Set starred = 1 Where starred = 0 And id In (:itemIds)
+        And Not Exists (Select 1 From PendingChange
+            Where PendingChange.article_id = Article.id And PendingChange.starred Is Not Null)"""
+    )
+    suspend fun starFromSync(itemIds: List<Long>)
+
+    @Query(
+        """Update Article Set starred = 0 Where starred = 1 And id In (:itemIds)
+        And Not Exists (Select 1 From PendingChange
+            Where PendingChange.article_id = Article.id And PendingChange.starred Is Not Null)"""
+    )
+    suspend fun unstarFromSync(itemIds: List<Long>)
+
+    //endregion
+
+    //region marking read in bulk
 
     @Query("Update Article Set read = 1, read_at = :now Where read = 0")
     suspend fun markAllRead(now: Long)

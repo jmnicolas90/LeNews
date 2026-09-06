@@ -1,27 +1,28 @@
 package app.lenews.api.services.greader.adapters
 
 import app.lenews.api.TestUtils
-import app.lenews.db.entities.Item
 import app.lenews.db.util.DateUtils
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertNotNull
+import junit.framework.TestCase.assertNull
 import okio.Buffer
 import org.junit.Test
 
 class GReaderItemsAdapterTest {
 
     private val adapter = Moshi.Builder()
-            .add(Types.newParameterizedType(List::class.java, Item::class.java), GReaderItemsAdapter())
+            .add(GReaderItemsPage::class.java, GReaderItemsAdapter())
             .build()
-            .adapter<List<Item>>(Types.newParameterizedType(List::class.java, Item::class.java))
+            .adapter(GReaderItemsPage::class.java)
 
     @Test
     fun validItemsTest() {
         val stream = TestUtils.loadResource("services/greader/adapters/items.json")
 
-        val items = adapter.fromJson(Buffer().readFrom(stream))!!
+        val page = adapter.fromJson(Buffer().readFrom(stream))!!
+        val items = page.items
+        assertNull(page.continuation)
 
         with(items.first()) {
             // the long form the server sent, as the number the store keys on
@@ -41,4 +42,12 @@ class GReaderItemsAdapterTest {
         }
     }
 
+    /** The continuation of a full page, handed back to the next request as it is. */
+    @Test
+    fun continuationTest() {
+        val page = adapter.fromJson("""{ "items": [], "continuation": 42 }""")!!
+
+        assertEquals(0, page.items.size)
+        assertEquals("42", page.continuation)
+    }
 }
