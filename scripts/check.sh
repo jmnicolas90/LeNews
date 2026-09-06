@@ -334,10 +334,14 @@ gate G5 "debug APK"   "$GRADLE" -q :app:assembleDebug
 # G6 is its own gate because release is the only build type with minifyEnabled,
 # so R8's shrinking, optimization and obfuscation passes run nowhere else and
 # breakage they cause is invisible to every gate above this one. It needs no
-# keystore: no signingConfig is set on release, so this produces
-# app-release-unsigned.apk, which is what lets the stage run unchanged here and
-# on a runner with no secrets. Signing is a release-process problem, not a gate
-# problem.
+# keystore of its own: signing is presence-based on the four lenews.release.*
+# properties in ~/.gradle/gradle.properties (ticket 23), so this stage produces
+# a signed APK on the machine that holds the key and app-release-unsigned.apk
+# on a runner, which is what lets it run unchanged in both places. The stage
+# asks whether the release build works; the signature is a property of the
+# artifact, not a verdict about the tree, and checking it belongs to the
+# release procedure (apksigner verify --print-certs against the fingerprint
+# published in README.md).
 gate G6 "release APK" "$GRADLE" -q :app:assembleRelease
 
 # G7 is the stage that tests the database, and the database is where this map's

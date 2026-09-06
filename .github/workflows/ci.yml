@@ -129,9 +129,14 @@ jobs:
 
       # Its own step because release is the only build type with minifyEnabled,
       # so R8's shrinking, optimization and obfuscation passes run nowhere else.
-      # No keystore and no secret: with no signingConfig on release this
-      # produces an unsigned APK, which is all the gate needs to know the build
-      # works.
+      # No keystore and no secret: signing is presence-based on the four
+      # lenews.release.* Gradle properties (ticket 23), a runner has none of
+      # them, so no signingConfig is declared here and this produces
+      # app-release-unsigned.apk. The release key never enters GitHub Actions —
+      # a secret on that infrastructure is exfiltrable by anyone who can land a
+      # workflow change, and this key has no rotation story that does not break
+      # every install. Whether the build works is what the gate asks, and an
+      # unsigned APK answers it.
       - name: G6 release APK
         run: ./gradlew :app:assembleRelease
 

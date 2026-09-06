@@ -129,6 +129,32 @@ Releases are published on
 [GitHub](https://github.com/jmnicolas90/LeNews/releases). LeNews is not on
 F-Droid and not on the Play Store, and there is no plan to put it there.
 
+### Checking what you downloaded
+
+Release APKs are all signed with one key, which will not change. Its SHA-256
+certificate fingerprint is:
+
+```
+5badb557cb56fae27c19c798e9904bb234f91962f478b6c754edca8241831524
+```
+
+Read the same thing out of an APK you have with
+
+```
+apksigner verify --print-certs LeNews.apk
+```
+
+which prints it as `Signer #1 certificate SHA-256 digest:`, in exactly the form
+above. (`apksigner` ships with the Android SDK build tools. `keytool` writes the
+same 32 bytes as colon-separated uppercase pairs.) If it differs, the APK was
+not signed by the key that signed the last one — do not install it. There is
+nothing secret about the fingerprint; it travels inside every APK, which is
+exactly what makes it usable as a check.
+
+Android refuses to upgrade an installed application across a change of signing
+key, so a release that failed this check would not install over an earlier one
+anyway.
+
 ## Feedback
 
 [GitHub issues on this repository](https://github.com/jmnicolas90/LeNews/issues)

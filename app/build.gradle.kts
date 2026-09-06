@@ -14,6 +14,24 @@ val props = Properties().apply {
     }
 }
 
+// Release signing is presence-based, decided in ticket 23. The four properties
+// live in ~/.gradle/gradle.properties on the one machine that holds the key —
+// never in the tree, never in a GitHub Actions secret — so the repository holds
+// no knowledge of the key at all, not even its path. When all four are there the
+// release build is signed; when any is missing, which is every CI runner, no
+// signingConfig is declared and :app:assembleRelease produces
+// app-release-unsigned.apk exactly as it did before this existed.
+// scripts/create-release-keystore.sh is what writes them.
+val signingPropertyNames = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+
+val releaseSigning: Map<String, String>? = signingPropertyNames
+    .mapNotNull { name ->
+        providers.gradleProperty("lenews.release.$name").orNull
+            ?.takeIf { it.isNotBlank() }
+            ?.let { name to it }
+    }
+    .toMap()
+    .takeIf { it.size == signingPropertyNames.size }
 
 android {
     namespace = "app.lenews"
@@ -30,10 +48,54 @@ android {
         testInstrumentationRunner = "app.lenews.LeNewsTestRunner"
     }
 
+    signingConfigs {
+        releaseSigning?.let { properties ->
+            create("release") {
+                val keystore = file(properties.getValue("storeFile"))
+
+                // The properties being set is a claim that the key is there. If
+                // it is not, that is a mistake to report, not a reason to fall
+                // back to unsigned: a silent fall back hands over an APK that
+                // cannot be installed and that everything downstream — the
+                // release procedure included — believes is signed.
+                //
+                // It throws during configuration, so it fails every task in the
+                // build and not only the release one. That is the price of
+                // saying it early rather than at the end of a gate run, and the
+                // message names both ways out.
+                if (!keystore.isFile) {
+                    throw GradleException(
+                        "lenews.release.storeFile names a keystore that is not " +
+                            "there: ${keystore.absolutePath}. Either restore it " +
+                            "from its KeePassXC entry, or remove the four " +
+                            "lenews.release.* properties from " +
+                            "~/.gradle/gradle.properties to build unsigned."
+                    )
+                }
+
+                storeFile = keystore
+                storePassword = properties.getValue("storePassword")
+                keyAlias = properties.getValue("keyAlias")
+                keyPassword = properties.getValue("keyPassword")
+
+                // minSdk 31, so every device this can reach verifies v2 and v1
+                // jar signing is dead weight. v3 is what makes rotating this key
+                // possible at all, should it ever need rotating.
+                enableV1Signing = false
+                enableV2Signing = true
+                enableV3Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+
+            // Null when the properties are absent, which is the same release
+            // build type this module had before signing existed.
+            signingConfig = signingConfigs.findByName("release")
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

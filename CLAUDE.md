@@ -42,7 +42,7 @@ there. `CONTRIBUTING.md` holds the rule for copyright headers —
 in the comment syntax of their language, *added* under upstream's header and
 never substituted for it, and **not** on Markdown documentation, which says in
 its own prose who wrote it. `CONTRIBUTING.md` carries the list itself,
-file by file — sixty-five non-Markdown files carry the header today, and
+file by file — sixty-six non-Markdown files carry the header today, and
 `grep -rl "Copyright (C) 2026 Jean-Michel Nicolas"` is how the table is checked;
 `LICENSE` is byte-identical to upstream's. The same file lists the ten
 non-Markdown fork-created files that deliberately carry no header and why — JSON has no comments, the lint baseline is regenerated, and
@@ -284,6 +284,8 @@ Notes that save time:
   launches an adversarial Codex review of a worktree's branch diff and reports
   its findings; it is a helper for the review step of the ticket loop, nothing
   in `check.sh` calls it, and its verdict is advice, not a pass mark.
+  `scripts/create-release-keystore.sh` is run once by hand, by the user, to make
+  the release signing key — see *Release signing* below.
   `scripts/android-sdk-path.sh` just answers "where is the SDK" for the other
   two, in the order AGP 8.10 itself uses (its `SdkLocator`): `sdk.dir` in
   `local.properties` first, then `ANDROID_HOME`, then the deprecated
@@ -642,6 +644,33 @@ Android SDK at `/home/skynet/dev/android/sdk` (`$ANDROID_HOME`), needing the
 Temurin 21 at `/home/skynet/dev/jdk/jdk-21.0.12+8` (`$JAVA_HOME`), matching the
 `java-version` in CI. The host is Fedora with a French locale, so Gradle, git
 and the emulator may answer in French.
+
+**Release signing** (tickets 23 and 26). The key is
+`~/.android/lenews-release.jks` — PKCS12, RSA 4096, 10000 days, alias `lenews`,
+`CN=LeNews, O=LeNews` — outside the tree on purpose: a path relative to the root
+project would be a different file in every worktree under `.claude/worktrees/`.
+Its password lives in `~/.gradle/gradle.properties`, mode 600, beside three
+other `lenews.release.*` properties, and **nothing about the key is in the
+repository, not even its path**. `scripts/create-release-keystore.sh` created
+both, prompting for the password interactively; the password is the user's and
+no agent has ever seen it. The Gradle plumbing in `app/build.gradle.kts` is
+**presence-based**: all four properties present and the release build type gets
+a `signingConfig` (v2 and v3 on, v1 off, since `minSdk 31` verifies v2
+everywhere and v3 is what would make rotation possible); any of them missing and
+no `signingConfig` is declared and `:app:assembleRelease` yields
+`app-release-unsigned.apk`, which is what every GitHub runner gets. Properties
+set but the keystore file gone is a **configuration failure naming the path**,
+never a silent fall back to unsigned — and, being a configuration failure, it
+fails *every* task in the build rather than only the release one, so the way out
+mid-gate is to remove the four properties, which the message says. **CI signs nothing and never gets the
+key** — no GitHub Actions secret holds it, ever — so G6 means the same thing in
+both places (does the release build work) and differs only in the artifact.
+`apksigner verify --print-certs` on the APK, compared against the **SHA-256
+fingerprint published in `README.md`**, is what the release procedure runs
+before anything is attached to a release; that fingerprint is public by
+construction, since it travels inside every APK. Note that `apksigner verify`
+reports v2 as `false` unless given `--min-sdk-version 24` or lower: with
+`minSdk 31` in the APK, v3 alone covers the range, and the v2 block is there.
 
 `local.properties` is gitignored and holds this machine's answers. Today that is
 the three keys the debug build reads to autofill the login screen —
