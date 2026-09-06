@@ -1,4 +1,4 @@
-package app.lenews.timelime.drawer
+package app.lenews.timeline.drawer
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row

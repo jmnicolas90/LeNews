@@ -1,4 +1,4 @@
-package app.lenews.timelime.components
+package app.lenews.timeline.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background

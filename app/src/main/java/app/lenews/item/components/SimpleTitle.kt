@@ -19,7 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.lenews.R
-import app.lenews.timelime.components.itemWithFeed
+import app.lenews.timeline.components.itemWithFeed
 import app.lenews.util.DefaultPreview
 import app.lenews.util.components.FeedIcon
 import app.lenews.util.components.IconText

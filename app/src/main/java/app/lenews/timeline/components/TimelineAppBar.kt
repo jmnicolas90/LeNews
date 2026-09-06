@@ -1,4 +1,4 @@
-package app.lenews.timelime.components
+package app.lenews.timeline.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
@@ -15,7 +15,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import app.lenews.R
-import app.lenews.timelime.TimelineState
+import app.lenews.timeline.TimelineState
 import app.lenews.util.extensions.isTabletUi
 import app.lenews.db.filters.MainFilter
 import app.lenews.db.filters.SubFilter

@@ -20,7 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import app.lenews.R
-import app.lenews.timelime.components.itemWithFeed
+import app.lenews.timeline.components.itemWithFeed
 import app.lenews.util.DefaultPreview
 import app.lenews.util.theme.MediumSpacer
 import app.lenews.util.theme.LeNewsTheme

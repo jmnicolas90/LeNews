@@ -1,7 +1,7 @@
 # 25 — Fix the misspelled `timelime` package
 
 Type: task
-Status: open
+Status: resolved
 Blocked by: —
 
 ## Question
@@ -61,3 +61,49 @@ rather than trusting that list.
 `.scratch/` and this ticket, the gate is green G0 to G7, and the ticket's
 `Answer` records how many files moved and whether the lint baseline needed
 touching.
+
+## Answer (2026-09-06)
+
+Done, and it was as small as the ticket said. **Eighteen files changed, thirty
+lines**: the eleven files of the package moved with `git mv`
+(`app/src/main/java/app/lenews/timelime/` → `.../timeline/`, so git records
+renames and the history follows), and seven importers outside it updated —
+`AppModule.kt`, `MainActivity.kt`, `home/HomeTabs.kt`, `home/HomeScreen.kt`,
+`item/components/BackgroundTitle.kt`, `item/components/SimpleTitle.kt` and
+`more/preferences/PreferencesScreen.kt`, exactly the list the ticket predicted.
+`androidTest` and `test` sources were checked rather than assumed: neither names
+the package, so neither moved. Every changed line is a `package` declaration or
+an `import`; nothing else in the diff.
+
+**The lint baseline needed no touching**, checked twice. Before the move,
+`grep -c timelime app/lint-baseline.xml` answered **0**, as the ticket recorded —
+none of the 410 entries points into this directory. After it, G2 filtered
+**340 errors and 60 warnings** and reported **10 entries not found in the
+project**, which are the ones tickets 13 and 16 already cleared: 340 + 60 + 10 is
+the baseline's own 410, so every entry is still accounted for and none was turned
+back on by a moved path. The file was left alone.
+
+**Nothing user-visible changed.** No string resource, no `applicationId`, no
+module namespace — `app.lenews` is untouched and this is a package below it. No
+proguard rule names it (`app/proguard-rules.pro` still names no LeNews package
+at all) and nothing under the directory persists a class name.
+
+**One `timelime` remains outside `.scratch/`, so the "Done when" grep clause is
+met as read rather than literally** — read as *LeNews paths only*, which is the
+only reading that agrees with `CLAUDE.md`. The hit is deliberate:
+`code-review-02-09-2026.md:96` names **`com.readrops.app.timelime`**, upstream's
+own path in the review of upstream's code. That document is one of the files
+`CLAUDE.md` keeps as Readrops; correcting the path there would misquote what was
+reviewed. `grep -rn timelime` over the tree returns nothing else but that line,
+this ticket, and the map and tickets 02, 21 and 24 that quote the old name in
+their own history.
+
+Ticket 24 is unblocked by half: its `Blocked by:` line is now `23` alone, and its
+ordering paragraph records that a profile generated from now on reads
+`Lapp/lenews/timeline/...`. That edit to a *second* ticket file is more than the
+bookkeeping rule asks for, and it is deliberate: 24 names 25 as a blocker, the
+blocker is gone, and a queue that still says otherwise misleads whoever picks 24
+up next.
+
+`scripts/check.sh` green G0 to G7 on the ticket branch, G7 against the running
+`bench-pixel6-aosp` emulator.

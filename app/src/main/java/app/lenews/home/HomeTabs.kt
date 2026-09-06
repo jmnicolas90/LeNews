@@ -7,7 +7,7 @@ import app.lenews.R
 import app.lenews.account.AccountTab
 import app.lenews.feeds.FeedTab
 import app.lenews.more.MoreTab
-import app.lenews.timelime.TimelineTab
+import app.lenews.timeline.TimelineTab
 
 enum class HomeTabs(
     val tab: Tab,

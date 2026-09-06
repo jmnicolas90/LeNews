@@ -1,4 +1,4 @@
-package app.lenews.timelime.dialog
+package app.lenews.timeline.dialog
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement

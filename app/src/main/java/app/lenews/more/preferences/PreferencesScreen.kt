@@ -39,7 +39,7 @@ import app.lenews.more.preferences.components.ListPreferenceWidget
 import app.lenews.more.preferences.components.PreferenceHeader
 import app.lenews.more.preferences.components.SwitchPreferenceWidget
 import app.lenews.sync.SyncWorker
-import app.lenews.timelime.components.SwipeAction
+import app.lenews.timeline.components.SwipeAction
 import app.lenews.util.components.AndroidScreen
 import app.lenews.util.components.CenteredProgressIndicator
 import kotlinx.coroutines.launch

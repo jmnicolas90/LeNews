@@ -2,7 +2,7 @@
 
 Type: task
 Status: open
-Blocked by: 23, 25
+Blocked by: 23
 
 ## Question
 
@@ -61,7 +61,9 @@ and every one of those rules stops matching — **silently**. Nothing fails, no
 warning is printed, the profile is simply partly dead and the app is partly
 unoptimised, which is the worst possible outcome for a ticket whose entire
 deliverable is a before-and-after comparison. So the rename lands first and this
-ticket generates against the final package name, once.
+ticket generates against the final package name, once. **Ticket 25 landed on
+2026-09-06**, so the final name is `app.lenews.timeline` and a profile generated
+now will read `Lapp/lenews/timeline/...`; this ticket is left blocked by 23 alone.
 
 **Done when** this ticket's `Answer` holds before-and-after numbers from a
 release build on real hardware and a decision either way. Either the profile is
