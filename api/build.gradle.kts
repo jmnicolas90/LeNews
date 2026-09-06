@@ -53,4 +53,5 @@ dependencies {
     testImplementation(libs.coroutines.test)
     testImplementation(libs.bundles.kointest)
     testImplementation(libs.okhttp.mockserver)
+    testImplementation(libs.okhttp.tls)
 }

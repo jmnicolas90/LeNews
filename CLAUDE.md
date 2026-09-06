@@ -42,7 +42,7 @@ there. `CONTRIBUTING.md` holds the rule for copyright headers —
 in the comment syntax of their language, *added* under upstream's header and
 never substituted for it, and **not** on Markdown documentation, which says in
 its own prose who wrote it. `CONTRIBUTING.md` carries the list itself,
-file by file — forty-five non-Markdown files carry the header today, and
+file by file — forty-nine non-Markdown files carry the header today, and
 `grep -rl "Copyright (C) 2026 Jean-Michel Nicolas"` is how the table is checked;
 `LICENSE` is byte-identical to upstream's. The same file lists the ten
 non-Markdown fork-created files that deliberately carry no header and why — JSON has no comments, the lint baseline is regenerated, and
@@ -136,15 +136,21 @@ header in the same commit.**
   `local.properties` — ticket 22 set that up, and the account is `ledev`.
   Ticket 14 synced a debug build against it **from the emulator**, three times,
   after pushing the Caddy local-authority root into
-  `/data/misc/user/0/cacerts-added` there; the app's network security config
-  already trusts user CAs, so nothing in the app had to change. Ticket 16 did the
+  `/data/misc/user/0/cacerts-added` there, back when the app trusted user CAs for
+  every host. Ticket 19 narrowed that to `rss.lan` alone and checked the emulator
+  half **both ways**: with the root in place the sync succeeds, with the file
+  moved to `/data/local/tmp` and the app force-stopped it fails with
+  `SSLHandshakeException: Trust anchor for certification path not found`. The
+  root was put back. Ticket 16 did the
   same again for upstream issue #341 — star an article, mark the starred list
   read, sync twice and the read is still there, which is the server having taken
   it — and left the account as found. `local.properties`
   lives in the main checkout only, so a worktree that needs the debug account has
   to be given a copy of that gitignored file, deleted again afterwards. Still
   open: the same root on the **phone**, which cannot be checked from this
-  machine. The second sample of the article rate is rough but taken: 119 new
+  machine — the app is now the reason it matters, since without that root a debug
+  build on the phone cannot reach `rss.lan` at all. The second sample of the
+  article rate is rough but taken: 119 new
   articles in the 1 h 47 min between two syncs on 2026-09-06, which is well over
   a few hundred a day. The
   instrumented gate stage needs no network at all: it uses MockWebServer on the
@@ -477,6 +483,36 @@ bound to the new one and sent there — which is what the review of ticket 18
 found. Both clients send
 `User-Agent: LeNews/<versionName>`; the string is built in the app module, where
 the version lives, and passed to `apiModule(userAgent)`.
+
+**The app speaks HTTPS and nothing else** (ticket 19).
+`app/src/main/res/xml/network_security_config.xml` is one file for every build
+type, with no `<debug-overrides>`: the base configuration refuses cleartext and
+trusts **preinstalled authorities only**, and one `<domain-config>` for
+**`rss.lan`** — `includeSubdomains="false"` — adds `user` to its trust anchors,
+which is how the Caddy local-authority root the user installed is honoured for
+their server and for nothing else. The root is not bundled. Neither shipped HTTP
+client carries a `TrustManager`, a `hostnameVerifier` or
+`ConnectionSpec.CLEARTEXT`, and none may be added. There is **no cleartext
+exception at all**, the loopback interface included: the stub servers the
+instrumented tests run on the device serve TLS with a certificate of their own,
+and the clients under test are given trust in it through the `configure`
+parameter of `HttpClients` — a seam `apiModule` never passes and only the test
+Koin modules do (`app/src/androidTest/.../testutil/StubServerTls.kt`,
+`LeNewsTestRule`). `NetworkSecurityPolicyTest` reads the policy back on the
+device and asserts cleartext is refused to `localhost`, `127.0.0.1` and
+`10.0.2.2` as much as to `rss.lan`. **Both clients speak `Protocol.HTTP_1_1`
+only**, and that is a security setting rather than a preference: over HTTP/2
+OkHttp shares one connection between two hostnames at one address when the
+certificate covers both, re-checking hostname and pins but not which authorities
+the second host is allowed — which is exactly the difference between `rss.lan`
+and everywhere else. Do not widen it back. The login screen reads the typed
+server address **once**, before any request exists: `canonicalServerUrl(...)` in
+`AccountCredentialsScreenModel.kt` answers either the exact string the login
+request and `Account.url` will carry, or the reason there is none (not https, no
+user name, unreadable, empty). Nothing downstream re-reads the typed text —
+checking one reading and sending another is how `http:127.0.0.1:8888/#http://`
+once got out in the clear. The canonical address always ends in `/`, because
+`Credentials.toCredentials` concatenates `api/greader.php/` onto it.
 
 ## Tickets and bookkeeping
 

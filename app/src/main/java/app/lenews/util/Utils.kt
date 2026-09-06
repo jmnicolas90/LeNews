@@ -26,20 +26,6 @@ object Utils {
         )
     }
 
-    fun normalizeUrl(url: String): String {
-        return buildString {
-            if (!url.contains("https://") && !url.contains("http://")) {
-                append("https://$url")
-            } else {
-                append(url)
-            }
-
-            if (!url.endsWith("/")) {
-                append("/")
-            }
-        }
-    }
-
     fun shareItem(
         itemWithFeed: ItemWithFeed,
         context: Context,

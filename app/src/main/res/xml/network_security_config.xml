@@ -1,15 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  What this app is allowed to speak, and to whom.
+
+  Nothing in cleartext: not to any host, not in any build type, not even to the
+  loopback interface. The login sends a password and every later call carries a
+  token, and article images and feed icons come from hosts the user never chose.
+  There is no <debug-overrides> block, so a debuggable build is held to exactly
+  the same rules as a release one.
+
+  The instrumented tests run their stub FreshRSS server on the device, so they
+  serve TLS with a certificate of their own and hand the client a block that
+  trusts it (HttpClients.configure). This file therefore says the same thing
+  under test as it does on a phone.
+
+  User-installed certificate authorities are trusted for one host and one host
+  only: rss.lan, the FreshRSS server. It is on the LAN, behind Caddy's local
+  authority, and no public authority will ever sign a .lan name — so the only
+  way to reach it over TLS is for the phone's owner to install that root
+  themselves. Every other host is checked against the preinstalled authorities
+  alone, which is what keeps a user-installed root from being usable against,
+  say, an image host.
+
+  Because those two sets of authorities differ, neither HTTP client may reuse a
+  connection across hosts: both are restricted to HTTP/1.1, and HttpClients says
+  why.
+
+  The root itself is not bundled with the app. It is the user's, theirs to
+  rotate; a copy pinned in here would break the day they re-key it.
+-->
 <network-security-config xmlns:tools="http://schemas.android.com/tools">
-    <base-config
-        cleartextTrafficPermitted="true"
-        tools:ignore="InsecureBaseConfiguration">
+
+    <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
-            <!-- Trust preinstalled CAs -->
+            <!-- Preinstalled authorities only -->
             <certificates src="system" />
-            <!-- Additionally trust user added CAs -->
+        </trust-anchors>
+    </base-config>
+
+    <!--
+      includeSubdomains is false on purpose: the FreshRSS server is exactly
+      rss.lan. Other names under .lan are other machines on the same network and
+      have no claim on this trust.
+    -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">rss.lan</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <!--
+              Deliberate, and the reason this file exists at all: the Caddy
+              local authority the user installed on their own device.
+            -->
             <certificates
                 src="user"
                 tools:ignore="AcceptsUserCertificates" />
         </trust-anchors>
-    </base-config>
+    </domain-config>
+
 </network-security-config>

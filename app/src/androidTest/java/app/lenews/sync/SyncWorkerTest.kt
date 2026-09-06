@@ -19,6 +19,8 @@ import androidx.work.testing.WorkManagerTestInitHelper
 import app.lenews.testutil.LeNewsTestRule
 import app.lenews.testutil.TestUtils
 import app.lenews.testutil.okResponseWithBody
+import app.lenews.testutil.stubServerOverTls
+import app.lenews.testutil.tlsUrl
 import app.lenews.db.Database
 import app.lenews.db.deleteWhatRetentionDrops
 import app.lenews.db.entities.account.Account
@@ -28,7 +30,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import org.junit.After
 import org.junit.Before
@@ -66,7 +67,7 @@ class SyncWorkerTest : KoinTest {
 
     private val database: Database by inject()
     private val notificationManager: NotificationManagerCompat by inject()
-    private val mockServer = MockWebServer()
+    private val mockServer = stubServerOverTls()
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     // written from the MockWebServer dispatcher threads, read from the test thread
@@ -77,7 +78,7 @@ class SyncWorkerTest : KoinTest {
 
     private val account = Account(
         name = "Account",
-        url = mockServer.url("/").toString(),
+        url = mockServer.tlsUrl("/").toString(),
         writeToken = "writeToken",
         isNotificationsEnabled = true
     )

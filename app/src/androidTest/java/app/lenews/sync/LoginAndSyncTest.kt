@@ -26,8 +26,9 @@ import app.lenews.db.entities.account.Account
 import app.lenews.repositories.BaseRepository
 import app.lenews.testutil.FreshRSSStub
 import app.lenews.testutil.LeNewsTestRule
+import app.lenews.testutil.stubServerOverTls
+import app.lenews.testutil.tlsUrl
 import kotlinx.coroutines.test.runTest
-import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -56,7 +57,7 @@ class LoginAndSyncTest : KoinTest {
     private val database: Database by inject()
     private val synchronizer: Synchronizer by inject()
     private val context = ApplicationProvider.getApplicationContext<Context>()
-    private val mockServer = MockWebServer()
+    private val mockServer = stubServerOverTls()
     private val server = FreshRSSStub()
 
     @get:Rule
@@ -82,7 +83,7 @@ class LoginAndSyncTest : KoinTest {
 
         val account = Account(
             name = "Account",
-            url = mockServer.url("/remote").toString(),
+            url = mockServer.tlsUrl("/remote").toString(),
             login = "ledev",
             password = "a password"
         )

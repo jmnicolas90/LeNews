@@ -22,6 +22,19 @@ One account is the scope LeNews is designed for, and it is what the code does:
 the first screen is a FreshRSS login screen, and there is no way to add, switch
 or delete an account because there is only ever one.
 
+LeNews speaks HTTPS and nothing else. The login screen refuses a server address
+that starts with `http://` before it sends anything, and the app's network
+security configuration refuses cleartext at the socket, in every build. A
+certificate authority the phone's owner installed themselves is trusted for one
+host, `rss.lan` — the self-hosted FreshRSS this fork is built against, whose name
+no public authority will ever sign — and for no other; everything else, article
+images included, is checked against the preinstalled authorities alone. That
+root is not bundled with the app: it belongs to whoever runs the server, and a
+copy pinned here would break the day they re-key it. The consequence to know
+about: another self-hosted server behind a private authority needs
+`app/src/main/res/xml/network_security_config.xml` edited, and a feed that serves
+its images over `http://` will not show them.
+
 Where the three problems this fork exists to fix stand today:
 
 - **Storing an article twice is no longer possible.** The article's identity is

@@ -26,9 +26,10 @@ import app.lenews.db.entities.account.Account
 import app.lenews.repositories.GReaderRepository
 import app.lenews.testutil.FreshRSSStub
 import app.lenews.testutil.LeNewsTestRule
+import app.lenews.testutil.stubServerOverTls
+import app.lenews.testutil.tlsUrl
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
-import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -53,7 +54,7 @@ import kotlin.test.assertTrue
 class SyncTest : KoinTest {
 
     private val database: Database by inject()
-    private val mockServer = MockWebServer()
+    private val mockServer = stubServerOverTls()
     private val server = FreshRSSStub()
 
     @get:Rule
@@ -71,7 +72,7 @@ class SyncTest : KoinTest {
             database.accountDao().upsert(
                 Account(
                     name = "Account",
-                    url = mockServer.url("/remote").toString(),
+                    url = mockServer.tlsUrl("/remote").toString(),
                     token = SERVER_TOKEN,
                     writeToken = "writeToken"
                 )

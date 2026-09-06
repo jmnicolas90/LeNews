@@ -6,7 +6,6 @@ import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import app.lenews.R
 import app.lenews.repositories.BaseRepository
-import app.lenews.util.Utils
 import app.lenews.util.components.TextFieldError
 import app.lenews.db.Database
 import app.lenews.db.entities.account.Account
@@ -14,6 +13,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.parameter.parametersOf
@@ -58,56 +58,78 @@ class AccountCredentialsScreenModel(
 
     fun login() {
         screenModelScope.launch(dispatcher) {
-            if (validateFields()) {
-                mutableState.update { it.copy(isLoginOnGoing = true) }
+            // The address is read once, here, and what comes back is what the
+            // request is built with and what is stored. Checking one reading of
+            // the typed text and sending another is how an address refused on
+            // screen can still reach a socket.
+            val serverUrl = validateFields() ?: return@launch
 
-                with(state.value) {
-                    val newAccount = accountToLogInWith(
-                        account = account,
-                        url = Utils.normalizeUrl(url),
-                        name = name,
-                        login = login,
-                        password = password
-                    )
+            mutableState.update { it.copy(isLoginOnGoing = true) }
 
-                    try {
-                        get<BaseRepository> { parametersOf(newAccount) }
-                            .login(newAccount)
-                    } catch (e: Exception) {
-                        mutableState.update {
-                            it.copy(
-                                loginException = e,
-                                isLoginOnGoing = false
-                            )
-                        }
+            with(state.value) {
+                val newAccount = accountToLogInWith(
+                    account = account,
+                    url = serverUrl,
+                    name = name,
+                    login = login,
+                    password = password
+                )
 
-                        return@launch
+                try {
+                    get<BaseRepository> { parametersOf(newAccount) }
+                        .login(newAccount)
+                } catch (e: Exception) {
+                    mutableState.update {
+                        it.copy(
+                            loginException = e,
+                            isLoginOnGoing = false
+                        )
                     }
 
-                    // one account, one row: logging in writes it, and logging
-                    // in again replaces it
-                    database.accountDao().upsert(newAccount)
-
-                    get<SharedPreferences>().edit()
-                        .putString(Account.LOGIN_KEY, newAccount.login)
-                        .putString(Account.PASSWORD_KEY, newAccount.password)
-                        .apply()
-
-                    mutableState.update { it.copy(exitScreen = true) }
+                    return@launch
                 }
+
+                // one account, one row: logging in writes it, and logging
+                // in again replaces it
+                database.accountDao().upsert(newAccount)
+
+                get<SharedPreferences>().edit()
+                    .putString(Account.LOGIN_KEY, newAccount.login)
+                    .putString(Account.PASSWORD_KEY, newAccount.password)
+                    .apply()
+
+                mutableState.update { it.copy(exitScreen = true) }
             }
         }
     }
 
-    private fun validateFields(): Boolean = with(mutableState.value) {
+    /**
+     * The server address to log in with, or null when something on the screen
+     * is wrong — in which case the fields now say what.
+     *
+     * The address it returns is the canonical one [canonicalServerUrl] built,
+     * and the login request and the stored account both use exactly that. The
+     * address is refused here, before a request exists, so that a password
+     * never leaves the phone readable.
+     */
+    private fun validateFields(): String? = with(mutableState.value) {
         mutableState.update { it.copy(loginException = null) }
 
-        var validate = true
+        val serverUrl = canonicalServerUrl(url)
 
-        if (url.isEmpty()) {
-            mutableState.update { it.copy(urlError = TextFieldError.EmptyField) }
-            validate = false
+        val urlProblem = when (serverUrl) {
+            is ServerUrl.Usable -> null
+            ServerUrl.Missing -> TextFieldError.EmptyField
+            ServerUrl.NotHttps -> TextFieldError.CleartextUrl
+            ServerUrl.CarriesAUserName -> TextFieldError.UrlWithUserName
+            ServerUrl.Unreadable -> TextFieldError.BadUrl
         }
+
+        if (urlProblem != null) {
+            mutableState.update { it.copy(urlError = urlProblem) }
+        }
+
+        var validate = urlProblem == null
 
         if (name.isEmpty()) {
             mutableState.update { it.copy(nameError = TextFieldError.EmptyField) }
@@ -124,7 +146,7 @@ class AccountCredentialsScreenModel(
             validate = false
         }
 
-        return validate
+        return if (validate && serverUrl is ServerUrl.Usable) serverUrl.url else null
     }
 
     companion object {
@@ -162,6 +184,86 @@ internal fun accountToLogInWith(
     token = null,
     writeToken = null
 )
+
+/** A scheme at the start of an address: letters, then `://`. */
+private val URL_SCHEME = Regex("^([a-zA-Z][a-zA-Z0-9+.\\-]*)://")
+
+/** What [canonicalServerUrl] made of the address someone typed. */
+internal sealed interface ServerUrl {
+
+    /**
+     * The address to use. This exact string is what the login request is built
+     * with and what is written to `Account.url`; nothing reads the typed text
+     * again.
+     */
+    data class Usable(val url: String) : ServerUrl
+
+    /** Nothing was typed, or only blanks. */
+    data object Missing : ServerUrl
+
+    /** A scheme other than https, so the password would go out readable. */
+    data object NotHttps : ServerUrl
+
+    /** A user name or a password in front of the host. */
+    data object CarriesAUserName : ServerUrl
+
+    /** Text OkHttp cannot read as an address. */
+    data object Unreadable : ServerUrl
+}
+
+/**
+ * The server address the login will use, read from what was typed on screen —
+ * once, so that what is checked and what is sent cannot differ.
+ *
+ * That is the whole point of this function. Deciding "is this cleartext?" on
+ * one reading of the text and then building the request from another reading is
+ * how `http:127.0.0.1:8888/#http://` used to pass the check and still be fetched
+ * over plain HTTP: the check parsed it, the request builder did not.
+ *
+ * What it does, in order:
+ *
+ * - whitespace around the text is dropped, and text that is then empty is
+ *   [ServerUrl.Missing];
+ * - a scheme is read from the front, in lower case, and anything but `https` is
+ *   [ServerUrl.NotHttps] — `http`, of course, but `ftp` as much;
+ * - an address with no scheme is read as `https://`, so `rss.lan` is accepted
+ *   and reached over TLS;
+ * - what does not parse is [ServerUrl.Unreadable] rather than something to have
+ *   a try at;
+ * - a user name or a password in front of the host is [ServerUrl.CarriesAUserName]
+ *   and refused rather than dropped: this app sends its own login and password,
+ *   and a user name is how one host is written to look like another;
+ * - the fragment and the query are dropped. Neither reaches a server from a
+ *   base address — Retrofit resolves every call against it and keeps neither —
+ *   so storing them would say something the requests do not do;
+ * - a path that does not end in `/` gets one, because every call is resolved
+ *   against this address as a base.
+ */
+internal fun canonicalServerUrl(typedUrl: String): ServerUrl {
+    val trimmed = typedUrl.trim()
+
+    if (trimmed.isEmpty()) return ServerUrl.Missing
+
+    val scheme = URL_SCHEME.find(trimmed)?.groupValues?.get(1)?.lowercase()
+
+    if (scheme != null && scheme != "https") return ServerUrl.NotHttps
+
+    val withScheme = if (scheme == null) "https://$trimmed" else trimmed
+
+    val parsed = withScheme.toHttpUrlOrNull() ?: return ServerUrl.Unreadable
+
+    if (parsed.username.isNotEmpty() || parsed.password.isNotEmpty()) {
+        return ServerUrl.CarriesAUserName
+    }
+
+    val canonical = parsed.newBuilder()
+        .query(null)
+        .fragment(null)
+        .apply { if (!parsed.encodedPath.endsWith("/")) addPathSegment("") }
+        .build()
+
+    return ServerUrl.Usable(canonical.toString())
+}
 
 data class AccountCredentialsState(
     val url: String = "https://",
