@@ -489,8 +489,131 @@ class SyncTest : KoinTest {
     }
 
     /**
+     * §4, the mirror: an article the server's full id list no longer names is
+     * dropped by the sync that learns it, and the articles it still names stay.
+     */
+    @Test
+    fun anArticleTheServerNoLongerHoldsIsGoneAfterTheSync() = runTest {
+        server.readingListPages = listOf(
+            listOf(FreshRSSStub.articleJson(ARTICLE_A), FreshRSSStub.articleJson(ARTICLE_B))
+        )
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+
+        synchronize()
+        assertEquals(2, everyArticle().size)
+
+        // the server has dropped the second article: it is in no list any more
+        server.readingListPages = listOf(emptyList())
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        synchronize()
+
+        assertEquals(
+            listOf(ARTICLE_A),
+            everyArticle().map { it.id },
+            "the article the server no longer holds is still on the phone"
+        )
+    }
+
+    /** §4: starred articles survive the mirror rule. */
+    @Test
+    fun aStarredArticleTheServerNoLongerHoldsStaysAfterTheSync() = runTest {
+        server.readingListPages = listOf(
+            listOf(FreshRSSStub.articleJson(ARTICLE_A), FreshRSSStub.articleJson(ARTICLE_B))
+        )
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.starredIdPages = listOf(listOf(ARTICLE_B))
+
+        synchronize()
+
+        // the server drops the starred article from its reading list, and still
+        // calls it starred
+        server.readingListPages = listOf(emptyList())
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        synchronize()
+
+        val starred = everyArticle().first { it.id == ARTICLE_B }
+        assertTrue(starred.isStarred, "the article the starred list names is starred")
+        assertEquals(2, everyArticle().size, "a starred article is dropped by neither rule")
+    }
+
+    /**
+     * §4, the horizon: an article that became read more than thirty days before
+     * this sync's own clock is dropped, although the server still holds it and
+     * although this sync has nothing else to say about it.
+     */
+    @Test
+    fun anArticleReadPastTheHorizonIsGoneAfterTheSync() = runTest {
+        server.readingListPages = listOf(
+            listOf(FreshRSSStub.articleJson(ARTICLE_A), FreshRSSStub.articleJson(ARTICLE_B))
+        )
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+
+        synchronize()
+
+        // one was read a month ago, the other yesterday, both already uploaded
+        database.itemDao().markRead(ARTICLE_A, System.currentTimeMillis() - THIRTY_ONE_DAYS)
+        database.itemDao().markRead(ARTICLE_B, System.currentTimeMillis() - A_DAY)
+
+        server.readingListPages = listOf(emptyList())
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(emptyList())
+
+        synchronize()
+
+        assertEquals(
+            listOf(ARTICLE_B),
+            everyArticle().map { it.id },
+            "the horizon is measured from the moment the article became read"
+        )
+    }
+
+    /**
+     * §4: the delete runs inside the sync transaction and nowhere else, so a
+     * sync that fails deletes nothing. The failure lands after the store has
+     * been written — the delete has already run and its rows are gone until the
+     * rollback puts them back.
+     */
+    @Test
+    fun aFailedSyncDeletesNothing() = runTest {
+        server.readingListPages = listOf(
+            listOf(FreshRSSStub.articleJson(ARTICLE_A), FreshRSSStub.articleJson(ARTICLE_B))
+        )
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+
+        synchronize()
+
+        val articlesBefore = everyArticle()
+        val cursorBefore = storedAccount().cursor
+
+        // the server has dropped one of them, and this sync fails before it
+        // commits what it did about that
+        server.readingListPages = listOf(emptyList())
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        assertFailsWith<IOException> { synchronize(failInsideTheTransaction = true) }
+
+        assertEquals(articlesBefore, everyArticle(), "the rolled back sync deleted an article")
+        assertEquals(cursorBefore, storedAccount().cursor, "the cursor moved")
+
+        // and the sync that succeeds does delete it, so the check above is not
+        // passing because nothing would have been deleted anyway
+        synchronize()
+
+        assertEquals(listOf(ARTICLE_A), everyArticle().map { it.id })
+    }
+
+    /**
      * Runs one sync through the repository rather than through [Synchronizer],
-     * so that [GReaderRepository.afterArticlesAreStored] can be used to fail
+     * so that [GReaderRepository.afterTheStoreIsWritten] can be used to fail
      * the transaction where the model says everything must roll back.
      */
     private suspend fun synchronize(failInsideTheTransaction: Boolean = false) {
@@ -502,7 +625,7 @@ class SyncTest : KoinTest {
         }
 
         val repository = object : GReaderRepository(database, account, dataSource) {
-            override suspend fun afterArticlesAreStored() {
+            override suspend fun afterTheStoreIsWritten() {
                 if (failInsideTheTransaction) {
                     throw IOException("a failure injected inside the sync transaction")
                 }
@@ -524,5 +647,8 @@ class SyncTest : KoinTest {
 
         /** Far enough in the past that a restamped read date could not match it. */
         const val A_MINUTE = 60_000L
+
+        const val A_DAY = 86_400_000L
+        const val THIRTY_ONE_DAYS = 31 * A_DAY
     }
 }

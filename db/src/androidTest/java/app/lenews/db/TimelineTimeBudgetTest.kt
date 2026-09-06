@@ -33,6 +33,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import java.io.File
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
@@ -103,6 +105,105 @@ class TimelineTimeBudgetTest {
                 store.measureCount("timeline, all articles — Paging COUNT(*)", QueryFilters())
             )
             assertInsideBudget(afterOptimize, COUNT_BUDGET_MILLIS, RETAINED_STORE_ARTICLES)
+        } finally {
+            store.close()
+        }
+    }
+
+    /**
+     * `docs/article-store.md` §4 on the store it was written for: one retention
+     * pass against a server that has dropped nothing, so what goes is what the
+     * horizon says goes.
+     *
+     * The pass is the one the sync runs, with the server's whole id list — a
+     * hundred thousand ids through the temporary table — and what it leaves is
+     * checked twice over: against the survivors counted before it ran, by a
+     * query written as what is kept rather than as what goes, and against the
+     * rules themselves, which nothing left in the store may break. Then the
+     * pages and Paging's `COUNT(*)` are measured again on the store that is
+     * left, because the size retention leaves is the size the app really runs
+     * at and the only thing that bounds that count.
+     */
+    @Test
+    fun oneRetentionPassLeavesWhatTheRulesSayAndTheCountIsInsideItsBudget() {
+        val store = SeededStore(FULL_STORE_ARTICLES)
+
+        try {
+            val now = System.currentTimeMillis()
+            val horizon = now - HORIZON_IN_MILLISECONDS
+
+            val before = store.count("Select count(*) From Article")
+            val starredBefore = store.count("Select count(*) From Article Where starred = 1")
+            val unreadBefore = store.count("Select count(*) From Article Where read = 0")
+            val survivorsExpected = store.count(
+                "Select count(*) From Article " +
+                        "Where starred = 1 Or read = 0 Or read_at >= $horizon"
+            )
+
+            // a server that still holds everything: only the horizon can drop a row
+            val serverIds = store.everyArticleId()
+            val (dropped, passMillis) = store.retentionPass(serverIds, now)
+            val left = store.count("Select count(*) From Article")
+
+            Log.i(
+                TAG,
+                "retention: %,d articles and %,d server ids in, %,d dropped in %.0f ms, %,d left"
+                    .format(before, serverIds.size, dropped, passMillis, left)
+            )
+
+            assertEquals(before - dropped, left, "the delete removed rows it did not report")
+            assertEquals(survivorsExpected, left, "what was left is not what the rules keep")
+            assertTrue(dropped > 0, "a year of articles and the pass dropped none of them")
+
+            // nothing the rules drop is still there
+            assertEquals(
+                0L,
+                store.count(
+                    "Select count(*) From Article " +
+                            "Where starred = 0 And read = 1 And read_at < $horizon"
+                ),
+                "an article read past the horizon is still in the store"
+            )
+            assertEquals(
+                starredBefore,
+                store.count("Select count(*) From Article Where starred = 1"),
+                "starred articles survive both rules"
+            )
+            assertEquals(
+                unreadBefore,
+                store.count("Select count(*) From Article Where read = 0"),
+                "the server still holds every article, so no unread one may be dropped"
+            )
+
+            // The second pass is what every later sync pays: the same server
+            // list into the temporary table, and nothing left to drop. Invariant
+            // 5 at the size the store really runs at.
+            val (droppedAgain, secondPassMillis) = store.retentionPass(serverIds, now)
+            Log.i(
+                TAG,
+                "retention, second pass over the same answer: %,d dropped in %.0f ms"
+                    .format(droppedAgain, secondPassMillis)
+            )
+            assertEquals(0L, droppedAgain, "repeating a sync dropped an article the first kept")
+
+            val leftAsInt = left.toInt()
+            store.checkTheFirstPagesReturnWhatTheyShould()
+            assertInsideBudget(store.firstPagesAndDrawerCounts(), PAGE_BUDGET_MILLIS, leftAsInt)
+            assertInsideBudget(
+                listOf(store.measureCount("timeline, all articles — Paging COUNT(*)", QueryFilters())),
+                COUNT_BUDGET_MILLIS,
+                leftAsInt
+            )
+
+            // what the sync itself does next, at 4g
+            store.optimize()
+
+            assertInsideBudget(store.firstPagesAndDrawerCounts(), PAGE_BUDGET_MILLIS, leftAsInt)
+            assertInsideBudget(
+                listOf(store.measureCount("timeline, all articles — Paging COUNT(*)", QueryFilters())),
+                COUNT_BUDGET_MILLIS,
+                leftAsInt
+            )
         } finally {
             store.close()
         }
@@ -203,11 +304,33 @@ private class SeededStore(articleCount: Int) {
         )
     }
 
-    private fun count(sql: String): Long {
+    fun count(sql: String): Long {
         writable().query(sql).use { cursor ->
             cursor.moveToFirst()
             return cursor.getLong(0)
         }
+    }
+
+    /** Every id the store holds: what a server that has dropped nothing sends. */
+    fun everyArticleId(): List<Long> {
+        val ids = ArrayList<Long>()
+        writable().query("Select id From Article").use { cursor ->
+            while (cursor.moveToNext()) ids += cursor.getLong(0)
+        }
+        return ids
+    }
+
+    /**
+     * One retention pass, run the way step 4e runs it — inside a transaction —
+     * and how long it took, which is time the sync pays with the transaction
+     * open.
+     */
+    fun retentionPass(serverIds: Collection<Long>, now: Long): Pair<Long, Double> {
+        var dropped = 0
+        val millis = millis {
+            database.runInTransaction { dropped = database.deleteWhatRetentionDrops(serverIds, now) }
+        }
+        return dropped.toLong() to millis
     }
 
     fun close() {

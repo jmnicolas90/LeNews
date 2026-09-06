@@ -1,7 +1,7 @@
 # 15 — Drop what FreshRSS dropped, and everything read past the horizon
 
 Type: task
-Status: open
+Status: resolved
 Blocked by: 14
 
 ## Question
@@ -36,3 +36,246 @@ changed for them.
   next sync's delete-and-reinsert cost 143 ms instead of 2.3 ms, and Paging's
   `SELECT COUNT(*) FROM (query)` stays at 81 ms with every index in place.
   Nothing but dropping rows fixes either, which is this ticket.
+
+## Answer (2026-09-06)
+
+The mirror and the horizon are one delete, `deleteWhatRetentionDrops` in
+`db/src/main/java/app/lenews/db/Retention.kt`, run at step 4e of the sync
+transaction and nowhere else:
+
+```
+Delete From Article
+Where starred = 0
+And ((read = 1 And read_at < ?)
+    Or (read = 0 And Not Exists (Select 1 From server_ids Where server_ids.id = Article.id)))
+```
+
+`?` is `syncStart − HORIZON_IN_MILLISECONDS`, the sync's own clock less thirty
+days. The horizon is `HORIZON_IN_DAYS = 30`, a constant and not a setting, and it
+is measured from `read_at`. Invariant 2 (`read = 1` if and only if `read_at` is
+not null) is what lets the mirror branch ask `read = 0` rather than
+`read_at Is Null`.
+
+**The boundary is kept, not dropped.** An article that became read exactly
+thirty days ago survives; the comparison is a strict `<`, because the horizon is
+the age *past* which nothing is kept. The next sync, a moment later, drops it.
+Which side it falls on cannot matter in practice — syncs do not land on a
+millisecond — but a test names the choice so nobody has to read the SQL.
+
+### The server's id list goes through a temporary table
+
+`server_ids(id Integer Primary Key Not Null)` is created, filled 900 ids a
+statement and dropped inside the caller's transaction, and the mirror branch is
+a `Not Exists` against it. `id` is the rowid, so each lookup is one B-tree
+probe. Nothing is bound past SQLite's 999-value limit, and 50,000 ids are a test
+of their own.
+
+The table is **dropped in the same transaction**, so one sync's answer can never
+decide the next one's — an id left behind would keep an article the server has
+since dropped, for ever. That is a test too.
+
+The function **refuses to run outside a transaction** (`check(inTransaction())`).
+Two reasons in one: the model says the delete belongs in the sync transaction so
+that a failed sync deletes nothing, and a temporary table lives on one
+connection — the connection a transaction pins. Outside one, Android's pool
+could hand the fill and the delete two different connections and the delete
+would silently see an empty table, which reads as "the server holds nothing" and
+deletes every unread article.
+
+**4c and 4d were left on their chunked statements.** Ticket 14 said moving them
+onto the temporary table was welcome if it simplified things. It does not: they
+work from the rows whose state can actually change (the store's unread ids, the
+store's starred ids), which is a handful, while the table holds the server's
+whole list. Rewriting them as joins against it would trade short statements for
+a scan of tens of thousands of rows and change no behaviour. The one thing it
+would save is the `HashSet` the repository already builds for other reasons.
+
+**An empty server id list is an empty account, not a failure.** Checked, and it
+holds: every call throws on a transport error or a non-2xx, and since ticket 14
+a page walk that stops making progress throws as well, so a partial list never
+reaches the transaction. The transaction only opens on a complete answer. If
+that answer is empty the account really holds nothing, and dropping the unread
+articles the phone still has is exactly what Mirror asks for.
+
+**Cascade.** A deleted article takes its `PendingChange` row with it through the
+foreign key that was already in the schema; a test asserts it, and asserts the
+queue of an article that stays is untouched. **The only exit for a starred
+article is its feed leaving `subscription/list`** (step 4a, cascade on `Feed`).
+Nothing else was added.
+
+**Tags and a history table do not exist**, so nothing had to be cascaded to
+them: ticket 12 dropped tags from the model and made the history `read_at` on
+the article row. The ticket's sentence about them describes a store this fork no
+longer has.
+
+### The failure seam moved
+
+`GReaderRepository.afterArticlesAreStored()` — ticket 14's do-nothing method,
+there so the rollback test has somewhere to fail — is now
+`afterTheStoreIsWritten()` and is called **after** 4e instead of after 4b. A
+failure injected before the delete proves nothing about a delete rolling back.
+Ticket 14's own rollback test still passes unchanged: the failure still lands
+before the cursor.
+
+### Tests
+
+Written first; the first red was a compile error, as in ticket 14.
+
+`db/src/androidTest/.../RetentionTest.kt`, thirteen cases on a store of a
+handful of rows: unread and absent from the server → gone; starred and absent →
+stays; read within the horizon and absent → stays (the horizon is measured from
+becoming read, so a read article the server dropped is kept until it is up);
+read 31 days ago → gone although the server still holds it; read 29 days ago →
+stays; read 31 days ago and starred → stays; read exactly on the horizon →
+stays, and gone one millisecond later; unread and still on the server → stays;
+the pending change of a deleted article is gone and the one of a surviving
+article is not; 50,000 server ids go through without hitting the bind limit; the
+ids of one pass do not leak into the next; the same pass twice deletes nothing
+more; and the delete refuses to run outside a transaction.
+
+`db/src/androidTest/.../TimelineTimeBudgetTest.kt` gained the pass at size, on
+the seeded 100,000-article store with the whole store's ids as the server's
+list. What it leaves is checked twice over — against the survivors counted
+before the pass by a query written as what is kept rather than as what goes, and
+against the rules themselves, which nothing left may break — and then every page
+and Paging's `COUNT(*)` are measured again on what is left, before and after the
+`PRAGMA optimize` the sync runs next.
+
+`app/src/androidTest/.../SyncTest.kt` gained four cases against MockWebServer:
+an article the server's full list no longer names is gone after the sync; a
+starred one stays; an article read past the horizon is gone although the server
+still holds it; and **a failed sync deletes nothing** — the failure is injected
+after the delete has run, the rolled-back store is identical, and the sync that
+follows does delete the article, so the test cannot pass because there was
+nothing to delete.
+
+**One inherited test had to be corrected.**
+`SynchronizerTest.syncStoresOneRowForOneArticle` had its stub answer the full id
+list with ids that named *other* articles than the one whose content it
+delivered. Nothing before this ticket read that list for anything but state, so
+the contradiction was invisible; with the mirror rule, a server that sends an
+article's content and then leaves it out of the list of what it holds is a
+server saying it dropped that article, and the sync now drops it — the test went
+red with an empty store, which is the rule working. The stub now names the
+delivered article in the full list, as the other test in that file already did,
+and keeps the unread list naming other articles so the article is read at the
+sync. No production code changed for it.
+
+**Each test was seen red for the right reason.** Switching the 4e call off turns
+exactly three `SyncTest` cases red (the fourth, the starred one, asserts nothing
+is deleted, so it stays green as it should); writing `read_at <= ?` turns only
+the boundary case red; dropping `starred = 0` turns only the two starred cases
+red. All three mutations were reverted.
+
+### The numbers
+
+On `bench-pixel6-aosp`, the seeded store of ticket 13 (100,000 articles, 100
+feeds, a year, the newest 2,500 unread, 1,000 starred):
+
+| | |
+| --- | --- |
+| one pass, 100,000 server ids, catching up a year | **90,630 dropped in 543 ms**, 9,370 left |
+| the same pass again, same 100,000 ids, nothing to drop | **0 dropped in 50 ms** |
+
+543 ms is a one-off: it deletes nine tenths of a 219 MB store. **50 ms is what a
+sync pays from then on**, and most of that is filling the temporary table with
+the server's whole list, not the delete.
+
+The store left is 9,370 articles, not the model's "about 20,000": the seeder
+spreads a hundred thousand articles over a year, which is 274 a day, so thirty
+days of them is about 8,200, plus the unread and the starred spread over the
+whole year. The model's 20,000 assumed a heavier reader. The 20 ms `COUNT(*)`
+budget at 20,000 rows is still asserted, by the seeded 20,000-article test that
+was already there (8.9 ms).
+
+The timeline after the shrink, medians of seven warm runs, with statistics and
+without (the two states differ by less than the noise):
+
+| Query | 100,000 articles (ticket 13) | 9,370 after one pass |
+| --- | ---: | ---: |
+| timeline, all articles | 0.36 ms | **0.37 ms** |
+| timeline, unread only | 0.40 ms | **0.39 ms** |
+| timeline, one feed | 0.39 ms | **0.40 ms** |
+| timeline, one folder | 3.80 ms | **2.58 ms** |
+| timeline, a folder with no article | 0.01 ms | **0.01 ms** |
+| timeline, starred | 0.39 ms | **0.39 ms** |
+| history, first page | 0.05 ms | **0.05 ms** |
+| drawer, unread count per feed | 1.07 ms | **1.06 ms** |
+| drawer, unread count of the last 24 hours | 1.37 ms | **0.99 ms** |
+| Paging `COUNT(*)`, all articles | 46.6 ms | **3.69 ms** |
+
+The pages were already flat in the number of articles stored, so they do not
+move. `COUNT(*)` is the one that only retention could fix, and it is the number
+that changed: **46.6 ms to 3.7 ms**. That is what makes the `README.md` sentence
+about the store growing without bound false, so it was rewritten.
+
+### On the real store
+
+The debug build from this worktree, installed on `bench-pixel6-aosp`, synced
+against the `ledev` account on `https://rss.lan` — the same emulator, the same
+user CA, the credentials copied from the main checkout's gitignored
+`local.properties` into the worktree for the build and deleted afterwards, no
+value printed anywhere.
+
+| | articles | dropped |
+| --- | ---: | ---: |
+| the store ticket 14 left | 746 | — |
+| after one sync with retention in it | 766 | **0** |
+
+Nothing was dropped, and nothing should have been: every article was unread and
+the server still held it. Twenty new ones had arrived in the meantime.
+
+So the rules were then put in front of real data. Fifty-four rows were added to
+the store by hand with ids the server does not hold, which is the one way to
+exercise all four cases without writing anything to the account: fifty read
+thirty-one days ago, one read twenty-nine days ago, one read thirty-one days ago
+and starred, one unread, one unread and starred. After one sync against the real
+server, with the real full id list deciding:
+
+| | articles |
+| --- | ---: |
+| before the sync | 820 |
+| after it | **769** |
+
+**51 dropped** — the fifty past the horizon and the unread one the server does
+not hold — and the three survivors were exactly the right three: read inside the
+horizon, read past it but starred, and unread but starred. The 766 real articles
+were untouched, `read = 1` still meant `read_at` not null everywhere, the queue
+was empty and the cursor advanced. The three leftover rows were then deleted and
+the store is as it was found: 766 articles, all unread, nothing starred.
+
+**Still pending: the month.** Nobody can watch thirty days of syncing in one
+sitting, and until an article has been read for thirty days the horizon branch
+cannot fire on data nobody arranged. The command that repeats the check, from
+this worktree, with the emulator booted and the debug build installed:
+
+```
+adb -s emulator-5554 shell "run-as app.lenews.debug sqlite3 databases/lenews-db 'select count(*) as articles, sum(read = 0) as unread, sum(starred = 1) as starred, sum(read = 1 and read_at < (unixepoch() - 30*86400) * 1000) as past_the_horizon from Article;'"
+```
+
+It answered `766|766|0|0` after the sync above. **The last number must always be
+0 after a sync**: an article read past the horizon and still in the store is
+this rule failing. The first number is what should stop growing once a month of
+syncing has gone by, which is the part nobody can watch today.
+
+Also still pending, from ticket 22 and unchanged here: the root certificate on
+the **phone**, and a second sample proving the feeds really produce a few
+hundred articles a day.
+
+### What was consciously left out
+
+- **The timeline, the item screen and the history list.** Nothing was touched
+  beyond what compiles; the history screen is ticket 16.
+- **4c and 4d stay on chunked statements**, for the reason above.
+- **No setting for the horizon**, as the model decided.
+- **No notification, count or log of what a sync dropped.** The delete returns
+  the number of rows it removed and the sync ignores it. Nothing on screen shows
+  articles leaving, and a user who wonders where an article went has only the
+  rule to go on. If that turns out to matter it is a ticket of its own.
+- **The 543 ms first pass is not amortised.** A phone upgrading into this
+  version with a year of articles pays it once, inside one sync transaction. It
+  was measured rather than split into batches, because a one-off half second is
+  not worth the machinery.
+- **`CHANGELOG.md` was not touched.** Its unreleased section has been stale
+  since ticket 13 (it still says the account screen adds and switches accounts),
+  and half-fixing it here would hide that rather than fix it.
