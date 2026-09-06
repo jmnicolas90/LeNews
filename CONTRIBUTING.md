@@ -49,7 +49,7 @@ here is every file this fork created that is not Markdown. `git log
 produced; it follows a file through the ticket 05 rename, so a file added under
 `com/readrops/` and moved to `app/lenews/` still counts as created here.
 
-Carrying the header — fifty-one files:
+Carrying the header — fifty-eight files:
 
 | File | Language |
 | --- | --- |
@@ -104,6 +104,13 @@ Carrying the header — fifty-one files:
 | `api/src/test/java/app/lenews/api/ConnectionReuseTest.kt` | Kotlin |
 | `app/src/main/java/app/lenews/sync/SyncFailureMessage.kt` | Kotlin |
 | `app/src/test/java/app/lenews/sync/SyncFailureMessageTest.kt` | Kotlin |
+| `app/src/main/java/app/lenews/util/paging/PagedListState.kt` | Kotlin |
+| `app/src/test/java/app/lenews/util/paging/PagedListStateTest.kt` | Kotlin |
+| `app/src/main/java/app/lenews/util/components/PagingError.kt` | Kotlin |
+| `app/src/main/java/app/lenews/item/DownloadedImageName.kt` | Kotlin |
+| `app/src/test/java/app/lenews/item/DownloadedImageNameTest.kt` | Kotlin |
+| `app/src/main/java/app/lenews/item/ImageDownload.kt` | Kotlin |
+| `app/src/androidTest/java/app/lenews/item/ImageDownloadTest.kt` | Kotlin |
 
 Not carrying it, and why — ten files, each for a reason, not by oversight:
 

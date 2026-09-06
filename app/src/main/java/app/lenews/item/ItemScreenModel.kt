@@ -4,9 +4,8 @@ import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.media.MediaScannerConnection
 import android.net.Uri
-import android.os.Environment
+import android.util.Log
 import androidx.compose.runtime.Stable
 import androidx.core.content.FileProvider
 import androidx.paging.LoadState
@@ -51,7 +50,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.parameter.parametersOf
 import java.io.File
-import java.net.URI
+import java.io.IOException
+import java.io.OutputStream
 
 class ItemScreenModel(
     private val itemId: Long,
@@ -259,28 +259,58 @@ class ItemScreenModel(
 
     fun closeImageDialog() = mutableState.update { it.copy(imageDialogUrl = null) }
 
+    /**
+     * Saves the image the reader long-pressed into the phone's Downloads.
+     *
+     * An image written into the article itself — a `data:` address, which the
+     * article sanitiser allows for images — is saved like any other: the loader
+     * decodes it, and the name comes from the type the address declares, since
+     * there is no file name in it to take.
+     */
     fun downloadImage(url: String, context: Context) {
         screenModelScope.launch(dispatcher) {
             val bitmap = getImage(url, context)
 
             if (bitmap == null) {
-                mutableState.update { it.copy(error = context.getString(R.string.error_image_download)) }
+                showError(context.getString(R.string.error_image_download))
                 return@launch
             }
 
-            val target = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                url.substringAfterLast('/')
-            ).apply {
-                outputStream().apply {
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 90, this)
-                    flush()
-                    close()
-                }
+            // Coil answers with a decoded bitmap and not with the type it was
+            // sent, so the name is decided from the address alone.
+            val name = downloadedImageName(url, reportedMimeType = null)
+
+            val saved = ImageDownload.saveInDownloads(context, name) { stream ->
+                writeImage(bitmap, name.mimeType, stream)
             }
 
-            MediaScannerConnection.scanFile(context, arrayOf(target.absolutePath), null, null)
-            mutableState.update { it.copy(fileDownloadedEvent = true) }
+            if (saved == null) {
+                showError(context.getString(R.string.error_image_save))
+            } else {
+                mutableState.update { it.copy(fileDownloadedEvent = true) }
+            }
+        }
+    }
+
+    /** The reader has seen the last message about an image. */
+    fun messageShown() =
+        mutableState.update { it.copy(fileDownloadedEvent = false, error = null) }
+
+    private fun showError(message: String) = mutableState.update { it.copy(error = message) }
+
+    /**
+     * Writes [bitmap] as [mimeType], which is the type the file is being saved
+     * under, so the bytes and the extension always agree.
+     */
+    private fun writeImage(bitmap: Bitmap, mimeType: String, stream: OutputStream) {
+        val format = when (mimeType) {
+            "image/jpeg" -> Bitmap.CompressFormat.JPEG
+            "image/webp" -> Bitmap.CompressFormat.WEBP_LOSSLESS
+            else -> Bitmap.CompressFormat.PNG
+        }
+
+        if (!bitmap.compress(format, IMAGE_QUALITY, stream)) {
+            throw IOException("the image could not be encoded as $mimeType")
         }
     }
 
@@ -288,11 +318,17 @@ class ItemScreenModel(
         screenModelScope.launch(dispatcher) {
             val bitmap = getImage(url, context)
             if (bitmap == null) {
-                mutableState.update { it.copy(error = context.getString(R.string.error_image_download)) }
+                showError(context.getString(R.string.error_image_download))
                 return@launch
             }
 
-            val uri = saveImageInCache(bitmap, url, context)
+            val uri = try {
+                saveImageInCache(bitmap, url, context)
+            } catch (error: Exception) {
+                Log.w(TAG, "the image could not be prepared for sharing", error)
+                showError(context.getString(R.string.error_image_save))
+                return@launch
+            }
 
             Intent().apply {
                 action = Intent.ACTION_SEND
@@ -321,18 +357,23 @@ class ItemScreenModel(
         return image?.toBitmap()
     }
 
+    /**
+     * Writes the image into the app's own cache, where the app it is shared
+     * with can read it through the file provider.
+     *
+     * The name goes through the same sanitiser as a download: the address is
+     * whatever the article put in the `src`, and `java.net.URI` refuses some of
+     * those outright — a `data:` image has no path at all, which is how sharing
+     * an image written into an article used to end in a crash.
+     */
     private fun saveImageInCache(bitmap: Bitmap, url: String, context: Context): Uri {
         val imagesFolder = File(context.cacheDir.absolutePath, "images")
         if (!imagesFolder.exists()) imagesFolder.mkdirs()
 
-        val name = URI.create(url).path.substringAfterLast('/')
-        val image = File(imagesFolder, name).apply {
-            outputStream().apply {
-                bitmap.compress(Bitmap.CompressFormat.PNG, 90, this)
-                flush()
-                close()
-            }
-        }
+        val name = downloadedImageName(url, reportedMimeType = null)
+        val image = File(imagesFolder, name.displayName)
+
+        image.outputStream().use { writeImage(bitmap, name.mimeType, it) }
 
         return FileProvider.getUriForFile(context, context.packageName, image)
     }
@@ -340,6 +381,13 @@ class ItemScreenModel(
     fun shareItem(itemWithFeed: ItemWithFeed, context: Context) = Utils.shareItem(
         itemWithFeed, context, useCustomShareIntentTpl.value, customShareIntentTpl.value
     )
+
+    companion object {
+        private const val TAG = "ItemScreenModel"
+
+        /** Ignored by PNG, which is what most article images are saved as. */
+        private const val IMAGE_QUALITY = 90
+    }
 }
 
 @Stable

@@ -175,6 +175,11 @@
          Untranslated for the same reason as the strings above. -->
     <string name="sync_failure_message_cut" tools:ignore="MissingTranslation">\u2026 (characters cut: %1$d)</string>
     <string name="error_image_download">An error occurred while downloading the image</string>
+    <!-- Ticket 21. English only, like the strings above: which languages LeNews
+         keeps is still an open product call, and the translations inherited from
+         upstream do not carry these. -->
+    <string name="error_image_save" tools:ignore="MissingTranslation">The image could not be saved to Downloads</string>
+    <string name="retry" tools:ignore="MissingTranslation">Retry</string>
     <string name="enable_notifications">Enable notifications</string>
     <string name="account_notifications_disabled">Account notifications are currently disabled</string>
     <string name="open_feed_in">Open Feed in</string>

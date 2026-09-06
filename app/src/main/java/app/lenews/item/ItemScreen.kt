@@ -11,8 +11,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
@@ -22,12 +20,12 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import app.lenews.R
 import app.lenews.util.components.AndroidScreen
 import app.lenews.util.components.CenteredProgressIndicator
-import app.lenews.util.components.Placeholder
-import app.lenews.util.extensions.isError
-import app.lenews.util.extensions.isLoading
+import app.lenews.util.components.PagingErrorPlaceholder
 import app.lenews.util.extensions.isNotEmpty
+import app.lenews.util.extensions.listState
 import app.lenews.util.extensions.openInCustomTab
 import app.lenews.util.extensions.openUrl
+import app.lenews.util.paging.PagedListState
 import app.lenews.db.filters.QueryFilters
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.core.parameter.parametersOf
@@ -65,28 +63,31 @@ class ItemScreen(
             )
         }
 
+        // Both messages are cleared once they have been seen, so that a second
+        // download says so as loudly as the first.
         LaunchedEffect(state.fileDownloadedEvent) {
             if (state.fileDownloadedEvent) {
                 snackbarHostState.showSnackbar(context.getString(R.string.downloaded_file))
+                screenModel.messageShown()
             }
         }
 
         LaunchedEffect(state.error) {
-            if (state.error != null) {
-                snackbarHostState.showSnackbar(state.error!!)
+            val error = state.error
+
+            if (error != null) {
+                snackbarHostState.showSnackbar(error)
+                screenModel.messageShown()
             }
         }
 
-        when {
-            items.isLoading() -> {
+        when (items.listState()) {
+            PagedListState.Loading -> {
                 CenteredProgressIndicator()
             }
 
-            items.isError() -> {
-                Placeholder(
-                    text = stringResource(R.string.error_occured),
-                    painter = painterResource(id = R.drawable.ic_error)
-                )
+            PagedListState.Error -> {
+                PagingErrorPlaceholder(onRetry = { items.retry() })
             }
 
             else -> {
