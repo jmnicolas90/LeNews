@@ -42,7 +42,7 @@ there. `CONTRIBUTING.md` holds the rule for copyright headers —
 in the comment syntax of their language, *added* under upstream's header and
 never substituted for it, and **not** on Markdown documentation, which says in
 its own prose who wrote it. `CONTRIBUTING.md` carries the list itself,
-file by file — fifty-nine non-Markdown files carry the header today, and
+file by file — sixty-five non-Markdown files carry the header today, and
 `grep -rl "Copyright (C) 2026 Jean-Michel Nicolas"` is how the table is checked;
 `LICENSE` is byte-identical to upstream's. The same file lists the ten
 non-Markdown fork-created files that deliberately carry no header and why — JSON has no comments, the lint baseline is regenerated, and
@@ -358,11 +358,21 @@ every claim a permalink into FreshRSS source. The facts a session trips over:
 **The article store is `docs/article-store.md` (ticket 12), and its schema is
 built (ticket 13).** The tree has the entities of §1 — `Account` as one row,
 `Folder`, `Feed`, `Article` keyed by the FreshRSS id with `read`, `starred` and
-`read_at` on it, and `PendingChange` — the identity rule of §2 on the way in and
-out, and the indexes of §6 with `PRAGMA optimize` when the database is created.
+`read_at` on it, `PendingChange`, and `HorizonDropped` — the identity rule of §2
+on the way in and out, and the indexes of §6 with `PRAGMA optimize` when the
+database is created. **`HorizonDropped` is one column, `id`**: the ids the
+horizon branch of retention deleted, so that content the server delivers again
+for one of them is not stored as a new article. Retention writes it and prunes
+it, the sync's step 4b reads it; §1 and §4 of the model say why.
 Room is at **version 1 with no migration**: the schema restarted, and a phone
 holding one of the six inherited versions has its database dropped and refilled
-by the next sync. Read the model before touching the schema, the sync or
+by the next sync. Nothing is released, so **a schema change keeps version 1 and
+rewrites `db/schemas/app.lenews.db.Database/1.json`** — with the consequence that
+Room refuses to open a database whose identity hash no longer matches, even at
+the same version, and `fallbackToDestructiveMigrationOnDowngrade` does not cover
+it: a `lenews-db` written before the change has to be cleared
+(`adb -s emulator-5554 shell pm clear app.lenews.debug`, which takes the debug
+login with it). Read the model before touching the schema, the sync or
 retention.
 
 **The sync is §3 and §7, built (ticket 14).** `GReaderDataSource.synchronize()`
@@ -375,13 +385,26 @@ contents (`n = 1000`, `ot = cursor`, and on the first sync the unread and the
 starred streams with no read article and no cap) and three `stream/items/ids`
 walks at `n = 10000` — all, unread, starred. **The three id lists are the only
 source of read and starred state**; the flags `stream/contents` puts on an
-article are content, not state, and nothing reads them. Starred ids the store
-has no content for are fetched from `stream/items/contents`, 998 a request.
+article are content, not state, and nothing reads them. **Starred *and unread*
+ids the store has no content for are fetched from `stream/items/contents`**, 998
+a request: marking an article unread on the FreshRSS web interface moves neither
+date `ot` is compared against, so the incremental pull never delivers it and
+step 4c writes state on rows the store holds and no others — without the unread
+half, an article the horizon dropped or an initial sync skipped would be named
+unread by every sync and never be there. An unread id the server's **full** list
+no longer names is left out, because the mirror rule deletes it in the same
+transaction; a starred id is not filtered that way, since a starred article is
+kept whatever the full list says.
 `GReaderRepository.synchronize()` then writes everything in **one Room
-transaction with no network call in it** — folders and feeds, the article
-upsert, read state, starred state, the retention delete, the cursor,
-`PRAGMA optimize` — so a failure anywhere rolls back the articles, the state and
-the cursor together and the next sync repeats the same pull harmlessly. The
+transaction with no network call in it** — the account identity check, folders
+and feeds, the article upsert, read state, starred state, the retention delete,
+the cursor, `PRAGMA optimize` — so a failure anywhere rolls back the articles,
+the state and the cursor together and the next sync repeats the same pull
+harmlessly. **The transaction opens by reading the account row again** and
+comparing its URL and `displayed_name` with the ones the sync started from; a
+mismatch throws `AccountReplacedDuringSync` and rolls everything back, so a sync
+that began under one account cannot commit into the store another account was
+just given. One check is enough because SQLite takes one writer at a time. The
 inherited 2500 and 1000 caps are gone. **Still pending, so do not write code as
 if it were done**: which of the 14 inherited locales LeNews keeps, which is the
 one product call that clears most of the lint baseline.
@@ -407,6 +430,16 @@ defines Mirror, Horizon and Starred.
 
 How it runs: the horizon is `HORIZON_IN_DAYS`, a constant and not a setting, and
 the article read exactly thirty days ago is **kept** — the comparison is strict.
+**The horizon branch also keeps a ledger**, `HorizonDropped`: the ids it is about
+to delete are written down first (the same `Where` clause, so exactly what that
+branch removes and nothing the mirror branch removes), and the table is pruned
+after the delete of every id the server's full list no longer names, so it stays
+bounded by the server's own retention. Step 4b of the sync will not insert an id
+the ledger holds — that is a re-delivery of a deleted article, not a new one —
+unless the sync's unread or starred list names it, which deletes the ledger row
+and brings the article back. Without it, FreshRSS re-delivering an edited old
+article restarted its thirty days under a date on which nothing happened and
+reported it as new, which is invariant 5 broken.
 The server's full id list is tens of thousands of ids, so it goes into a
 **temporary table** (`server_ids`) filled 900 at a time inside the transaction,
 and the mirror branch is a `Not Exists` against it; the table is dropped in the
@@ -452,9 +485,48 @@ not in the screen's own scope, which Voyager cancels on disposal: a write waitin
 behind a sync for Room's transaction executor would be cancelled before it
 committed, and nothing would write it afterwards. Anything only the screen cares
 about stays on the screen's scope. The kept set is seeded with the article the
-screen was opened on, and the page it opens on is found by that id rather than by
-the index the timeline passed, so a screen recreated after process death comes
-back to the article the reader was reading.
+screen was opened on.
+
+**The reader opens on the article that was tapped, and never on a neighbour.**
+The index the timeline passes is where the article was in the list the *timeline*
+was showing; the item screen does not position itself with it. Before the pager
+exists the model asks the store where the article is **now** —
+`ItemsQueryBuilder.buildItemPositionQuery(filters, itemId, keptArticleIds)`,
+counting the rows before it under the same table, conditions and order, run
+through `ItemDao.countArticlesBefore` — and that count is both the page the pager
+opens on and the key it loads around (`Pager(initialKey = position)`). The list
+order therefore ends in `Article.id`, which makes it total: the id is the
+`rowid`, so it is already the last column of every index and costs nothing, and
+without it two articles published in the same second would share a position.
+**An article the store no longer holds has no position at all** — the count comes
+out as the length of the list one way round and as nought the other, and nought
+reads exactly like "the first article" — so the model asks `itemExists` first and
+sets `ItemState.articleIsGone`, on which `ItemScreen` pops back to the list
+rather than opening a neighbour and marking it read. `initialPage`
+(`app/src/main/java/app/lenews/item/InitialPage.kt`) still prefers the id when
+the article is among the loaded pages, because the store can change between the
+count and the load. The one thing still read off the timeline's index is whether
+it is -1, which is how the single-article screen a notification opens says it has
+no list.
+
+**Paging failures are shown at whichever end failed, and a prepend does run.**
+`app/src/main/java/app/lenews/util/paging/PagedListState.kt` holds every one of
+these decisions as a pure function, tested on the JVM, and the screens read them
+and do nothing else: `pagedListState` (Loading / Error / Empty / Content),
+`nextPageFailed` and `previousPageFailed`, `timelineFirstRow` and
+`timelineRowCount` for where the timeline's rows start and stop, and
+`articlePageState(articleIsLoaded, append, prepend)` for one page of the reader's
+pager. Two things not to write again: **a failed prepend is not impossible** —
+Room builds the list again around the row the reader is on, so the pages it keeps
+start in the middle of the query and scrolling up prepends, and the item screen
+asks for one on purpose by opening at the tapped article — and **a page of the
+pager with no article is not nothing to draw**: while a load is running it is the
+loading indicator, and once one has failed it is the retry placeholder, or the
+reader swipes onto a blank screen with no way out but leaving. The timeline stops
+its rows at the last article that loaded when the next page has failed and starts
+them at the first when the page above has, with `PagingErrorRow` as the row
+beyond, because the placeholders in between will never fill and a retry past
+thousands of blank dp is a retry nobody finds.
 
 **There are two HTTP clients, and there is no unnamed one to ask for**
 (ticket 18). `HttpClients` in the `api` module holds both and is the only place
@@ -513,6 +585,23 @@ user name, unreadable, empty). Nothing downstream re-reads the typed text —
 checking one reading and sending another is how `http:127.0.0.1:8888/#http://`
 once got out in the clear. The canonical address always ends in `/`, because
 `Credentials.toCredentials` concatenates `api/greader.php/` onto it.
+
+**Logging in over another account empties the store.** An account is a server and
+a user of it, and everything stored was synchronized from one such pair: change
+the address or the user name on the credentials screen and the articles, the
+pending changes, the feeds, the folders and the horizon ledger are all somebody
+else's, and the cursor would tell the next sync that the new account's older
+content had already been fetched. So
+`Database.writeTheAccountAfterLogin(account, theStoreBelongsToAnotherAccount)`
+(`db/src/main/java/app/lenews/db/StoreReset.kt`) empties them and sets the cursor
+to zero **in the same transaction as the account write**, which makes the new
+account's first sync the initial sync of the model's §7. A **password-only**
+change keeps everything, because the password is not part of an account's
+identity — `theStoreBelongsToAnotherAccount(...)` in
+`AccountCredentialsScreenModel.kt` is a pure function of the two canonical
+addresses and the two user names, and it does not take a password at all. Do not
+write `accountDao().upsert` at the end of a login again; that is the call this
+replaced.
 
 ## Tickets and bookkeeping
 

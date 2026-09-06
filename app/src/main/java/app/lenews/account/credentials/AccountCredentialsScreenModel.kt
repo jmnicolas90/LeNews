@@ -9,6 +9,7 @@ import app.lenews.repositories.BaseRepository
 import app.lenews.util.components.TextFieldError
 import app.lenews.db.Database
 import app.lenews.db.entities.account.Account
+import app.lenews.db.writeTheAccountAfterLogin
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.update
@@ -75,6 +76,18 @@ class AccountCredentialsScreenModel(
                     password = password
                 )
 
+                // What the store was filled from, read where it is authoritative
+                // rather than from the account object this screen was opened
+                // with. Read before the login, because the login rewrites the
+                // account it is given.
+                val credentials = get<SharedPreferences>()
+                val storeBelongsToAnotherAccount = theStoreBelongsToAnotherAccount(
+                    storedUrl = database.accountDao().select()?.url,
+                    storedLogin = credentials.getString(Account.LOGIN_KEY, null),
+                    url = serverUrl,
+                    login = login
+                )
+
                 try {
                     get<BaseRepository> { parametersOf(newAccount) }
                         .login(newAccount)
@@ -89,11 +102,12 @@ class AccountCredentialsScreenModel(
                     return@launch
                 }
 
-                // one account, one row: logging in writes it, and logging
-                // in again replaces it
-                database.accountDao().upsert(newAccount)
+                // One account, one row: logging in writes it, and logging in
+                // again replaces it — together with the store it filled, when
+                // this login named another server or another user.
+                database.writeTheAccountAfterLogin(newAccount, storeBelongsToAnotherAccount)
 
-                get<SharedPreferences>().edit()
+                credentials.edit()
                     .putString(Account.LOGIN_KEY, newAccount.login)
                     .putString(Account.PASSWORD_KEY, newAccount.password)
                     .apply()
@@ -184,6 +198,34 @@ internal fun accountToLogInWith(
     token = null,
     writeToken = null
 )
+
+/**
+ * Whether the articles, the pending changes, the feeds, the folders and the
+ * cursor already in the store were synchronized from a *different* account than
+ * the one this login is about to write — in which case they go with it, in the
+ * same transaction as the account row.
+ *
+ * An account is the pair of a server and a user of it. Change the server address
+ * or the user name and everything the store holds belongs to somebody else: its
+ * pending changes would be uploaded to the new account, naming ids that mean
+ * nothing there, and its cursor would tell the next sync that the new account's
+ * older articles had already been fetched, so they never would be.
+ *
+ * A change of password alone is the same server and the same user, so the store
+ * is still that account's and is kept.
+ *
+ * [storedUrl] is compared as it is stored, which is the canonical form
+ * [canonicalServerUrl] made of it, and [url] is the canonical form of what was
+ * typed now, so `rss.lan` and `https://rss.lan/` are the same server rather than
+ * two. With nothing stored — the very first login — the store is empty and there
+ * is nothing to lose either way.
+ */
+internal fun theStoreBelongsToAnotherAccount(
+    storedUrl: String?,
+    storedLogin: String?,
+    url: String,
+    login: String
+): Boolean = storedUrl != url || storedLogin != login
 
 /** A scheme at the start of an address: letters, then `://`. */
 private val URL_SCHEME = Regex("^([a-zA-Z][a-zA-Z0-9+.\\-]*)://")

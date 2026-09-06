@@ -44,6 +44,10 @@ interface ItemDao : BaseDao<Item> {
     @Query("Select id From Article Where read = 0")
     suspend fun selectUnreadIds(): List<Long>
 
+    /** Empties the article table; the pending changes cascade with it. */
+    @Query("Delete From Article")
+    suspend fun deleteEveryArticle()
+
     @Query("Select id From Article Where starred = 1")
     suspend fun selectStarredIds(): List<Long>
 
@@ -58,6 +62,18 @@ interface ItemDao : BaseDao<Item> {
 
     @RawQuery(observedEntities = [Item::class])
     fun selectItemById(query: SupportSQLiteQuery): Flow<ItemWithFeed>
+
+    /**
+     * The position an article has in a list right now, counted from zero: how
+     * many of the list's articles come before it. The query is
+     * `ItemsQueryBuilder.buildItemPositionQuery`, which is where the conditions
+     * and the order are.
+     *
+     * The answer means nothing at all for an article the store no longer
+     * holds — not even zero — so ask [itemExists] first.
+     */
+    @RawQuery
+    suspend fun countArticlesBefore(query: SupportSQLiteQuery): Int
 
     //region storing what a sync brought back
 

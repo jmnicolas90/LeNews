@@ -284,3 +284,109 @@ two calls that use it, one broken answer each.
   hurt and not sending one might. Nobody read the server source for this.
 - **`ArticleStateChange` is not a general vocabulary.** It exists so that the api
   module can batch the four uploads and tell the caller which one it just sent.
+
+## From the global review (2026-09-06, second run)
+
+Three findings of the second global review land on the sync. All three are fixed
+here.
+
+### An article the store lacks and the server calls unread now gets its content
+
+`stream/contents?ot=` sends what the server discovered or last saw change since
+the cursor, and **marking an article unread moves neither date** — the research
+file says so at `docs/research/freshrss-greader-api.md:194-203`, and the hash
+that decides `lastModified` covers content, not state. Step 4c writes state on
+rows the store holds and on no others. So an article the horizon had dropped, or
+one the initial sync of §7 skipped for being read, was named by the unread list
+of every sync from then on and its content never arrived: it was missing for
+good.
+
+`GReaderRepository.starredIdsTheStoreLacks` became `idsTheStoreLacks` and now
+considers the **unread** ids as well as the starred ones, through the same
+batched `stream/items/contents` path (998 ids a request). One difference between
+the two halves, and it is deliberate: an unread id the server's **full** list
+does not name is left out, because the mirror rule deletes an unread article the
+server no longer holds in the very same transaction, so its content would be
+fetched for a row that does not survive the sync. A starred id is not filtered
+that way — a starred article is kept whatever the full list says.
+`docs/article-store.md` §3, step 2 carries the amendment.
+
+Two cases in `SyncTest`: an unread id the store lacks is fetched by name and
+stored unread, with no read date; and an unread id the full list does not name
+has no content asked for at all. Dropping the unread line from `idsTheStoreLacks`
+turns exactly two tests red, those two.
+
+### The account replaced under a running sync
+
+The sync now reads the account row again **inside its transaction** and compares
+the server address and the user name with the ones it started from
+(`refuseToWriteIntoAnotherAccountsStore`). A mismatch throws
+`AccountReplacedDuringSync` and the transaction rolls back whole, so a sync that
+began under one account cannot commit into the store another account was given —
+which would have refilled it with the previous account's articles and moved its
+cursor past content it never fetched. Ticket 19 has the other half, the login
+that empties the store.
+
+The identity is the URL and `displayed_name`, both columns of the row: the
+server address and the user name that server itself reported at login. Those are
+what a replacement changes and what a password change does not, so the check
+needs neither the credentials nor a reading of the preferences.
+
+**One check is enough, at the start of the transaction**, because SQLite takes
+one writer at a time: a login that replaces the account either commits before
+the transaction opens — and this check refuses — or after it commits, and then it
+wipes what the sync wrote, which is what replacing an account is for.
+
+Tested with this ticket's own failure-hook pattern, on a second do-nothing
+method: `beforeTheStoreIsWritten()`, called after every network call and before
+the transaction, which is the one window the race lives in. `SyncTest` uses it
+twice — a login as another account leaves the new store empty and its cursor at
+zero, and a login that only replaced the token lets the sync commit. Removing
+the check turns exactly the first of the two red.
+
+### The pending week-of-syncing check read the wrong bytes
+
+The command recorded above under *Against the real server* copied
+`databases/lenews-db` and queried the copy. Room runs the database in WAL mode,
+so a committed change lives in `lenews-db-wal` until a checkpoint moves it: a
+copy of the main file alone is an older snapshot, and one taken while the app is
+running can be torn on top of that. The check would have reported a store that
+looked fine, which is the opposite of what an acceptance check is for.
+
+**The command to run instead** queries the live database through `run-as`, in a
+read transaction so the three answers are one snapshot, and copies nothing:
+
+```
+adb -s emulator-5554 shell "run-as app.lenews.debug sqlite3 databases/lenews-db \"
+Begin;
+Select count(*), count(Distinct id) From Article;
+Select count(*) From Article Where (read = 1) <> (read_at Is Not Null);
+Select cursor, datetime(cursor, 'unixepoch') From Account Where id = 1;
+Commit;\""
+```
+
+Run on 2026-09-06 against the debug store on `bench-pixel6-aosp`:
+
+```
+1124|1124
+0
+1788708448|2026-09-06 15:27:28
+```
+
+So: 1124 articles and 1124 distinct ids — no duplicate row; no breach of
+invariant 2; and a cursor that is a sane epoch second. The store held 1124
+articles where ticket 14 left 746 and ticket 15 left 766, which is the debug
+account filling up on its own.
+
+If a copy is wanted anyway — to look at the database off the phone — it has to be
+the three files together and after a checkpoint, never the first one alone:
+
+```
+adb -s emulator-5554 shell "run-as app.lenews.debug sqlite3 databases/lenews-db 'Pragma wal_checkpoint(Full);'"
+for f in lenews-db lenews-db-wal lenews-db-shm; do
+  adb -s emulator-5554 shell "run-as app.lenews.debug cat databases/$f" > "/tmp/$f"
+done
+```
+
+**Still pending, unchanged: the week.** Nobody can watch a week of syncing in one
+sitting; the command above is what repeats the check.

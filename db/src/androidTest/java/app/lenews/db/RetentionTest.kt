@@ -32,6 +32,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * The mirror and horizon rules of `docs/article-store.md` §4, as one delete:
@@ -257,6 +258,99 @@ class RetentionTest {
         }
         assertEquals(listOf(ARTICLE_A), heldIds())
     }
+
+    //region the ledger of what the horizon dropped
+
+    /**
+     * The horizon branch writes down what it removes, because FreshRSS can
+     * deliver the content of that article again and nothing else would tell
+     * that delivery from a new article.
+     */
+    @Test
+    fun theHorizonWritesDownWhatItDrops() = runTest {
+        store(article(ARTICLE_A, read = true, readAt = NOW - THIRTY_ONE_DAYS))
+        store(article(ARTICLE_B, read = true, readAt = NOW - TWENTY_NINE_DAYS))
+
+        retentionPass(serverIds = setOf(ARTICLE_A, ARTICLE_B))
+
+        assertEquals(
+            listOf(ARTICLE_A),
+            database.horizonDroppedDao().everyDroppedId(),
+            "only the article the horizon dropped is written down"
+        )
+    }
+
+    /**
+     * The mirror branch writes nothing down. An article the server no longer
+     * holds cannot be delivered again, so there is nothing to defend against
+     * and a row for it would only make the table grow.
+     */
+    @Test
+    fun theMirrorWritesDownNothing() = runTest {
+        store(article(ARTICLE_A))
+
+        retentionPass(serverIds = emptySet())
+
+        assertEquals(emptyList(), heldIds(), "the unread article the server dropped is gone")
+        assertTrue(database.horizonDroppedDao().everyDroppedId().isEmpty())
+    }
+
+    /** A starred article is dropped by neither rule, so nothing is written down. */
+    @Test
+    fun aStarredArticlePastTheHorizonIsNotWrittenDown() = runTest {
+        store(article(ARTICLE_A, read = true, readAt = NOW - THIRTY_ONE_DAYS, starred = true))
+
+        retentionPass(serverIds = setOf(ARTICLE_A))
+
+        assertTrue(database.horizonDroppedDao().everyDroppedId().isEmpty())
+    }
+
+    /**
+     * The ledger is bounded by the server's own retention: an id the server no
+     * longer holds is forgotten, because what the server has dropped it cannot
+     * deliver.
+     */
+    @Test
+    fun theLedgerForgetsWhatTheServerNoLongerHolds() = runTest {
+        store(article(ARTICLE_A, read = true, readAt = NOW - THIRTY_ONE_DAYS))
+        store(article(ARTICLE_B, read = true, readAt = NOW - THIRTY_ONE_DAYS))
+
+        retentionPass(serverIds = setOf(ARTICLE_A, ARTICLE_B))
+        assertEquals(listOf(ARTICLE_A, ARTICLE_B), database.horizonDroppedDao().everyDroppedId())
+
+        // the server has since purged the first of the two
+        retentionPass(serverIds = setOf(ARTICLE_B))
+
+        assertEquals(listOf(ARTICLE_B), database.horizonDroppedDao().everyDroppedId())
+    }
+
+    /**
+     * An article dropped by the horizon *and* absent from the server leaves
+     * nothing behind at all: it is written down and forgotten in the same pass,
+     * because the pruning runs after the write.
+     */
+    @Test
+    fun anArticlePastTheHorizonTheServerNoLongerHoldsLeavesNothingBehind() = runTest {
+        store(article(ARTICLE_A, read = true, readAt = NOW - THIRTY_ONE_DAYS))
+
+        retentionPass(serverIds = emptySet())
+
+        assertEquals(emptyList(), heldIds())
+        assertTrue(database.horizonDroppedDao().everyDroppedId().isEmpty())
+    }
+
+    /** Running the same pass twice writes the same row once. */
+    @Test
+    fun theLedgerHoldsOneRowPerArticle() = runTest {
+        store(article(ARTICLE_A, read = true, readAt = NOW - THIRTY_ONE_DAYS))
+
+        retentionPass(serverIds = setOf(ARTICLE_A))
+        retentionPass(serverIds = setOf(ARTICLE_A))
+
+        assertEquals(listOf(ARTICLE_A), database.horizonDroppedDao().everyDroppedId())
+    }
+
+    //endregion
 
     private fun retentionPass(serverIds: Collection<Long>, now: Long = NOW): Int {
         var deleted = 0

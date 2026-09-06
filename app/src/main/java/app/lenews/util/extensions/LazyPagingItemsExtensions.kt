@@ -4,6 +4,8 @@ import androidx.paging.compose.LazyPagingItems
 import app.lenews.util.paging.PagedListState
 import app.lenews.util.paging.nextPageFailed as nextPageFailedIn
 import app.lenews.util.paging.pagedListState
+import app.lenews.util.paging.previousPageFailed as previousPageFailedIn
+import app.lenews.util.paging.timelineFirstRow
 import app.lenews.util.paging.timelineRowCount
 
 /**
@@ -16,15 +18,29 @@ fun <T : Any> LazyPagingItems<T>.listState(): PagedListState =
 /** Whether the next page failed to load, the articles already there being fine. */
 fun <T : Any> LazyPagingItems<T>.nextPageFailed(): Boolean = nextPageFailedIn(loadState)
 
+/** Whether the page above the loaded articles failed to load, the same way. */
+fun <T : Any> LazyPagingItems<T>.previousPageFailed(): Boolean = previousPageFailedIn(loadState)
+
 /**
- * How many rows this timeline shows: every matching article while pages are
- * still arriving, and only the articles actually loaded once the next page has
- * failed. The reason is in [timelineRowCount].
+ * The index in this list of the first row the timeline draws — 0, unless the
+ * page above the loaded articles has failed. The reason is in [timelineFirstRow].
+ */
+fun <T : Any> LazyPagingItems<T>.firstRow(): Int = timelineFirstRow(
+    placeholdersBefore = itemSnapshotList.placeholdersBefore,
+    previousPageFailed = previousPageFailed()
+)
+
+/**
+ * How many rows this timeline shows, starting at [firstRow]: every matching
+ * article while pages are still arriving, and only the articles actually loaded
+ * at whichever end a page has failed. The reason is in [timelineRowCount].
  */
 fun <T : Any> LazyPagingItems<T>.rowCount(): Int = timelineRowCount(
     itemCount = itemCount,
+    placeholdersBefore = itemSnapshotList.placeholdersBefore,
     placeholdersAfter = itemSnapshotList.placeholdersAfter,
-    nextPageFailed = nextPageFailed()
+    nextPageFailed = nextPageFailed(),
+    previousPageFailed = previousPageFailed()
 )
 
 fun <T : Any> LazyPagingItems<T>.isLoading(): Boolean =

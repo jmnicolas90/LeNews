@@ -20,7 +20,10 @@ whether the rename is worth its diff is ticket 13's call. Every other name below
 
 ## 1. Entities
 
-Five tables. Nothing else holds article state.
+Six tables. Nothing else holds article state.
+
+*Amended 2026-09-06 after the global review:* there were five. **HorizonDropped**
+is the sixth, below.
 
 **Account** — one row. Server URL, displayed user name, auth token, write
 token, the notifications flag, and the **cursor** (see §3). No `type`, no
@@ -63,6 +66,26 @@ has not yet been told.
 A row exists only while at least one of its two columns is not null. A pending
 value is the phone's decision and wins over the server's answer until it has
 been uploaded (§3, step 1 and step 4d).
+
+**HorizonDropped** — *Amended 2026-09-06 after the global review.* The ids the
+horizon branch of §4 deleted, one column, `id` (64-bit integer, primary key).
+No foreign key: the article it names is exactly the one that is no longer there.
+
+It exists because §2 says a re-delivered article is an update, and an article
+the horizon dropped has nothing left to update. FreshRSS re-delivers an article
+whose content it saw change, however old that article is (`lastModified >= ot`),
+so the content of an article read thirty-one days ago and deleted for it comes
+back on a later sync. Stored as it stands that delivery is a **new** row: step 4b
+inserts it neutral, step 4c finds the server does not call it unread and stamps
+it read at that sync, and it sits thirty more days in the history under a date
+on which nothing happened — reported as a new article on top of that. Repeating
+a sync would then not leave the store identical, which is invariant 5.
+
+So the horizon writes down what it removes, step 4b consults it, and two things
+clear a row: the server calling the article unread or starred again, which is
+the reader asking for it back, and the server no longer holding it at all, which
+is the mirror rule bounding the ledger by the server's own retention. The mirror
+branch writes nothing down — what the server has dropped it cannot deliver.
 
 **Gone with the reset**: `Account.type`, `Account.current_account`, every
 `account_id` column, `Item.remote_id`, `ItemState`, `ItemStateChange`, `Tag`,
@@ -166,13 +189,29 @@ the article, never as lost data.
   ids), and the starred stream (the starred ids). These three lists are the
   only source of read and starred state. `stream/contents` is the source of
   content only; the `read`/`starred` flags it carries per item are ignored.
-- **Starred articles the store lacks.** Starred ids that are neither in the
-  store nor in the content just fetched (an article starred on the web that
-  the phone never held, or dropped by the horizon earlier) have their content
-  fetched with `stream/items/contents`, at most 998 ids a request. Without
-  this, *starred articles survive both rules* could not be honoured for them.
-  Today's workaround, which discards any article arriving starred from the
-  main stream, goes: an article arriving starred is stored like any other.
+- **Starred and unread articles the store lacks.** *Amended 2026-09-06 after
+  the global review: this bullet said starred only.* Starred ids **and unread
+  ids** that are neither in the store nor in the content just fetched have
+  their content fetched with `stream/items/contents`, at most 998 ids a
+  request.
+  - **Starred**: an article starred on the web that the phone never held, or
+    one the horizon dropped. Without this, *starred articles survive both
+    rules* could not be honoured for them. Today's workaround, which discards
+    any article arriving starred from the main stream, goes: an article
+    arriving starred is stored like any other.
+  - **Unread**: the same article from the other side, and the reason the
+    amendment was needed. Marking an article unread on the FreshRSS web
+    interface moves neither its discovery time nor its last-modified time, so
+    `stream/contents?ot=` never delivers it again; step 4c writes state on rows
+    the store holds and on no others. An article the horizon dropped, or one an
+    initial sync skipped for being read (§7), would therefore be named unread
+    by every sync from then on and never be there. It composes with
+    HorizonDropped (§1): an unread id in the ledger is what clears its row.
+  - An unread id the server's **full** list does not name is left out: the
+    mirror rule deletes an unread article the server no longer holds, in the
+    same transaction, so its content would be fetched for a row that does not
+    survive the sync. A starred id is not filtered that way, because a starred
+    article is kept whatever the full list says.
 
 **Step 3 — nothing.** No database write has happened yet. A failure anywhere
 above leaves the store exactly as the previous sync left it.
@@ -187,6 +226,12 @@ above leaves the store exactly as the previous sync left it.
   update the content columns only (§2). Remember which ids were *inserted*:
   they are the sync's new articles, and what the new-article notification
   reports. Updated rows are not new.
+  *Amended 2026-09-06 after the global review:* an id **HorizonDropped** (§1)
+  names is left out of the upsert entirely — it is a re-delivery of an article
+  the horizon deleted, not a new article — **unless** this sync's unread list
+  or starred list names it, in which case its ledger row is deleted and the
+  article is stored like any other, neutral, and its thirty days start over
+  from its next read.
 - **4c. Read state**, from the lists, for articles that are in the server's
   full id list and have **no pending `read` value**:
   - present in the unread list and `read = 1` → `read = 0`, `read_at = NULL`
@@ -268,6 +313,41 @@ of ids, far past SQLite's bind-variable limit for `NOT IN (?, ?, …)`. Load it
 into a temporary table inside the transaction and write the branch as
 `NOT EXISTS (SELECT 1 FROM server_ids WHERE server_ids.id = Article.id)`.
 
+**The horizon branch also keeps a ledger.** *Amended 2026-09-06 after the global
+review.* Three statements, in this order, all inside the same transaction as the
+delete:
+
+1. **Write down what the horizon is about to drop**, before the delete, because
+   afterwards there is no row left to read the ids from:
+
+   ```
+   INSERT OR IGNORE INTO HorizonDropped(id)
+   SELECT id FROM Article WHERE starred = 0 AND read = 1 AND read_at < now − 30 days
+   ```
+
+   The `WHERE` is the horizon branch of the delete, word for word: what is
+   written down is exactly what that branch removes, and nothing the mirror
+   branch removes. `OR IGNORE` because an article can be dropped, come back
+   because the reader marked it unread on the web, be read again and be dropped
+   a second time.
+
+2. **The delete** above.
+
+3. **Prune the ledger** of every id the server's full set does not name:
+
+   ```
+   DELETE FROM HorizonDropped
+   WHERE NOT EXISTS (SELECT 1 FROM server_ids WHERE server_ids.id = HorizonDropped.id)
+   ```
+
+   The ledger defends against a re-delivery, and the server can only deliver
+   what it still holds, so the ledger is bounded by the server's own retention
+   instead of growing for ever. Running it *after* the write means an article
+   both past the horizon and absent from the server leaves nothing behind at
+   all.
+
+§1 says why the ledger exists; §3, step 4b says what reads it.
+
 **The one case a starred article does not survive**: its feed is unsubscribed
 or hidden on the server. The feed leaves `subscription/list`, step 4a deletes
 it, and the foreign key cascades to every article of the feed, starred ones
@@ -314,6 +394,7 @@ From ticket 11's plans, on the table §1 defines:
 | `Article(starred, pub_date)` | the stars filter |
 | `Article(read_at)` | the history list and the horizon branch of the delete |
 | `PendingChange` primary key (`article_id`) | the queue |
+| `HorizonDropped` primary key (`id`, a rowid alias) | step 4b's lookup and the pruning of §4 — *added 2026-09-06 after the global review* |
 | `Feed(folder_id)`, `Feed(remote_id)` unique, `Folder(remote_id)` unique | as today, plus the upsert keys |
 
 Nothing on `Feed.account_id` or `ItemState`, since both are gone. Ticket 11
@@ -394,6 +475,16 @@ Each is one sentence here and one test in the ticket that owns it.
   after the sync (14).
 - An article arriving starred from the main stream is stored, starred (14).
 - A starred id the store lacks has its content fetched and stored (14).
+- *Added 2026-09-06 after the global review:* an unread id the store lacks has
+  its content fetched and stored, unread (14).
+- *Added 2026-09-06 after the global review:* an article the horizon dropped,
+  whose content the server delivers again, leaves the store exactly as it was —
+  no row, no history entry, not reported as new (14, 15).
+- *Added 2026-09-06 after the global review:* the same article marked unread or
+  starred on the web comes back, once, unread and unstamped (14).
+- *Added 2026-09-06 after the global review:* the horizon branch writes the
+  ledger and the mirror branch does not; the ledger forgets what the server no
+  longer holds (15).
 - An article absent from the server's full id list is gone after sync; a
   starred one stays; an unread one is gone (15).
 - Read 31 days ago: gone. Read 29 days ago: stays. Read 31 days ago and

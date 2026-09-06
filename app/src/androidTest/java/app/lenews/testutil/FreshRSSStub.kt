@@ -61,8 +61,13 @@ class FreshRSSStub : Dispatcher() {
     /** The starred ids, one list a page. */
     var starredIdPages: List<List<Long>> = listOf(emptyList())
 
-    /** What `stream/items/contents` answers, whatever ids it is asked for. */
-    var itemsContentsArticles: List<String> = emptyList()
+    /**
+     * The articles `stream/items/contents` can answer with, by id. A request
+     * gets the ones it names and no others, as the real server does, so a test
+     * can tell an article that was asked for by name from one that arrived with
+     * the stream.
+     */
+    var itemsContents: Map<Long, String> = emptyMap()
 
     /** Set to fail every `edit-tag` request, which fails the sync before any pull. */
     var refuseStateUploads: Boolean = false
@@ -180,7 +185,7 @@ class FreshRSSStub : Dispatcher() {
                 okWith(TestUtils.loadResource("greader/feeds.json").bufferedReader().readText())
 
             path.contains("stream/items/contents") ->
-                okWith(contentsJson(itemsContentsArticles, null))
+                okWith(contentsJson(articlesAskedForByName(body), null))
 
             path.contains("contents/user/-/state/com.google/reading-list") ->
                 okWith(contentsPage(readingListPages, continuation, brokenReadingListPage))
@@ -208,6 +213,15 @@ class FreshRSSStub : Dispatcher() {
             else -> MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_FOUND)
         }
     }
+
+    /**
+     * The articles a `stream/items/contents` body asked for, in the order it
+     * named them. The ids go out in decimal, one `i` parameter each.
+     */
+    private fun articlesAskedForByName(body: String): List<String> =
+        ASKED_FOR_BY_NAME.findAll(body)
+            .mapNotNull { itemsContents[java.lang.Long.parseUnsignedLong(it.groupValues[1])] }
+            .toList()
 
     private fun okWith(body: String): MockResponse =
         MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody(body)
@@ -281,6 +295,9 @@ class FreshRSSStub : Dispatcher() {
     }
 
     companion object {
+
+        /** One `i` parameter of a `stream/items/contents` body: an id in decimal. */
+        private val ASKED_FOR_BY_NAME = Regex("(?:^|&)i=(\\d+)")
 
         const val AUTHORIZATION = "Authorization"
 

@@ -72,14 +72,15 @@ fun PagingErrorPlaceholder(
 }
 
 /**
- * What a list shows under the articles it already has when the *next* page
- * failed to load.
+ * What a list shows next to the articles it already has when the page beyond
+ * them failed to load: under them for the next page, above them for the page
+ * before.
  *
  * The articles stay: a page that did not arrive is no reason to take away the
  * ones that did.
  */
 @Composable
-fun PagingErrorFooter(
+fun PagingErrorRow(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {

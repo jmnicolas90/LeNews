@@ -51,10 +51,10 @@ enum class PagedListState {
  * is told rather than left with a list that is quietly out of date.
  *
  * An append or a prepend that failed with articles already on screen is *not*
- * an error state: the articles stay and the screen shows the failure under
- * them, which is what [nextPageFailed] is for. With nothing on screen there is
- * nothing to keep, so it is the error state, and the retry covers every load
- * type at once.
+ * an error state: the articles stay and the screen shows the failure at the end
+ * of the list it happened at, which is what [nextPageFailed] and
+ * [previousPageFailed] are for. With nothing on screen there is nothing to
+ * keep, so it is the error state, and the retry covers every load type at once.
  */
 fun pagedListState(loadState: CombinedLoadStates, itemCount: Int): PagedListState = when {
     loadState.refresh is LoadState.Error -> PagedListState.Error
@@ -67,19 +67,80 @@ fun pagedListState(loadState: CombinedLoadStates, itemCount: Int): PagedListStat
 }
 
 /**
- * Whether the next page failed to load, which a screen showing [PagedListState.Content]
- * reports in a footer under the articles it already has.
- *
- * There is no matching header for a failed prepend, on purpose: nothing in this
- * app opens a list in its middle — the timeline starts at the top and the item
- * screen loads whole pages from the first one — so a prepend never runs, let
- * alone fails. Were one to fail, the retry the footer offers would retry it too.
+ * Whether the next page failed to load, which a screen showing
+ * [PagedListState.Content] reports in a retry row under the articles it already
+ * has.
  */
 fun nextPageFailed(loadState: CombinedLoadStates): Boolean = loadState.append is LoadState.Error
 
 /**
+ * Whether the page *above* the loaded articles failed to load, which the same
+ * screen reports in a retry row above them.
+ *
+ * A prepend does run here, which this file used to say it did not. Room builds
+ * the list again whenever the store changes — every sync, and every article
+ * marked read on scroll — and it builds it around the row the reader is on, so
+ * the pages it keeps start in the middle of the query rather than at its first
+ * article. Scrolling back up from there is a prepend. The item screen asks for
+ * one on purpose: it opens the list at the article the reader tapped, wherever
+ * in the query that is.
+ */
+fun previousPageFailed(loadState: CombinedLoadStates): Boolean =
+    loadState.prepend is LoadState.Error
+
+/** What one page of the item screen's pager has to put on screen. */
+enum class ArticlePageState {
+    /** The article is loaded; show it. */
+    Article,
+
+    /** The page has not loaded yet and is on its way. */
+    Loading,
+
+    /** The load this page was waiting for failed. Offer the retry. */
+    Failed
+}
+
+/**
+ * What the item screen shows on the page it has been asked to draw.
+ *
+ * The pager's page count is every article the query matches, loaded or not, so
+ * the reader can swipe onto a page whose article is not there. While the load
+ * that would fill it is running that is a moment of nothing, and the reader
+ * waits. When it has **failed** nothing is going to fill it, and a page that
+ * draws nothing is a blank screen with no message and no way out — the reader's
+ * only exit is to leave the screen, which is what the whole retry work of
+ * ticket 21 was for and what the reader's own pager was still missing.
+ *
+ * Either direction counts, and the state is not split by which one the page is
+ * on: the retry the screen offers retries every load type at once, so telling
+ * an unloaded page above the articles from one below it would change nothing
+ * the reader can act on.
+ */
+fun articlePageState(
+    articleIsLoaded: Boolean,
+    append: LoadState,
+    prepend: LoadState
+): ArticlePageState = when {
+    articleIsLoaded -> ArticlePageState.Article
+    append is LoadState.Error || prepend is LoadState.Error -> ArticlePageState.Failed
+    else -> ArticlePageState.Loading
+}
+
+/**
+ * The first row the timeline draws: the top of the list while pages are still
+ * arriving, and the first article that actually loaded once the page above them
+ * has failed.
+ *
+ * The mirror of [timelineRowCount] at the other end, and for the same reason —
+ * see there for why blank rows are only cut off after a failure.
+ */
+fun timelineFirstRow(placeholdersBefore: Int, previousPageFailed: Boolean): Int =
+    if (previousPageFailed) placeholdersBefore else 0
+
+/**
  * How many rows the timeline shows for [itemCount] matching articles of which
- * [placeholdersAfter] have not been loaded, given whether the next page failed.
+ * [placeholdersBefore] come before and [placeholdersAfter] after the ones it has
+ * loaded, given whether the page below and the page above failed.
  *
  * The timeline pages with placeholders on, so the count it is given is every
  * article the query matches, loaded or not. It draws nothing at all for a row
@@ -88,11 +149,12 @@ fun nextPageFailed(loadState: CombinedLoadStates): Boolean = loadState.append is
  * while loading keeps up with scrolling, because a row is only reached moments
  * before it fills.
  *
- * When the next page has failed, nothing is going to fill them: they stay blank
- * for as long as the reader is willing to scroll, and anything the screen puts
- * after the whole count — the retry — ends up under all of it, thousands of
- * empty dp below the last article, where nobody finds it. So the list stops at
- * the last article that did load and the retry is the next row.
+ * When a page has failed, nothing is going to fill them: they stay blank for as
+ * long as the reader is willing to scroll, and anything the screen puts past
+ * them — the retry — ends up at the far side of thousands of empty dp, where
+ * nobody finds it. So the list stops at the last article that did load and the
+ * retry is the next row, and, when it is the page *above* that failed, it starts
+ * at the first article that loaded with the retry as the row before it.
  *
  * Placeholders themselves stay on, deliberately. They are what makes a row's
  * position in the list the article's position in the query: the timeline is
@@ -100,9 +162,18 @@ fun nextPageFailed(loadState: CombinedLoadStates): Boolean = loadState.append is
  * sync, or an article marked read on scroll — and the pages it keeps after that
  * start in the middle of the query, not at its first article. That position is
  * what the timeline hands the item screen when the reader taps an article, and
- * what the item screen loads far enough to reach it. Without placeholders the
- * position would be an index into the loaded window instead, and the reader
- * would open an article they did not tap.
+ * what the item screen checks against the store before it opens. Without
+ * placeholders the position would be an index into the loaded window instead.
  */
-fun timelineRowCount(itemCount: Int, placeholdersAfter: Int, nextPageFailed: Boolean): Int =
-    if (nextPageFailed) itemCount - placeholdersAfter else itemCount
+fun timelineRowCount(
+    itemCount: Int,
+    placeholdersBefore: Int,
+    placeholdersAfter: Int,
+    nextPageFailed: Boolean,
+    previousPageFailed: Boolean
+): Int {
+    val lastRow = if (nextPageFailed) itemCount - placeholdersAfter else itemCount
+
+    return (lastRow - timelineFirstRow(placeholdersBefore, previousPageFailed))
+        .coerceAtLeast(0)
+}
