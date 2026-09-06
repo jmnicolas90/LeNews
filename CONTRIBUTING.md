@@ -35,10 +35,58 @@ the project.
   headers to inherited files: a header on a file this fork did not write would
   claim it.
 - **Markdown documentation takes no header.** `README.md`, `CLAUDE.md`,
-  `CONTEXT.md`, `CHANGELOG.md`, this file, and everything under `docs/` and
-  `.scratch/` say in their own prose who wrote them and where their text came
-  from. A document that reproduces someone else's writing — `CHANGELOG.md` does
-  — must never carry a fork copyright claim over it.
+  `CONTEXT.md`, `CHANGELOG.md`, `code-review-02-09-2026.md`, this file, and
+  everything under `docs/`, `.scratch/` and `.claude/` say in their own prose
+  who wrote them and where their text came from. A document that reproduces
+  someone else's writing — `CHANGELOG.md` does — must never carry a fork
+  copyright claim over it.
+
+### The rest of the tree, file by file
+
+The rule above is only worth having if it is true of what is actually here, so
+here is every file this fork created that is not Markdown. `git log
+--diff-filter=A --name-only --format= 9ebbe038..HEAD` is how the list is
+produced; it follows a file through the ticket 05 rename, so a file added under
+`com/readrops/` and moved to `app/lenews/` still counts as created here.
+
+Carrying the header — nine files:
+
+| File | Language |
+| --- | --- |
+| `scripts/check.sh` | shell |
+| `scripts/check-preflight.sh` | shell |
+| `scripts/check-no-personal-email.sh` | shell |
+| `scripts/android-sdk-path.sh` | shell |
+| `scripts/codex-review.sh` | shell |
+| `.github/workflows/ci.yml` | YAML |
+| `app/src/main/res/drawable/ic_launcher_background.xml` | XML |
+| `app/src/main/res/drawable/ic_launcher_foreground.xml` | XML |
+| `app/src/test/java/app/lenews/util/accounterror/GReaderErrorTest.kt` | Kotlin |
+
+Not carrying it, and why — six files, each for a reason, not by oversight:
+
+- `app/src/androidTest/resources/greader/items_1_item.json`,
+  `items_empty.json`, `items_no_ids.json`, `items_unread_ids.json` — **JSON has
+  no comment syntax.** A header cannot go in without making the fixture invalid
+  for the parser that reads it.
+- `app/lint-baseline.xml` — XML, so it could carry one, but **lint regenerates
+  this file** and would drop the comment the next time the baseline is updated.
+  A rule that a tool undoes is not a rule.
+- `app/src/main/java/app/lenews/util/components/LoadingScreen.kt` — Kotlin, so
+  it could carry one, but **the code in it is upstream's.** It is `fun
+  LoadingScreen` lifted unchanged out of `util/components/RefreshScreen.kt`
+  when that file was deleted with the local-RSS screens; git records a new
+  file, but the fork wrote none of it. A fork copyright line here would claim
+  someone else's work, which is exactly what the rule above forbids.
+
+Room's schema JSON under `db/schemas/` is in the same position as the fixtures —
+generated, and JSON — but it does not appear on the list at all: those files are
+inherited from upstream and only renamed, so the rule never reached them.
+
+Two consequences worth stating plainly. **A new source file this fork writes
+gets the header in the same commit** — that is the moment it is cheap. And **the
+list above is part of the rule**: if you add a file that cannot take a header,
+add it here with its reason rather than leaving the rule quietly false.
 
 ## The gate is the bar
 

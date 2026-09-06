@@ -135,3 +135,103 @@ paragraph was added saying the public documents exist, what `CONTRIBUTING.md`'s
 header rule is, and which eight files carry the header. The list of what still
 says Readrops deliberately was corrected: `CHANGELOG.md` is now half LeNews's,
 and `README.md`'s fork paragraph joins the list.
+
+### Review round (2026-09-06)
+
+Three findings from the adversarial review, all accepted and all fixed.
+
+**1. The README claimed multi-account was gone. It is not.** `AccountTab` has an
+add-account button that opens the account-type dialog, lists the others under
+"Other accounts" and switches between them, and
+`AccountCredentialsScreenModel.login()` in `NEW_CREDENTIALS` mode really does
+`accountDao().insert(newAccount)`. What ticket 04 removed was the other three
+*services*, not the multi-account plumbing, which it deliberately left for
+ticket 13. `README.md` now takes `multi-account` out of the "what is gone" list
+and adds a paragraph saying it plainly: one account is the scope LeNews is
+designed for, the inherited screen still adds, lists and switches accounts, and
+collapsing it into a login screen is a later change that waits on the article
+store decision because the account is threaded through the schema.
+`CHANGELOG.md` says the same in one sentence on the FreshRSS-only bullet.
+`CLAUDE.md` says it where it matters most, in the opening paragraph, so that a
+session reading "one account, one service" is told in the same breath that this
+is the intended scope and not what the tree does, with ticket 13 named and an
+instruction not to write code — or a document — that assumes otherwise.
+
+**2. "Every build fails" on a Google dependency was false, so the build was
+changed to make it true.** The guard was attached to `check` only, which the
+gate's G4 and CI run; `./gradlew assembleDebug` did not run it, so an APK with
+Play Services in it could be built by hand. Of the two options offered — word
+the guarantee precisely, or widen the guard — **the guard was widened**, because
+it is one line in the root `build.gradle.kts`:
+
+    tasks.matching { it.name == "check" || it.name.startsWith("assemble") }
+        .configureEach { dependsOn(guard) }
+
+Proved both ways with `implementation("com.google.android.gms:play-services-base:18.5.0")`
+planted in `app/build.gradle.kts`. With the wiring, `./gradlew :app:assembleDebug`
+fails at `:app:checkNoGoogleDependencies` and names six coordinates — the planted
+one plus `play-services-basement` and `play-services-tasks` pulled in behind it,
+in both the debug and the release runtime classpath. With the wiring reverted and
+the plant still in place, the same command is `BUILD SUCCESSFUL`. Plant then
+removed; `git diff` on `app/build.gradle.kts` is empty.
+
+So the three documents now say the same true thing: a Play Services or Firebase
+dependency fails `./gradlew check`, fails `assembleDebug` and `assembleRelease`,
+and fails the gate and CI — no APK can come out of this tree with one in it.
+`README.md` also says what does *not* trigger it (a task that builds nothing,
+such as `clean` or a bare `compileDebugKotlin`), because a guarantee with no
+stated edge is the kind that gets overstated again. `CLAUDE.md` records the
+consequence to expect: the guard walks every variant, so `assembleDebug` also
+resolves the release classpath and a release-only offender fails a debug build.
+G4 stays a stage of its own — it names the offence and fails before two APK
+builds rather than during one.
+
+**3. A fork-authored file lacked the header, and the rule had never been
+audited.** `app/src/test/java/app/lenews/util/accounterror/GReaderErrorTest.kt`,
+written by ticket 04's own review round (commit `7126d1be`), had no GPL notice.
+It has one now, the same text as `scripts/check.sh`'s in a Kotlin block comment.
+
+Then the audit the first pass skipped. `git log --diff-filter=A --name-only
+--format= 9ebbe038..HEAD` lists every file this fork *created*, following a file
+through the ticket 05 rename. Leaving Markdown aside (exempt, and that covers
+the 22 tickets, the map, `CLAUDE.md`, `CONTEXT.md`, `CONTRIBUTING.md`,
+`code-review-02-09-2026.md`, both `docs/research/` reports and the two
+`.claude/agents/` files), fifteen files remain:
+
+| File | Header | Why |
+| --- | --- | --- |
+| `scripts/check.sh` | yes | shell |
+| `scripts/check-preflight.sh` | yes | shell |
+| `scripts/check-no-personal-email.sh` | yes | shell |
+| `scripts/android-sdk-path.sh` | yes | shell |
+| `scripts/codex-review.sh` | yes | shell |
+| `.github/workflows/ci.yml` | yes | YAML |
+| `app/src/main/res/drawable/ic_launcher_background.xml` | yes | XML |
+| `app/src/main/res/drawable/ic_launcher_foreground.xml` | yes | XML |
+| `app/src/test/java/app/lenews/util/accounterror/GReaderErrorTest.kt` | **added this round** | Kotlin |
+| `app/src/androidTest/resources/greader/items_1_item.json` | no | JSON has no comment syntax |
+| `app/src/androidTest/resources/greader/items_empty.json` | no | same |
+| `app/src/androidTest/resources/greader/items_no_ids.json` | no | same |
+| `app/src/androidTest/resources/greader/items_unread_ids.json` | no | same |
+| `app/lint-baseline.xml` | no | lint regenerates the file and would drop the comment |
+| `app/src/main/java/app/lenews/util/components/LoadingScreen.kt` | no | **the code is upstream's** |
+
+That last one is the finding inside the finding. Git records `LoadingScreen.kt`
+as added by ticket 04, but its body is `fun LoadingScreen` lifted **unchanged**
+out of upstream's `util/components/RefreshScreen.kt` — verified against
+`9ebbe038:app/src/main/java/com/readrops/app/util/components/RefreshScreen.kt`
+lines 56–72 — when that file was deleted with the local-RSS screens. A fork
+copyright line on it would claim someone else's work, which is precisely what
+the rule forbids. "Created by git" and "written by the fork" are not the same
+thing, and the rule follows the second.
+
+Room's schema JSON under `db/schemas/` is generated JSON like the fixtures, but
+it never reaches the rule at all: those files are inherited and only renamed.
+
+`CONTRIBUTING.md` now carries this list as a section of the header rule, so the
+rule is true of the tree rather than aspirational, with two consequences stated:
+a new fork-written source file gets its header in the same commit, and a new
+file that cannot take one gets added to the exception list with its reason.
+`CLAUDE.md`'s summary was corrected from eight header files to nine and from "no
+Kotlin file carries a header" to "no *inherited* file carries one", and it points
+at the exception list rather than restating it. No inherited file was touched.

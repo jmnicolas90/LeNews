@@ -10,7 +10,10 @@ Nothing has been released yet. This is what the fork has changed so far.
 - **It is a FreshRSS client and nothing else.** Local RSS parsing, Nextcloud
   News, the Fever API and OPML import/export are gone. FreshRSS is the only
   service you can add an account for, and adding a feed asks the website what
-  feeds it publishes instead of parsing it on the phone.
+  feeds it publishes instead of parsing it on the phone. The account screen
+  still adds, lists and switches between several accounts, as Readrops's did:
+  one account is the scope LeNews is designed for, and collapsing the screen
+  into a login screen is a later change.
 - **The app is LeNews.** New name on screen, new application id (`app.lenews`),
   new launcher icon, version 0.1.0. Android treats it as a different app, so it
   installs alongside Readrops rather than upgrading it: expect to log in again
@@ -21,10 +24,12 @@ Nothing has been released yet. This is what the fork has changed so far.
   anyone.** GitHub releases are the only distribution, and GitHub issues on the
   LeNews repository the only contact channel; the report button on the crash
   screen opens that tracker.
-- **Being usable without Google is now enforced, not just true.** Every build
-  fails if a Play Services, Firebase or other Google Mobile Services dependency
-  reaches any of the three modules, including indirectly, so LeNews keeps
-  running on GrapheneOS and plain AOSP.
+- **Being usable without Google is now enforced, not just true.** A Play
+  Services, Firebase or other Google Mobile Services dependency reaching any of
+  the three modules, including indirectly, fails `./gradlew check`, fails
+  `./gradlew assembleDebug` and `assembleRelease`, and fails both the quality
+  gate and CI — so no APK can be built with one in it, and LeNews keeps running
+  on GrapheneOS and plain AOSP.
 - **One command has to be green before anything is committed** —
   `scripts/check.sh`, which runs lint, the unit tests, the Google-dependency
   check, both APKs and the database and sync tests on an emulator. The same

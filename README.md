@@ -15,8 +15,16 @@ timeline, read an article in the app or in a browser, mark it read or starred,
 share it, and notify you when a background sync brings new ones.
 
 What is gone is everything that was not FreshRSS: local RSS parsing, Nextcloud
-News, the Fever API, OPML import and export, multi-account. The account screen
-is on its way to being a login screen.
+News, the Fever API, OPML import and export.
+
+One account is the scope LeNews is designed for, but it is not yet what the code
+does. The account screen inherited from Readrops is still a multi-account
+screen: it has a button that adds another account, it lists the others under
+"Other accounts" so you can switch, and logging in a second time really does
+store a second account. Collapsing all of that into a plain login screen is a
+later change, and it waits on a decision about how articles are stored — the
+account is threaded through the database schema, so the two have to move
+together.
 
 What is **not** done yet — the three problems this fork exists to fix:
 
@@ -46,9 +54,13 @@ Android 12 or later (`minSdk 31`).
 
 LeNews is Google-free: no Play Services, no Firebase, nothing from Google Mobile
 Services in the dependency graph. It runs on GrapheneOS and on plain AOSP. This
-is checked rather than promised — stage G4 of the quality gate walks the full
-runtime classpath of every variant of all three modules and fails the build if
-such a dependency appears, including one pulled in indirectly.
+is checked rather than promised: a Gradle task walks the full runtime classpath
+of every variant of all three modules and fails if such a dependency appears,
+including one pulled in indirectly. It is wired to `check` and to every
+`assemble` task, so `./gradlew assembleDebug`, `./gradlew assembleRelease`,
+`./gradlew check`, the quality gate below (its stage G4) and CI all go red on
+it. Only a task that builds nothing and checks nothing — `./gradlew clean`, a
+plain `compileDebugKotlin` — gets past it.
 
 ## Building
 

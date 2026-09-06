@@ -300,7 +300,16 @@ subprojects {
     // the scripts that happen to remember to call it. `check` is created by the
     // base plugin that the Android plugins bring, so match it lazily rather
     // than asking for it before it exists.
-    tasks.matching { it.name == "check" }.configureEach {
+    //
+    // `assemble*` as well as `check`, so that the promise the README and the
+    // CHANGELOG make — a build fails if a Play Services or Firebase dependency
+    // reaches the graph — is true of a bare `./gradlew assembleDebug` and not
+    // only of the gate and CI. Every task whose name starts with `assemble`
+    // matches: the lifecycle `assemble`, the per-variant `assembleDebug` and
+    // `assembleRelease`, and the androidTest ones. The guard has no inputs of
+    // its own and resolves configurations that an assemble resolves anyway, so
+    // the cost is a repeated graph walk, not a repeated download.
+    tasks.matching { it.name == "check" || it.name.startsWith("assemble") }.configureEach {
         dependsOn(guard)
     }
 }
