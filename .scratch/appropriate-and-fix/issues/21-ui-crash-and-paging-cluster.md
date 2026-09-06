@@ -19,3 +19,24 @@ Four review findings in the UI layer that survive ticket 04, small enough to sha
 Test what has a seam: the paging error helper for refresh and append states; the filename sanitiser.
 
 **Done when** the gate is green and each item is fixed or struck with a reason in the resolution.
+
+## From the global review (2026-09-06)
+
+Two adversarial reviews — one on the repo's own standards, one on what the
+tickets asked for — read everything committed since the fork point. The upstream
+defects below are still in the tree at HEAD and belong to this ticket rather
+than to the round that found them, so they are recorded here and nothing was
+changed for them.
+
+- **Leaving the item screen after marking an article unread throws, and the
+  queued changes go with it.** `app/src/main/java/app/lenews/item/ItemScreenModel.kt:360-374`
+  hands every state change whose `readChange` is set to
+  `Repository.setItemsRead`, which starts with
+  `require(items.all { it.isRead == false })`
+  (`app/src/main/java/app/lenews/repositories/Repository.kt:104-106`). In a
+  filtered timeline (`useStateChanges`) an article that was read and is marked
+  unread on the item screen is in that list with `isRead` true, so `onDispose`
+  throws inside a `GlobalScope.launch` — the exception is unhandled, and the
+  star changes the same block would have written afterwards
+  (`ItemScreenModel.kt:374-380`) are lost as well. A fifth item for this
+  cluster.

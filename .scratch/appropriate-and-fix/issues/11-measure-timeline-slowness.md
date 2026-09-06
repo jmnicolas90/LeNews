@@ -438,3 +438,25 @@ and the control it runs in the gate went from about 3 s to 22 s. Most of that is
 the id mapping, which is the finding. The three rows that cost seconds run in
 the first and last pass only, since none of them is sensitive to the index
 arrangement; that is what keeps the default under half a minute.
+
+## From the global review (2026-09-06)
+
+Two adversarial reviews — one on the repo's own standards, one on what the
+tickets asked for — read everything committed since the fork point. The upstream
+defects below are still in the tree at HEAD and belong to this ticket rather
+than to the round that found them, so they are recorded here and nothing was
+changed for them.
+
+- **The three suspects the measurements left standing are still standing**, and
+  they are still routed where this ticket routed them. `insertItemsIds` in
+  `app/src/main/java/app/lenews/repositories/GReaderRepository.kt:203-245`
+  matches the capped id lists against the starred list with `any`/`remove`,
+  1.5 s of pure CPU per sync — the article store model and the sync are
+  tickets 12 and 14. `ItemState` is unbounded by mark-all-read
+  (`db/src/main/java/app/lenews/db/dao/ItemStateDao.kt:62-74`, and
+  `GReaderRepository.kt:208`, which deletes and reinserts every row of it per
+  sync) — the schema is ticket 13 and what bounds the rows is ticket 15's
+  retention. Paging's `SELECT COUNT(*) FROM (query)` is the one cost no index
+  reaches, so again only retention (15) bounds it. Nothing here is new; it is
+  written down so the three files that own the fixes say the same thing this
+  one does.

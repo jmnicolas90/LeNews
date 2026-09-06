@@ -98,8 +98,12 @@ class ItemScreenModel(
     init {
         screenModelScope.launch(dispatcher) {
             database.accountDao().selectCurrentAccount()
-                .collect { account ->
-                    this@ItemScreenModel.account = account!!
+                // the parameter is not named `account`: it would shadow the
+                // property of that name, and the qualified `this` that undoes
+                // the shadowing has the exact shape of an email address, which
+                // scripts/check-no-personal-email.sh reports
+                .collect { currentAccount ->
+                    account = currentAccount!!
 
                     repository = get { parametersOf(account) }
 

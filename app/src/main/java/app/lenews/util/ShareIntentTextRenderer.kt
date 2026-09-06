@@ -85,7 +85,7 @@ class FrenchTypography : DocumentedFilter() {
 
 class ShareIntentTextRenderer(private val itemWithFeed: ItemWithFeed): KoinComponent {
     val documentation by lazy {
-        filters.entries.joinToString(prefix = "<br/>", separator = ",<br/>") { (key, filter) ->
+        documentedFilters.entries.joinToString(prefix = "<br/>", separator = ",<br/>") { (key, filter) ->
             val str = get<Context>().getString(
                 R.string.localised_dict_item,
                 "<tt>$key</tt>",
@@ -114,7 +114,12 @@ class ShareIntentTextRenderer(private val itemWithFeed: ItemWithFeed): KoinCompo
     fun render(template: String) = renderSafe(template).getOrDefault(itemWithFeed.item.link)
 
     companion object {
-        private val filters: Map<String, DocumentedFilter> = mapOf(
+        // not named `filters`: the anonymous extension below overrides
+        // getFilters(), so inside it the short name resolves to that override
+        // instead of to this map, and the qualified `this` that used to say
+        // which one was meant has the exact shape of an email address, which
+        // scripts/check-no-personal-email.sh reports
+        private val documentedFilters: Map<String, DocumentedFilter> = mapOf(
             "remove_author" to RemoveAuthorFilter(),
             "fr_typo" to FrenchTypography()
         )
@@ -123,7 +128,7 @@ class ShareIntentTextRenderer(private val itemWithFeed: ItemWithFeed): KoinCompo
             .Builder()
             .loader(StringLoader())
             .extension(object : AbstractExtension() {
-                override fun getFilters(): Map<String, Filter> = this@Companion.filters
+                override fun getFilters(): Map<String, Filter> = documentedFilters
             })
             .newLineTrimming(false)
             .autoEscaping(false)

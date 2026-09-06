@@ -77,10 +77,13 @@ header in the same commit.**
   `com.google.devtools.ksp` (the annotation processor). None of them has
   anything to do with Play Services. The guard is not only a gate stage: the
   root `build.gradle.kts` makes `check` **and every task whose name starts with
-  `assemble`** depend on it, so a bare `./gradlew assembleDebug` goes red too
-  and no APK can come out of this tree with such a dependency in it. That is
-  what lets `README.md` and `CHANGELOG.md` state it as a property of the build
-  rather than of one script. Note the consequence: because the guard walks
+  `assemble`, `package`, `install` or `bundle`** depend on it, so a bare
+  `./gradlew assembleDebug` goes red, and so do `packageDebug`, `installDebug`
+  and `bundleRelease`, none of which depends on an `assemble` task — that hole
+  was open until the global review round of 2026-09-06. No APK or app bundle can
+  come out of this tree with such a dependency in it, and none can be installed
+  on a device. That is what lets `README.md` and `CHANGELOG.md` state it as a
+  property of the build rather than of one script. Note the consequence: because the guard walks
   *every* variant, `assembleDebug` also resolves the release runtime classpath,
   so a release-only offender fails a debug build.
 - **`minSdk 31`, `targetSdk 35`, `compileSdk 35`**, set once in the root
@@ -96,21 +99,31 @@ header in the same commit.**
   configured repo-locally in `.git/config` (ticket 01); the global git config
   is untouched. It is enforced (ticket 03): gate G1 runs
   `scripts/check-no-personal-email.sh`, which makes five checks and runs all
-  five rather than stopping at the first hit — every tracked file in the
-  working tree; every tracked file **as staged in the index**, because
-  `git add -p` can stage a hunk the file on disk no longer has; the author and
-  committer identity the **next** commit would carry, name as well as address;
-  every commit **this fork authored**, meaning author and committer, the whole
-  message including trailers, and the commit's own tree, because a clone
-  receives every historical blob and an address committed then redacted is
-  still published; and the **names of tracked files**, since a path is
-  published as loudly as a line. It reports the commit, file and line and never
-  prints the address. Allowed: `LICENSE` (the GPL text carries the Free
-  Software Foundation's address), no-reply addresses as the script defines them
-  (local part exactly `noreply`, or the domain `users.noreply.github.com` — not
-  the word appearing inside an otherwise deliverable address), and Kotlin's
-  qualified-`this` syntax, which has the exact shape of an address and is
-  ordinary Kotlin. Upstream's own commits are excluded by **commit range**,
+  five rather than stopping at the first hit — every file in the working tree,
+  **tracked and untracked alike** (git's own ignore rules still apply), because
+  an untracked file is one `git add` from a commit; every tracked file **as
+  staged in the index**, because `git add -p` can stage a hunk the file on disk
+  no longer has; the author and committer identity the **next** commit would
+  carry, name as well as address; every commit **this fork authored**, meaning
+  author and committer, the whole message including trailers, and the commit's
+  own tree, because a clone receives every historical blob and an address
+  committed then redacted is still published; and the **names of those files**,
+  tracked, untracked and historical, since a path is published as loudly as a
+  line. It reports the commit, file and line and never prints the address, and
+  any diagnostic git itself prints while scanning fails the check rather than
+  passing for a clean tree — redacted first, since a diagnostic names files.
+  Allowed: `LICENSE` (the GPL text carries the Free Software Foundation's
+  address) and no-reply addresses as the script defines them (local part exactly
+  `noreply`, or the domain `users.noreply.github.com` — not the word appearing
+  inside an otherwise deliverable address, and the whole token is matched, so an
+  address that merely *ends* in such a local part is reported).
+  **Kotlin's qualified `this` is no longer exempt**: the exemption also accepted
+  an address written as a string literal in a `.kt` file, so it was dropped in
+  the global review round of 2026-09-06 and the two call sites that had the
+  shape of an address were written differently (a renamed lambda parameter in
+  `ItemScreenModel`, a renamed companion property in `ShareIntentTextRenderer`).
+  Writing a qualified `this` followed by a dot and a member in a `.kt` file
+  turns G1 red; use another receiver name or a local `val`. Upstream's own commits are excluded by **commit range**,
   never by naming an address here: the fork point `9ebbe038` is the boundary,
   and one boundary is enough because upstream's `master` is an ancestor of it.
   Two narrow relaxations apply to historical **trees only** — the addresses the
@@ -179,7 +192,11 @@ Notes that save time:
   them.
 - **G7** uses whatever is already on `emulator-5554` and leaves it running, or
   boots `bench-pixel6-aosp` headless itself and shuts down **only** what it
-  started. Either way it asks the emulator console which AVD it is before
+  started — and it stops it by signalling the process it launched (SIGTERM,
+  bounded wait, SIGKILL), never by sending `emu kill` to the port, which is
+  addressed to whoever holds the port rather than to whoever this stage
+  started. If the emulator it launched has died by then, it kills nothing and
+  fails the stage, because it can no longer say what the tests ran against. Either way it asks the emulator console which AVD it is before
   installing anything, and refuses (without killing) any other. `-gpu host` is
   not a preference: with the software renderer this AVD dies silently at
   "performing a full startup" on this machine and the only symptom is a boot

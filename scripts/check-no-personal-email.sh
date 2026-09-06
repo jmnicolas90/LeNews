@@ -28,7 +28,10 @@
 # Five checks, and all five run: the script reports everything it finds rather
 # than stopping at the first hit, so one run tells you the whole job.
 #
-#   1. Every tracked file in the working tree.
+#   1. Every tracked file in the working tree, and every untracked file git
+#      does not ignore. An untracked file is one `git add` away from a commit,
+#      so a guard that waits for it to be tracked reports the address after it
+#      has been committed instead of before.
 #   2. Every tracked file as it is staged in the index. The index is not the
 #      working tree: `git add -p` can stage a hunk holding an address while the
 #      file on disk is being cleaned up around it, and the commit takes what is
@@ -41,10 +44,11 @@
 #      tree matters because a clone receives every historical blob: an address
 #      that was committed and redacted two commits later is still published,
 #      and only this check sees it.
-#   5. The names of tracked files, in the index and in the tree of every fork
-#      commit. A path is published exactly as loudly as a line of a file — it
-#      is in `git ls-files`, in every clone's checkout and in the web view of
-#      the repository — and nothing else here looks at paths as text.
+#   5. File names: every name in the index, every untracked name git does not
+#      ignore, and every name in the tree of every fork commit. A path is
+#      published exactly as loudly as a line of a file — it is in
+#      `git ls-files`, in every clone's checkout and in the web view of the
+#      repository — and nothing else here looks at paths as text.
 #
 # Check 4 needs real history, so a shallow clone, or a clone missing the fork
 # point, is a failure and not a pass — the check must not look green exactly
@@ -102,13 +106,25 @@
 #     trailers are signed with. The test is on the matched address itself and
 #     not on the line it sits on, so a real address cannot hide beside a
 #     no-reply one.
-#   - Kotlin's qualified-this syntax, as is_kotlin_qualified_this defines it: a
-#     label such as `this@ItemScreenModel` followed by a member is not an
-#     address, and the address pattern cannot tell the two apart. Three of those
-#     sit in this tree today and more will be written; without this test the
-#     gate would be red on ordinary Kotlin.
+# Kotlin's qualified this — the keyword, an at sign, a label, a dot and a member
+# — has the shape of an address and used to be exempt here. It is not any more.
+# The exemption keyed on the keyword and on a capitalised label, and a string
+# literal in a .kt file can hold both, which is exactly where an address gets
+# written; no test tells a label followed by a member apart from a domain
+# followed by a path without guessing. The two call sites that matched were
+# written differently instead — a renamed lambda parameter and a renamed
+# companion property — and a qualified this whose label reads like a domain is
+# reported here again like anything else. Kotlin has several other ways to say
+# the same thing; the guard is left with no hole shaped like an address.
 # The GPL copyright headers are deliberately NOT allowlisted: they carry names,
 # not addresses. If one ever gains an address, the header is the thing to fix.
+#
+# git's own diagnostics are not trusted either. `git grep` can fail to read a
+# file, say so on stderr and still exit 0 or 1, so a wrapper that reads the exit
+# status alone calls that scan clean; and the diagnostic names the file it could
+# not read, which can itself hold an address. Every git call here goes through
+# run_git, which captures stderr, fails the check on anything printed there, and
+# redacts it before printing it.
 #
 # It reports the commit, the file and the line number and never prints the
 # address itself, so a failing gate does not republish what it just caught. A
@@ -139,13 +155,17 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # allowlist below waves through. The no-reply test is a test of the whole local
 # part, so the whole local part has to be what was matched.
 #
-# It has to start at an alphanumeric all the same, because the text around an
-# address is often punctuation the class now contains — a backquote in
-# markdown, an angle bracket in a trailer — and dragging that in would break the
-# same test in the other direction. No real mailbox begins with punctuation; one
-# that did would still be reported, with its first character missing from a
-# value this script never prints anyway.
-address_pattern="[A-Za-z0-9][A-Za-z0-9.!#\$%&'*+/=?^_\`{|}~-]*@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+# The match starts at the first character of the token and not at the first
+# alphanumeric in it. Anchoring on an alphanumeric looked harmless and was a
+# hole: a deliverable address whose local part opens with an underscore and goes
+# on with the word noreply was matched from after the underscore, and what was
+# left is a local part of exactly that word, which the no-reply test below waves
+# through. Matching the whole token costs one thing: markdown writes an address
+# inside a code span and the backquote is one of the characters the class holds,
+# so a backquoted address matches with the backquote inside its local part.
+# is_no_reply_address strips one leading backquote for exactly that case, and
+# strips nothing else.
+address_pattern="[A-Za-z0-9.!#\$%&'*+/=?^_\`{|}~-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
 
 # Paths where an address is attribution the licence requires.
 attribution_paths=(
@@ -186,15 +206,23 @@ fail() {
 # match would then swallow the directories on either side of the name, leaving a
 # report that says an address was found somewhere. A path separator is part of
 # no address, so splitting on it costs nothing and the report still says where.
+#
+# Returns non-zero when any component could not be redacted, so a caller that
+# cares — the file-name scan does — can fail rather than print a placeholder and
+# carry on as if the scan had gone well.
 redact() {
-  local text="$1" out='' part separator=''
+  local text="$1" out='' part separator='' field status=0
   local -a parts=()
   IFS='/' read -r -a parts <<< "$text"
   for part in "${parts[@]}"; do
-    out="$out$separator$(redact_field "$part")"
+    if ! field="$(redact_field "$part")"; then
+      status=1
+    fi
+    out="$out$separator$field"
     separator='/'
   done
   printf '%s' "$out"
+  return "$status"
 }
 
 # One component of a location. The colon is the s/// delimiter: the pattern
@@ -211,7 +239,41 @@ redact_field() {
     printf '%s' "$redacted"
   else
     printf '%s' '<withheld: redaction failed>'
+    return 1
   fi
+}
+
+# Every git call this script makes. Two things git does that a plain call would
+# hide: it prints per-file read diagnostics on stderr while exiting 0 or 1, so a
+# scan that read nothing looks like a scan that found nothing; and those
+# diagnostics name files, and a file name can hold an address. So stderr is
+# captured rather than forwarded, anything on it fails the call, and it is
+# redacted before it is printed. Stdout is left in git_stdout for the caller.
+#
+# Status 3 means "git said something on stderr, or no temporary file could be
+# made for it"; anything else is git's own status.
+git_stdout=''
+run_git() {
+  local stderr_file status=0 line redacted
+  stderr_file="$(mktemp)" || {
+    echo "✗ could not create a temporary file to capture git's diagnostics" >&2
+    return 3
+  }
+  set +e
+  git_stdout="$(git "$@" 2>"$stderr_file")"
+  status=$?
+  set -e
+  if [ -s "$stderr_file" ]; then
+    echo "✗ git printed a diagnostic while scanning, so the scan cannot be trusted:" >&2
+    while IFS= read -r line; do
+      redacted="$(redact "$line")" || true
+      printf '    %s\n' "$redacted" >&2
+    done < "$stderr_file"
+    rm -f "$stderr_file"
+    return 3
+  fi
+  rm -f "$stderr_file"
+  return "$status"
 }
 
 # The one test for "this is a no-reply address", used by every check, so there
@@ -227,40 +289,15 @@ redact_field() {
 # address this repo signs with.
 is_no_reply_address() {
   local address="$1" local_part domain
+  # One leading backquote, and only that. The pattern matches the whole token
+  # now, and markdown writes an address inside a code span, so `noreply@… comes
+  # out of the scan with the backquote in its local part. Nothing else is
+  # stripped: an address that begins with any other punctuation is compared as
+  # it stands, which is what closes the `_noreply@…` hole.
+  address="${address#\`}"
   local_part="${address%@*}"
   domain="${address#*@}"
   [ "${local_part,,}" = 'noreply' ] || [ "${domain,,}" = 'users.noreply.github.com' ]
-}
-
-# The one test for "this match is Kotlin, not an address". A qualified this — a
-# `this@Companion` label followed by a member — has the shape of an address and
-# is none: the local part is the keyword `this`, which no mailbox is named, and
-# a qualified this only ever appears in Kotlin source.
-#
-# Three conditions, all required. The file is a .kt, so no other kind of file
-# passes by starting a line with the keyword. The local part is exactly `this`,
-# lowercase, because that is the keyword and nothing else is. And what stands
-# where the domain would stand has the shape a qualified this actually has: a
-# label naming a class or an object, which by Kotlin convention starts with a
-# capital, then one or more members. That last condition is the one that matters
-# for a guard: without it anything at all after the keyword and the at sign was
-# exempt in a .kt file, a real domain included, and a string literal in the
-# middle of the code is precisely where an address gets written. What is left
-# exempt is a label like `Companion` or `ItemScreenModel` followed by a member,
-# which is not a mailbox anyone publishes by accident; anything with an ordinary
-# lowercase domain after it is now reported, in a .kt file like anywhere else.
-#
-# $1 is the matched address, $2 the "file:line" it was found at. The path is
-# everything before the last colon of that location, and a path may hold colons
-# of its own, so strip only the final field.
-is_kotlin_qualified_this() {
-  local address="$1" location="$2" path label
-  local kotlin_label='^[A-Z][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$'
-  path="${location%:*}"
-  [ "${path%.kt}" != "$path" ] || return 1
-  [ "${address%%@*}" = 'this' ] || return 1
-  label="${address#*@}"
-  [[ "$label" =~ $kotlin_label ]]
 }
 
 # Is this historical hit inside one of the blobs relaxation (b) exempts? $1 is
@@ -290,7 +327,11 @@ declare -A fork_point_addresses=()
 # history. --cached has to go before the pattern; a revision has to go after it,
 # or git grep reads the option as a revision and fails.
 #
-# git grep searches tracked files only, which is the same set as `git ls-files`.
+# The worktree scan is given --untracked, so a file that is not in the index yet
+# is read too; git grep still honours .gitignore, so build output stays out and
+# what the flag adds is exactly the file a `git add` away from being committed.
+# The index scan and the historical scans have no such thing to add: an index
+# holds what it holds and a commit's tree is closed.
 # -a treats every blob as text: the -I it replaces skips whatever git calls
 # binary, and a file holding one NUL byte and an address would sail through.
 # With -o each match is its own output line ending in the matched address, which
@@ -298,24 +339,22 @@ declare -A fork_point_addresses=()
 # — a real address cannot hide beside an allowed one.
 addresses_in_tree() {
   local where="$1" exemption="$2"
-  local raw status line location address
+  local status=0 line location address location_text redaction_status=0
   local -a grep_args=(-naoEi "$address_pattern")
   local -a paths=("${attribution_paths[@]}")
   case "$where" in
-    worktree) ;;
+    worktree) grep_args=(--untracked "${grep_args[@]}") ;;
     index) grep_args=(--cached "${grep_args[@]}") ;;
     *) grep_args+=("$where") ;;
   esac
-  set +e
-  raw="$(git grep "${grep_args[@]}" -- "${paths[@]}")"
-  status=$?
-  set -e
+  run_git grep "${grep_args[@]}" -- "${paths[@]}" || status=$?
   # git grep exits 1 for "no matches", which is the good case here. Anything
-  # above that is a real failure and must not pass for a clean tree.
+  # above that is a real failure — including run_git's own 3, git having said
+  # something on stderr — and must not pass for a clean tree.
   if [ "$status" -gt 1 ]; then
     return 2
   fi
-  if [ -z "$raw" ]; then
+  if [ -z "$git_stdout" ]; then
     return 0
   fi
   # The matched address is the last colon-separated field and can hold no colon
@@ -330,9 +369,6 @@ addresses_in_tree() {
     if is_no_reply_address "$address"; then
       continue
     fi
-    if is_kotlin_qualified_this "$address" "$location"; then
-      continue
-    fi
     if [ "$exemption" = 'historical' ] \
       && [ -n "${fork_point_addresses[${address,,}]+set}" ]; then
       continue
@@ -341,8 +377,12 @@ addresses_in_tree() {
       && is_exempt_historical_blob "$where" "$location"; then
       continue
     fi
-    printf '%s\n' "$(redact "$location")"
-  done <<< "$raw"
+    location_text="$(redact "$location")" || redaction_status=1
+    printf '%s\n' "$location_text"
+  done <<< "$git_stdout"
+  if [ "$redaction_status" -ne 0 ]; then
+    return 2
+  fi
 }
 
 # Read the exempt set out of the fork point tree. Same pattern and same flags as
@@ -353,59 +393,79 @@ addresses_in_tree() {
 # when the set came out empty, because an empty set would silently turn the
 # exemption off rather than mean there is nothing to exempt.
 read_fork_point_addresses() {
-  local raw status line address
-  set +e
-  raw="$(git grep -naoEi "$address_pattern" "$fork_point")"
-  status=$?
-  set -e
+  local status=0 line address
+  run_git grep -naoEi "$address_pattern" "$fork_point" || status=$?
   if [ "$status" -gt 1 ]; then
     return 1
   fi
-  if [ -n "$raw" ]; then
+  if [ -n "$git_stdout" ]; then
     while IFS= read -r line; do
       if [ -z "$line" ]; then
         continue
       fi
       address="${line##*:}"
       fork_point_addresses["${address,,}"]=1
-    done <<< "$raw"
+    done <<< "$git_stdout"
   fi
   if [ "${#fork_point_addresses[@]}" -eq 0 ]; then
     return 1
   fi
 }
 
-# Print every tracked path that holds an address, redacted, for check 5. $1 is
-# "index" or a commit id.
+# Print every path that holds an address, redacted, for check 5. $1 is "index"
+# or a commit id.
 #
-# `git ls-files` is the index, which is also the set of paths a checkout of this
-# working tree has on disk; `git ls-tree -r --name-only` is the same question
-# asked of a commit. No exemptions at all here: LICENSE earns its exemption
-# through what is inside it, and no path in this repository has ever needed one.
-# A name that matches is either a mistake or something deliberate, and both want
-# reporting.
+# `git ls-files --cached --others --exclude-standard` is the index plus the
+# untracked files git does not ignore — between them, the set of paths a
+# checkout of this working tree has on disk and the set a commit could take.
+# `git ls-tree -r --name-only` is the same question asked of a commit. No
+# exemptions at all here: LICENSE earns its exemption through what is inside it,
+# and no path in this repository has ever needed one. A name that matches is
+# either a mistake or something deliberate, and both want reporting.
 #
 # One grep over the whole listing rather than one grep per path — this runs for
 # every fork commit, and a thousand paths a commit would be a thousand processes
 # a commit. -n numbers the lines of the listing, which is how a hit gets back to
-# the name it came from. Returns 2 when git itself failed.
+# the name it came from.
+#
+# Returns 2 when any step of it did not do its job: git failed or said something
+# on stderr, mapfile did not read the listing, grep could not scan it, or a name
+# could not be redacted. This function is called on the left of ||, where set -e
+# does not apply, so every step is checked by hand — otherwise a scan that
+# scanned nothing returns nothing and reads exactly like a clean tree. The grep
+# result is taken into a variable rather than piped into the loop for the same
+# reason: `|| true` on the producer of a process substitution throws its status
+# away.
 names_with_addresses() {
-  local where="$1" listing status match address position
+  local where="$1" listing status=0 matches matches_status=0
+  local match address position name redaction_status=0
   local -a names=()
-  set +e
   case "$where" in
-    index) listing="$(git ls-files)" ;;
-    *) listing="$(git ls-tree -r --name-only "$where")" ;;
+    index) run_git ls-files --cached --others --exclude-standard || status=$? ;;
+    *) run_git ls-tree -r --name-only "$where" || status=$? ;;
   esac
-  status=$?
-  set -e
   if [ "$status" -ne 0 ]; then
     return 2
   fi
+  listing="$git_stdout"
   if [ -z "$listing" ]; then
     return 0
   fi
-  mapfile -t names <<< "$listing"
+  if ! mapfile -t names <<< "$listing"; then
+    return 2
+  fi
+  set +e
+  matches="$(printf '%s\n' "$listing" | grep -naoEi "$address_pattern")"
+  matches_status=$?
+  set -e
+  # grep exits 1 for "nothing matched", which is the good case. Anything above
+  # that means the listing was not scanned.
+  if [ "$matches_status" -gt 1 ]; then
+    return 2
+  fi
+  if [ -z "$matches" ]; then
+    return 0
+  fi
   while IFS= read -r match; do
     if [ -z "$match" ]; then
       continue
@@ -415,8 +475,12 @@ names_with_addresses() {
     if is_no_reply_address "$address"; then
       continue
     fi
-    printf '%s\n' "$(redact "${names[position - 1]}")"
-  done < <(printf '%s\n' "$listing" | { grep -naoEi "$address_pattern" || true; })
+    name="$(redact "${names[position - 1]}")" || redaction_status=1
+    printf '%s\n' "$name"
+  done <<< "$matches"
+  if [ "$redaction_status" -ne 0 ]; then
+    return 2
+  fi
 }
 
 # Does this name — a commit's author or committer name, or the name half of the
@@ -433,11 +497,11 @@ check_working_tree() {
   local hits status=0
   hits="$(addresses_in_tree worktree none)" || status=$?
   if [ "$status" -ne 0 ]; then
-    fail "✗ git grep failed while searching the working tree"
-    return
+    fail "✗ the scan of the working tree did not run to the end, so the tree is unchecked" \
+         "  Any git diagnostic is printed above, redacted."
   fi
   if [ -n "$hits" ]; then
-    fail "✗ email address in tracked files (file and line only, address withheld):" \
+    fail "✗ email address in a file of this working tree (file and line only, address withheld):" \
          "$(printf '%s\n' "$hits" | sed 's/^/    /')" \
          "  If it is attribution the licence requires, it belongs in LICENSE." \
          "  Otherwise remove it." \
@@ -453,8 +517,8 @@ check_index() {
   local hits status=0
   hits="$(addresses_in_tree index none)" || status=$?
   if [ "$status" -ne 0 ]; then
-    fail "✗ git grep failed while searching the index"
-    return
+    fail "✗ the scan of the index did not run to the end, so the index is unchecked" \
+         "  Any git diagnostic is printed above, redacted."
   fi
   if [ -n "$hits" ]; then
     fail "✗ email address staged in the index (file and line only, address withheld):" \
@@ -464,18 +528,19 @@ check_index() {
   fi
 }
 
-# 5a. The names of the tracked files, as the index holds them — which is both
-# what the next commit would write and what a checkout of this tree puts on
-# disk. The historical half of check 5 is inside check_fork_commits.
+# 5a. The names of the files this working tree holds — those in the index, which
+# is what the next commit would write, and the untracked ones git does not
+# ignore, which are one `git add` from being among them. The historical half of
+# check 5 is inside check_fork_commits.
 check_tracked_names() {
   local hits status=0
   hits="$(names_with_addresses index)" || status=$?
   if [ "$status" -ne 0 ]; then
-    fail "✗ git failed while listing the tracked file names"
-    return
+    fail "✗ the scan of the file names did not run to the end, so the names are unchecked" \
+         "  Any git diagnostic is printed above, redacted."
   fi
   if [ -n "$hits" ]; then
-    fail "✗ email address in the name of a tracked file (address blanked out):" \
+    fail "✗ email address in the name of a file in this working tree (address blanked out):" \
          "$(printf '%s\n' "$hits" | sed 's/^/    /')" \
          "  fix: git mv it to a name that holds no address."
   fi
@@ -536,6 +601,7 @@ check_fork_commits() {
   local commits commit metadata author committer message
   local author_name committer_name
   local message_lines match address hits status
+  local message_matches message_matches_status
 
   if [ "$(git rev-parse --is-shallow-repository)" != "false" ]; then
     fail "✗ shallow clone: the fork's own commits cannot be checked" \
@@ -590,16 +656,25 @@ check_fork_commits() {
     # message holds no address at all, which is the good case and must not trip
     # pipefail.
     message_lines=''
-    while IFS= read -r match; do
-      if [ -z "$match" ]; then
-        continue
-      fi
-      address="${match##*:}"
-      if is_no_reply_address "$address"; then
-        continue
-      fi
-      message_lines="$message_lines${match%%:*} "
-    done < <(printf '%s\n' "$message" | { grep -naoEi "$address_pattern" || true; })
+    message_matches_status=0
+    set +e
+    message_matches="$(printf '%s\n' "$message" | grep -naoEi "$address_pattern")"
+    message_matches_status=$?
+    set -e
+    if [ "$message_matches_status" -gt 1 ]; then
+      fail "✗ commit $commit: the scan of the commit message failed, so the message is unchecked"
+    elif [ -n "$message_matches" ]; then
+      while IFS= read -r match; do
+        if [ -z "$match" ]; then
+          continue
+        fi
+        address="${match##*:}"
+        if is_no_reply_address "$address"; then
+          continue
+        fi
+        message_lines="$message_lines${match%%:*} "
+      done <<< "$message_matches"
+    fi
     if [ -n "$message_lines" ]; then
       fail "✗ commit $commit: email address in the commit message, at message line(s) ${message_lines% }"
     fi
@@ -607,7 +682,7 @@ check_fork_commits() {
     status=0
     hits="$(addresses_in_tree "$commit" historical)" || status=$?
     if [ "$status" -ne 0 ]; then
-      fail "✗ git grep failed while searching the tree of commit $commit"
+      fail "✗ the scan of the tree of commit $commit did not run to the end, so it is unchecked"
     elif [ -n "$hits" ]; then
       fail "✗ email address in a file at commit $commit (commit, file and line only, address withheld):" \
            "$(printf '%s\n' "$hits" | sed 's/^/    /')"
@@ -618,7 +693,7 @@ check_fork_commits() {
     status=0
     hits="$(names_with_addresses "$commit")" || status=$?
     if [ "$status" -ne 0 ]; then
-      fail "✗ git failed while listing the file names of commit $commit"
+      fail "✗ the scan of the file names of commit $commit did not run to the end, so they are unchecked"
     elif [ -n "$hits" ]; then
       fail "✗ email address in a file name at commit $commit (address blanked out):" \
            "$(printf '%s\n' "$hits" | sed 's/^/    /')"

@@ -2,6 +2,8 @@ package app.lenews.sync
 
 import android.app.Notification
 import android.content.Context
+import android.os.SystemClock
+import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.test.core.app.ApplicationProvider
@@ -20,8 +22,8 @@ import app.lenews.testutil.okResponseWithBody
 import app.lenews.util.extensions.getSerializable
 import app.lenews.db.Database
 import app.lenews.db.entities.account.Account
+import app.lenews.R
 import app.lenews.db.entities.account.AccountType
-import junit.framework.TestCase.assertNotNull
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -40,7 +42,10 @@ import java.util.Collections
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 /**
  *
@@ -103,7 +108,45 @@ class SyncWorkerTest : KoinTest {
         mockServer.shutdown()
         database.clearAllTables()
         notificationManager.cancelAll()
+        // cancelAll is queued like every other notification call, so the next
+        // test starts while this one's notifications may still be posted.
+        // Waiting for them here is what keeps one test out of the next one's
+        // assertions.
+        awaitNotifications("the notifications of this test are cancelled") { it.isEmpty() }
         editTagRequests.clear()
+    }
+
+    /**
+     * The active notifications, once they are as [description] says they should
+     * be. Posting and cancelling are queued inside the system: the call hands
+     * the work to system_server, which does it on a handler thread, while
+     * activeNotifications reads the list from a binder thread. Reading it on the
+     * line after the call that changed it is a race, and it is the race that
+     * made this class fail about one run in several — under load on the bench
+     * emulator, five runs in six.
+     */
+    private fun awaitNotifications(
+        description: String,
+        predicate: (List<StatusBarNotification>) -> Boolean
+    ): List<StatusBarNotification> {
+        val deadline = SystemClock.uptimeMillis() + NOTIFICATION_TIMEOUT_MS
+        var active = notificationManager.activeNotifications
+
+        while (true) {
+            if (predicate(active)) {
+                return active
+            }
+            if (SystemClock.uptimeMillis() >= deadline) {
+                break
+            }
+            Thread.sleep(NOTIFICATION_POLL_MS)
+            active = notificationManager.activeNotifications
+        }
+
+        fail(
+            "$description — still not so after $NOTIFICATION_TIMEOUT_MS ms." +
+                    " Active notification ids: ${active.map { it.id }}"
+        )
     }
 
     /**
@@ -173,7 +216,10 @@ class SyncWorkerTest : KoinTest {
         assertTrue { result is ListenableWorker.Result.Success }
         assertTrue { result.outputData.getBoolean(SyncWorker.END_SYNC_KEY, false) }
 
-        assertEquals(0, notificationManager.activeNotifications.size)
+        // the worker cancels the progress notification when the sync ends, and
+        // that cancellation is queued: this waits for it instead of reading the
+        // list on the instant doWork() returned
+        awaitNotifications("a manual sync leaves no notification behind") { it.isEmpty() }
     }
 
     @Test
@@ -188,8 +234,13 @@ class SyncWorkerTest : KoinTest {
         assertTrue { result is ListenableWorker.Result.Success }
         assertTrue { result.outputData.getBoolean(SyncWorker.END_SYNC_KEY, false) }
 
-        val notification = with(notificationManager.activeNotifications.first()) {
-            assertEquals(SyncWorker.SYNC_RESULT_NOTIFICATION_ID, id)
+        // the result notification is posted from inside doWork(), which does
+        // not wait for the system to have posted it
+        val posted = awaitNotifications("the auto sync posts its result notification") { active ->
+            active.any { it.id == SyncWorker.SYNC_RESULT_NOTIFICATION_ID }
+        }
+
+        val notification = with(posted.first { it.id == SyncWorker.SYNC_RESULT_NOTIFICATION_ID }) {
             assertEquals(
                 "FreshRSS @ GitHub",
                 this.notification.extras.getString(Notification.EXTRA_TITLE)
@@ -269,7 +320,17 @@ class SyncWorkerTest : KoinTest {
         assertTrue { workInfos.any { it?.state == WorkInfo.State.FAILED } }
         val failedWorkInfo = workInfos.find { it?.state == WorkInfo.State.FAILED }!!
         assertEquals(true, failedWorkInfo.outputData.getBoolean(SyncWorker.SYNC_FAILURE_KEY, false))
-        assertNotNull { failedWorkInfo.outputData.getSerializable(SyncWorker.SYNC_FAILURE_EXCEPTION_KEY) }
+
+        // the payload itself, not a lambda that is never run: assertNotNull { }
+        // takes the lambda object as its argument, so what used to stand here
+        // asserted that a function object is not null and never read the Data
+        val failure = assertIs<Exception>(
+            failedWorkInfo.outputData.getSerializable(SyncWorker.SYNC_FAILURE_EXCEPTION_KEY)
+        )
+        assertEquals(
+            context.getString(R.string.background_sync_already_running),
+            failure.message
+        )
     }
 
     @Test
@@ -299,7 +360,18 @@ class SyncWorkerTest : KoinTest {
 
         assertTrue { result is ListenableWorker.Result.Failure }
         assertTrue { result.outputData.getBoolean(SyncWorker.SYNC_FAILURE_KEY, false) }
-        assertNotNull { result.outputData.getSerializable(SyncWorker.SYNC_FAILURE_EXCEPTION_KEY) }
+
+        // the payload, not a lambda: the worker wraps the cause of what it
+        // caught, and for an account with no url that is Koin failing to build
+        // the FreshRSS data source
+        val failure = assertIs<Exception>(
+            result.outputData.getSerializable(SyncWorker.SYNC_FAILURE_EXCEPTION_KEY)
+        )
+        val message = assertNotNull(failure.message, "the failure payload carries no message")
+        assertTrue(
+            message.contains("GReaderDataSource"),
+            "the failure payload does not say what failed: $message"
+        )
 
         val autoWorker =
             TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
@@ -322,5 +394,10 @@ class SyncWorkerTest : KoinTest {
         private const val GOOGLE_READ = "user/-/state/com.google/read"
         private const val GOOGLE_UNREAD = "user/-/state/com.google/unread"
         private const val GOOGLE_STARRED = "user/-/state/com.google/starred"
+
+        // far more than the system needs when it is idle, far less than the
+        // test framework's own timeout when it is not
+        private const val NOTIFICATION_TIMEOUT_MS = 5_000L
+        private const val NOTIFICATION_POLL_MS = 50L
     }
 }

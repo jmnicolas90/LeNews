@@ -16,3 +16,22 @@ Upstream issue #341 reports that mark-all-read does not work with FreshRSS accou
 Test-first (`/tdd`): each route produces exactly one dated history entry; the list query returns the expected order; the list query on the seeded 100k store is inside budget.
 
 **Done when** the gate is green through G7, every route is covered by a test, and the user can find an article they swiped away this morning in under three taps.
+
+## From the global review (2026-09-06)
+
+Two adversarial reviews — one on the repo's own standards, one on what the
+tickets asked for — read everything committed since the fork point. The upstream
+defects below are still in the tree at HEAD and belong to this ticket rather
+than to the round that found them, so they are recorded here and nothing was
+changed for them.
+
+- **Mark-all-starred-read reads the wrong column.**
+  `db/src/main/java/app/lenews/db/dao/ItemStateDao.kt:43-45`
+  (`setAllStarredItemsRead`) and the matching bulk queries in
+  `db/src/main/java/app/lenews/db/dao/ItemStateChangeDao.kt:169-176` select the
+  articles to mark with `Where account_id = :accountId And starred = 1`, and
+  the only `starred` column in scope there is `Item.starred`. For a FreshRSS
+  account `Item.starred` is never written — the star lives in `ItemState`, as
+  `CLAUDE.md` says — so the statement matches nothing and marking the starred
+  list read does nothing at all. That is the shape of upstream issue #341,
+  which this ticket already has to reproduce.

@@ -381,3 +381,87 @@ Done locally after the merge: `develop` renamed to `main` (same history), the ti
 
 Pending on GitHub access: `git push origin main` was refused with 403 and the default-branch change too. The `gh` fine-grained token only covers `jmnicolas90/Ding`; it needs `jmnicolas90/Readrops` added with Contents, Workflows and Administration write and Actions read. Until then: CI has not run on `main`, the CI half of the play-services red proof is not done, and GitHub's default branch is still `develop`. The remote `develop` is left as history either way; only the local one is gone.
 
+
+
+## From the global review (2026-09-06)
+
+Two adversarial reviews of everything since the fork point found five holes in
+the two scripts this ticket owns. All five are fixed on the `global-fix` branch,
+each provoked before and after.
+
+**G1, four holes.**
+
+1. **Untracked files were not scanned at all.** The working-tree scan ran
+   `git grep` without `--untracked` and the name scan `git ls-files` without
+   `--others --exclude-standard`, so a new file holding an address, or named
+   after one, passed G1 and was caught only by CI after the push. Proved both
+   ways: a file with an address in its body and a file with an address in its
+   name each left the guard green before and turn it red after (the name is
+   reported as `.scratch/proofdir/<address withheld>`). Neither file was
+   committed. The index scan stays separate: it is what `git add -p` can hide.
+2. **Two ways round the allowlist.** The pattern was anchored on an alphanumeric,
+   so a deliverable address whose local part opened with an underscore and went
+   on with the word noreply matched from *after* the underscore and the leftover
+   was waved through as a no-reply address; the whole token is matched now, and
+   `is_no_reply_address` strips one leading backquote so that a code-spanned
+   no-reply address in markdown — the thing the anchor was for — is still
+   allowed. And the Kotlin qualified-`this` exemption accepted a string literal
+   of the same shape in any `.kt` file. Narrowing it once (the review round of
+   2026-09-05, point 4 above) was not enough, so **the exemption is gone**: the
+   two call sites that had the shape of an address were written differently
+   instead — a renamed lambda parameter in `ItemScreenModel` and a renamed
+   companion property, `documentedFilters`, in `ShareIntentTextRenderer`. Both
+   holes were green before and are red after; a backquoted no-reply address in
+   markdown is still green.
+3. **git's own diagnostics were trusted.** `git grep` can fail to read a file,
+   say so on stderr and still exit 0 or 1, and the wrapper forwarded that
+   stderr — including the file name in it, which can itself be an address — and
+   called the scan clean. Every git call goes through `run_git` now, which
+   captures stderr, fails the check on anything printed there, and redacts it
+   first. Proved with a mock `git` on `PATH` that prints a read diagnostic
+   naming an address: before, the guard printed the address verbatim and exited
+   0; after, it prints `fatal: unable to read files: <address withheld>` and
+   exits 1.
+4. **The name scan swallowed its own failures.** It ran inside a `||` context,
+   where `set -e` does not apply, and its grep producer ended in `|| true`, so a
+   grep that could not scan returned nothing and read exactly like a clean tree.
+   The grep result is taken into a variable and its status checked, `mapfile` is
+   checked, and a failed redaction now propagates. Proved with a mock `grep` that
+   exits 2 for the scan's own flags: before, 62 failed scans and the guard exited
+   0; after, it names every scan that did not run and exits 1. (The `mapfile`
+   branch is checked by hand rather than provoked — a `mapfile` from a here-string
+   does not fail without patching bash.)
+
+**G7, one hole.** Shutdown was not bound to the process the stage launched:
+`stop_owned_emulator` sent `emu kill` to port 5554 and only then looked at the
+pid. If the launched emulator had died and another instance had taken the port,
+the gate shut down an emulator that was none of its business and then called the
+stage green. Ownership is established first — the launched pid is alive — and
+the stop is a signal to that pid, SIGTERM then a bounded wait then SIGKILL;
+nothing is ever sent to the port, and the AVD name behind the serial is asked
+for the report only. Proved against a mock `adb` and a mock `emulator` in a fake
+SDK and a fake repo root under `/tmp`, with the real emulator untouched: with the
+launched emulator dying during the test run and the port answering
+`bench-pixel6-aosp` all the same, the old script logged `EMU KILL SENT TO THE
+PORT` and reported "All gates green", the new one sends nothing to the port,
+says the emulator it started is already gone and fails G7; in the ordinary case
+the new script terminates the process it launched by signal and G7 is green.
+
+**The instrumented tests, three findings.** `SyncWorkerTest` read
+`activeNotifications` on the line after the call that changed it, which is a
+race with system_server's handler: the notification assertions poll for a few
+seconds now, and `@After` waits for `cancelAll()` before the next test starts.
+Reproduced by running `autoWorkerWithNotificationsTest` then `manualWorkerTest`
+in one instrumentation process with ten busy loops on the emulator's CPUs:
+**5 runs in 6 red** before (`NoSuchElementException: List is empty` and
+`Expected <0>, actual <1>`), **6 in 6 green** after, under the same load. Two
+`assertNotNull { … }` assertions passed a lambda object and never read the
+payload: proved by pointing the old form at a key that holds nothing, which
+stayed green, where the new `assertIs<Exception>(…)` is red on the same key;
+both now assert the type and the content of the failure. And
+`SynchronizerTest.synchronizeTest` asserted four rows for one article as if that
+were the specification: it is the map's *Duplicates* defect, so it is
+`syncStoresFourRowsForOneArticle_knownDuplicateDefectUntilTicket14` now, with
+the explanation and the ticket numbers in a comment and a second assertion
+showing that all four rows carry the same remote id. It stays green until
+ticket 14 flips it to one row.

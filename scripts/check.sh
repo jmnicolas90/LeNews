@@ -45,6 +45,7 @@ device_port='5554'
 emulator_avd='bench-pixel6-aosp'
 emulator_boot_timeout_seconds=300
 emulator_shutdown_timeout_seconds=60
+emulator_kill_timeout_seconds=10
 
 # Filled in by instrumented_tests, and read by the helpers below — including the
 # ones the trap calls, which run after the function has returned.
@@ -106,19 +107,50 @@ report_emulator_log() {
 # all when the stage did not start one, which is what makes it safe to call from
 # the trap as well as from the normal path — it runs once, whoever calls first.
 #
-# `emu kill` is a request, so the process is then waited for rather than assumed
-# gone: a hung emulator holds port 5554 and the next run would find the port
-# taken by something nothing can identify. Returns non-zero when it is still
-# there, so the stage fails rather than reporting a green gate over a machine it
-# has left in a state it did not intend.
+# What it stops is the process this stage launched, by pid. It used to be the
+# console command `emu kill`, and a console command is addressed to a port: if
+# the launched emulator had died and another instance had taken port 5554
+# meanwhile, the gate shut down an emulator that was none of its business, waited
+# for a pid that was already gone, and called the stage green. A port is not an
+# identity. Neither is the AVD name, which the other instance answers just the
+# same when it runs the same AVD.
+#
+# So ownership is established before anything is signalled — the launched pid is
+# still alive — and then that pid is signalled: SIGTERM, which the emulator
+# handles by shutting itself down, a bounded wait, then SIGKILL and a shorter
+# wait. Nothing is ever sent to the port.
+#
+# Returns non-zero whenever it could not do its job, so the stage fails rather
+# than reporting a green gate over a machine it has left in a state it did not
+# intend: the launched emulator was already gone, so this run cannot say what is
+# on the serial any more, or the process would not die.
 stop_owned_emulator() {
-  local waited=0
+  local waited=0 avd_name
   if [ "$emulator_owned" -ne 1 ]; then
     return 0
   fi
   emulator_owned=0
-  echo "· shutting down $device_serial (this stage started it)"
-  "$adb" -s "$device_serial" emu kill >/dev/null 2>&1 || true
+
+  if ! kill -0 "$emulator_pid" 2>/dev/null; then
+    wait "$emulator_pid" 2>/dev/null || true
+    echo "✗ the emulator this stage started (pid $emulator_pid) is already gone" >&2
+    echo "  Nothing was shut down. Whatever is on port $device_port now was not started" >&2
+    echo "  here, and the tests may have run against it rather than against this stage's" >&2
+    echo "  emulator. Check what is on $device_serial before trusting this run." >&2
+    report_emulator_log
+    return 1
+  fi
+
+  # For the report only. The pid is what says the process is ours; this says
+  # whether the serial still belongs to it.
+  avd_name="$(emulator_avd_name)"
+  if [ "$avd_name" != "$emulator_avd" ]; then
+    echo "· $device_serial answers ${avd_name:-nothing} rather than $emulator_avd," \
+         "so the serial is no longer this stage's emulator; stopping only pid $emulator_pid" >&2
+  fi
+
+  echo "· shutting down $device_serial (this stage started it, pid $emulator_pid)"
+  kill -TERM "$emulator_pid" 2>/dev/null || true
   while [ "$waited" -lt "$emulator_shutdown_timeout_seconds" ]; do
     if ! kill -0 "$emulator_pid" 2>/dev/null; then
       wait "$emulator_pid" 2>/dev/null || true
@@ -127,8 +159,20 @@ stop_owned_emulator() {
     sleep 1
     waited=$((waited + 1))
   done
-  echo "✗ the emulator this stage started (pid $emulator_pid) is still alive" \
-       "${emulator_shutdown_timeout_seconds}s after emu kill" >&2
+
+  echo "· pid $emulator_pid ignored SIGTERM for ${emulator_shutdown_timeout_seconds}s;" \
+       "sending SIGKILL" >&2
+  kill -KILL "$emulator_pid" 2>/dev/null || true
+  waited=0
+  while [ "$waited" -lt "$emulator_kill_timeout_seconds" ]; do
+    if ! kill -0 "$emulator_pid" 2>/dev/null; then
+      wait "$emulator_pid" 2>/dev/null || true
+      return 0
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  echo "✗ the emulator this stage started (pid $emulator_pid) is still alive after SIGKILL" >&2
   echo "  kill it by hand before running the gate again; it is holding port $device_port" >&2
   return 1
 }

@@ -301,15 +301,28 @@ subprojects {
     // base plugin that the Android plugins bring, so match it lazily rather
     // than asking for it before it exists.
     //
-    // `assemble*` as well as `check`, so that the promise the README and the
-    // CHANGELOG make — a build fails if a Play Services or Firebase dependency
-    // reaches the graph — is true of a bare `./gradlew assembleDebug` and not
-    // only of the gate and CI. Every task whose name starts with `assemble`
-    // matches: the lifecycle `assemble`, the per-variant `assembleDebug` and
-    // `assembleRelease`, and the androidTest ones. The guard has no inputs of
-    // its own and resolves configurations that an assemble resolves anyway, so
-    // the cost is a repeated graph walk, not a repeated download.
-    tasks.matching { it.name == "check" || it.name.startsWith("assemble") }.configureEach {
+    // Not only `check` and not only `assemble*`, so that the promise the README
+    // and the CHANGELOG make — a build fails if a Play Services or Firebase
+    // dependency reaches the graph — is true of any command that produces or
+    // installs an artifact, and not only of the gate and CI.
+    //
+    // `assemble` alone was not enough: `packageDebug` builds the APK,
+    // `installDebug` puts it on a device and `bundleRelease` produces the AAB,
+    // and none of the three depends on an `assemble` task, so all three went
+    // through with a banned dependency in the graph. The four prefixes are what
+    // AGP names those paths: `assemble`, `package`, `install` and `bundle`.
+    // Matching by prefix rather than by a list of task names means a variant
+    // added later is covered the day it appears, exactly as the guard's own
+    // variant walk is.
+    //
+    // The guard has no inputs of its own and resolves configurations these
+    // tasks resolve anyway — the resolution result, not the artifacts — so the
+    // cost is a repeated graph walk, not a repeated download, and it adds no
+    // task cycle: the guard depends on nothing.
+    val guardedTaskPrefixes = listOf("assemble", "package", "install", "bundle")
+    tasks.matching { task ->
+        task.name == "check" || guardedTaskPrefixes.any { task.name.startsWith(it) }
+    }.configureEach {
         dependsOn(guard)
     }
 }
