@@ -1,5 +1,6 @@
 package app.lenews.item
 
+import android.content.Context
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
@@ -63,21 +64,15 @@ class ItemScreen(
             )
         }
 
-        // Both messages are cleared once they have been seen, so that a second
-        // download says so as loudly as the first.
-        LaunchedEffect(state.fileDownloadedEvent) {
-            if (state.fileDownloadedEvent) {
-                snackbarHostState.showSnackbar(context.getString(R.string.downloaded_file))
-                screenModel.messageShown()
-            }
-        }
+        // One snackbar at a time, in the order the results arrived, and each one
+        // acknowledged by its own id: a failure that arrives while a success is
+        // still showing waits its turn instead of going out with it.
+        val imageResult = state.imageResults.firstOrNull()
 
-        LaunchedEffect(state.error) {
-            val error = state.error
-
-            if (error != null) {
-                snackbarHostState.showSnackbar(error)
-                screenModel.messageShown()
+        LaunchedEffect(imageResult?.id) {
+            if (imageResult != null) {
+                snackbarHostState.showSnackbar(imageResult.snackbarText(context))
+                screenModel.imageResultShown(imageResult.id)
             }
         }
 
@@ -153,4 +148,10 @@ class ItemScreen(
             }
         }
     }
+}
+
+/** What the reader is told about an image they asked for. */
+private fun ImageResult.snackbarText(context: Context): String = when (this) {
+    is ImageResult.Saved -> context.getString(R.string.image_saved_in_downloads, fileName)
+    is ImageResult.Failed -> message
 }

@@ -181,7 +181,6 @@
     <string name="background_sync_new_articles">后台同步完成后收到新文章的通知</string>
     <string name="not_valid_rss_feed">提供的 URL 不是有效的 RSS 订阅</string>
     <string name="show_oldest_articles_first">优先显示最旧的文章</string>
-    <string name="downloaded_file">已下载文件！</string>
     <string name="load_color_new_favicon">从新图标加载颜色</string>
     <string name="feed_color">订阅颜色</string>
     <string name="preview">预览</string>

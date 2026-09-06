@@ -251,3 +251,93 @@ of this worktree installed over the existing `app.lenews.debug` store (the
 - **`fileDownloadedEvent` and `error` are still two fields** rather than one
   message. Clearing them was needed for the snackbar to work twice; merging them
   is tidying nobody asked for.
+
+### Review round (2026-09-06)
+
+An adversarial review of the commit above raised two findings, both accepted
+and both fixed here.
+
+**1. The retry for a failed next page was at the bottom of a list of blank
+rows.** The footer was one more item after `items.itemCount`, and the timeline
+pages with placeholders on, so that count is every article the query matches,
+loaded or not. The timeline draws nothing for a row it has not loaded — there
+is no skeleton article — but the list still spaces every one of them. That is
+invisible while loading keeps up with scrolling, because a row is reached
+moments before it fills. When the next page has *failed* nothing is going to
+fill them: after fifty of a thousand articles, the reader had 950 blank rows
+between the last article and the retry, which is thousands of dp of nothing
+with no message and no way back.
+
+**The fix keeps placeholders and stops the list at the last article that
+loaded**, rather than switching placeholders off. Both were tried. Switching
+them off does put the retry under the articles for free — the count becomes the
+loaded count — but it also breaks opening an article, and the measurement is
+worth writing down because the reasoning goes the other way:
+
+- A paged list is rebuilt whenever the store changes, which here is every sync
+  and every article marked read on scroll. Paging asks the source for a refresh
+  key anchored on the row the reader is on, and Room's answer is that row's
+  position **minus half a page**, so after the rebuild the pages held start in
+  the middle of the query, not at its first article.
+- Measured against the real paging machinery on the JVM: with a thousand
+  articles and the reader at position 399, the rebuilt list holds fifty
+  articles starting at 374 — **with placeholders**, the list is still 1,000
+  long with 374 of them before the first loaded one, so a row's index is still
+  the article's position in the query; **without placeholders**, the list is
+  fifty long and the row's index is 0 to 49.
+- That position is exactly what `TimelineTab` hands `ItemScreen` when the
+  reader taps an article, and what `ItemScreenModel.buildPager` uses to decide
+  how far to load so that `initialPage` can find the article by its id. Give it
+  5 instead of 379 and it loads the first hundred articles, does not find the
+  id, falls back to the index and opens the article at position 5 — one the
+  reader did not tap. Ticket 16's `initialPage` is unchanged and still works,
+  because nothing about the index it is given has changed.
+
+So the rule is a plain function of three numbers,
+`timelineRowCount(itemCount, placeholdersAfter, nextPageFailed)` in
+`app/src/main/java/app/lenews/util/paging/PagedListState.kt`: every matching
+article while pages are still arriving, and only the articles actually loaded
+once the next page has failed. `LazyPagingItems.rowCount()` reads the two
+numbers off the list, `TimelineTab` counts its rows with it, and the footer is
+the next row. Four tests in
+`app/src/test/java/app/lenews/util/paging/TimelineRowCountTest.kt`: the three
+cases of the function, and one that holds it to **placeholder-bearing
+`PagingData` with a real append failure** — a thousand articles, the first page
+loaded, the next page returning an error, and the answer 50 rather than 1,000.
+The reason placeholders stay on is written in the function's own documentation,
+where the next person to look at that blank space will read it.
+
+**2. A newer download result was cleared by acknowledging an older snackbar.**
+`ItemState` held one boolean for success and one string for failure, and
+`messageShown()` cleared both. A failure arriving while a success was on screen
+was therefore thrown away the moment the reader dismissed the success — the
+download that failed said nothing at all — and two successes in a row were one
+message.
+
+The two fields are replaced by one queue, `ItemState.imageResults`, of
+`ImageResult.Saved(id, fileName)` and `ImageResult.Failed(id, message)`. Every
+result is its own event with its own id, taken from a counter outside the state
+update because `MutableStateFlow.update` may run its block more than once. The
+screen shows the first of the queue in one effect keyed on that event's id, and
+calls `imageResultShown(id)`, which drops **that** event and leaves whatever
+arrived behind it — so the next one is shown as soon as the first is done.
+
+The success message now names the file: `image_saved_in_downloads`
+("%1$s saved to Downloads") replaces `downloaded_file` ("Downloaded file!"),
+whose eight inherited translations went with it, so two images saved one after
+the other read as two files rather than as the same sentence twice. That is one
+`MissingTranslation` less in the lint baseline; its entry was removed and the
+counts in `CLAUDE.md` follow.
+
+Three tests at the model, in `ItemScreenModelTest`, since that is where a
+result becomes a message: two results in a row are two messages in the order
+they happened; acknowledging the first leaves the second; and two identical
+successes are two events with two ids rather than one.
+
+**Left out on purpose.** The blank rows are only cut off when the next page has
+failed — while pages are arriving they are what a paged list is made of, and
+cutting them there would stop the list asking for the next page. And nothing
+was done about `MarkItemsRead`, which compares a row index across rebuilds and
+can mark articles read that were never on screen when a sync inserts articles
+above the reader: it is an inherited defect of the same file, not something
+this round's findings raised, and it wants a ticket of its own.

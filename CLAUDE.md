@@ -42,7 +42,7 @@ there. `CONTRIBUTING.md` holds the rule for copyright headers —
 in the comment syntax of their language, *added* under upstream's header and
 never substituted for it, and **not** on Markdown documentation, which says in
 its own prose who wrote it. `CONTRIBUTING.md` carries the list itself,
-file by file — fifty-eight non-Markdown files carry the header today, and
+file by file — fifty-nine non-Markdown files carry the header today, and
 `grep -rl "Copyright (C) 2026 Jean-Michel Nicolas"` is how the table is checked;
 `LICENSE` is byte-identical to upstream's. The same file lists the ten
 non-Markdown fork-created files that deliberately carry no header and why — JSON has no comments, the lint baseline is regenerated, and
@@ -256,8 +256,8 @@ Notes that save time:
 - **Lint fails on errors only**; warnings print and stop nothing. `abortOnError`
   is set once, in the root `build.gradle.kts`, for all three modules.
   `app/lint-baseline.xml` holds what was already red on the day the gate was
-  built: **411 entries — 347 errors and 64 warnings**, and every error is
-  translation debt (199 `MissingTranslation`, 135 `ExtraTranslation`, 47
+  built: **410 entries — 346 errors and 64 warnings**, and every error is
+  translation debt (198 `MissingTranslation`, 135 `ExtraTranslation`, 47
   `UnusedResources`, 10 `MissingDefaultResource`, 3 `ImpliedQuantity`), waiting
   on the locales product call nobody has made. Since ticket 13 deleted the
   strings the multi-account screens used and ticket 16 put the last unused

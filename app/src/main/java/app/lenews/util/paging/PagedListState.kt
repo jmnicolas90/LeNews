@@ -76,3 +76,33 @@ fun pagedListState(loadState: CombinedLoadStates, itemCount: Int): PagedListStat
  * alone fails. Were one to fail, the retry the footer offers would retry it too.
  */
 fun nextPageFailed(loadState: CombinedLoadStates): Boolean = loadState.append is LoadState.Error
+
+/**
+ * How many rows the timeline shows for [itemCount] matching articles of which
+ * [placeholdersAfter] have not been loaded, given whether the next page failed.
+ *
+ * The timeline pages with placeholders on, so the count it is given is every
+ * article the query matches, loaded or not. It draws nothing at all for a row
+ * it has not loaded — there is no skeleton article — but the list still spaces
+ * every one of them, so an unloaded row is blank height. That is invisible
+ * while loading keeps up with scrolling, because a row is only reached moments
+ * before it fills.
+ *
+ * When the next page has failed, nothing is going to fill them: they stay blank
+ * for as long as the reader is willing to scroll, and anything the screen puts
+ * after the whole count — the retry — ends up under all of it, thousands of
+ * empty dp below the last article, where nobody finds it. So the list stops at
+ * the last article that did load and the retry is the next row.
+ *
+ * Placeholders themselves stay on, deliberately. They are what makes a row's
+ * position in the list the article's position in the query: the timeline is
+ * rebuilt around the article the reader is on whenever the store changes — a
+ * sync, or an article marked read on scroll — and the pages it keeps after that
+ * start in the middle of the query, not at its first article. That position is
+ * what the timeline hands the item screen when the reader taps an article, and
+ * what the item screen loads far enough to reach it. Without placeholders the
+ * position would be an index into the loaded window instead, and the reader
+ * would open an article they did not tap.
+ */
+fun timelineRowCount(itemCount: Int, placeholdersAfter: Int, nextPageFailed: Boolean): Int =
+    if (nextPageFailed) itemCount - placeholdersAfter else itemCount

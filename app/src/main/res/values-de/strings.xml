@@ -126,7 +126,6 @@
     <string name="crash_message">Wenn dieser Fehler angezeigt wird bedeutet das, dass die App auf einen unerwarteten Fehler gestoßen ist. Sofern möglich bitte den Fehler auf Github melden.</string>
     <string name="report_error_github">Den Fehler auf Github melden</string>
     <string name="copy_error_clipboard">Fehler in die Zwischenablage kopieren</string>
-    <string name="downloaded_file">Datei heruntergeladen!</string>
     <string name="delete_folder_question">Möchten Sie den Ordner %1$s löschen? Alle verknüpften Feeds werden ebenfalls gelöscht.</string>
     <string name="system_notifications_disabled">Systembenachrichtigungen sind derzeit deaktiviert. Hier klicken, um sie zu aktivieren</string>
     <string name="order_field_tooltip">RSS-Feeds enthalten immer alte Artikel, die du wahrscheinlich nicht in deiner Timeline sehen wirst, wenn du sie nach Datum ordnest. Mit der Sortierung nach Artikelkennzeichnung kannst du alle neu eingefügten Artikel unabhängig von ihrem Datum anzeigen.</string>

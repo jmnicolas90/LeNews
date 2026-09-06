@@ -138,7 +138,6 @@
     <string name="delete_feed_question">¿Quieres eliminar el feed %1$s ?</string>
     <string name="app_crashed">LeNews falló.</string>
     <string name="crash_message">Si ves esto, significa que la aplicación tuvo un error inesperado. Por favor si puedes, informa del error en Github.</string>
-    <string name="downloaded_file">¡Archivo descargado!</string>
     <string name="provide_full_url">Por favor, proporciona la URL completa de la API</string>
     <string name="provide_root_url">Por favor, proporcionaa la URL de la raíz del servicio</string>
     <string name="error_occurred">An error occurred</string>

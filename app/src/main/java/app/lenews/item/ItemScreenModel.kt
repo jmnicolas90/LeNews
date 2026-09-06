@@ -52,6 +52,7 @@ import org.koin.core.parameter.parametersOf
 import java.io.File
 import java.io.IOException
 import java.io.OutputStream
+import java.util.concurrent.atomic.AtomicLong
 
 class ItemScreenModel(
     private val itemId: Long,
@@ -100,6 +101,9 @@ class ItemScreenModel(
      * place.
      */
     private val keptArticleIds = MutableStateFlow(setOf(itemId))
+
+    /** Tells one image result from the next, including an identical one. */
+    private val nextImageResultId = AtomicLong(0)
 
     /** The ids above, for the tests of this screen. */
     internal val keptArticles: Set<Long>
@@ -272,7 +276,7 @@ class ItemScreenModel(
             val bitmap = getImage(url, context)
 
             if (bitmap == null) {
-                showError(context.getString(R.string.error_image_download))
+                reportImageFailed(context.getString(R.string.error_image_download))
                 return@launch
             }
 
@@ -285,18 +289,49 @@ class ItemScreenModel(
             }
 
             if (saved == null) {
-                showError(context.getString(R.string.error_image_save))
+                reportImageFailed(context.getString(R.string.error_image_save))
             } else {
-                mutableState.update { it.copy(fileDownloadedEvent = true) }
+                reportImageSaved(name.displayName)
             }
         }
     }
 
-    /** The reader has seen the last message about an image. */
-    fun messageShown() =
-        mutableState.update { it.copy(fileDownloadedEvent = false, error = null) }
+    /**
+     * The image is in Downloads under [fileName].
+     *
+     * Internal rather than private because it is the only way into the queue
+     * from outside a download, which is what the tests of this screen need: a
+     * real success needs a loader, a bitmap and a MediaStore.
+     */
+    internal fun reportImageSaved(fileName: String) =
+        report { ImageResult.Saved(id = it, fileName = fileName) }
 
-    private fun showError(message: String) = mutableState.update { it.copy(error = message) }
+    /** The image did not get there, and [message] says why, ready to show. */
+    internal fun reportImageFailed(message: String) =
+        report { ImageResult.Failed(id = it, message = message) }
+
+    /**
+     * Adds a result to the queue the screen shows one snackbar at a time.
+     *
+     * Every result is its own event with its own id, so a result that arrives
+     * while an earlier one is still on screen waits its turn instead of
+     * replacing it, and two identical successes are two messages rather than
+     * one. The id is taken outside the update because [MutableStateFlow.update]
+     * may run its block more than once.
+     */
+    private fun report(result: (Long) -> ImageResult) {
+        val event = result(nextImageResultId.incrementAndGet())
+
+        mutableState.update { it.copy(imageResults = it.imageResults + event) }
+    }
+
+    /**
+     * The reader has seen the snackbar for the result [id]. Only that one is
+     * dropped: whatever arrived while it was showing is still to be shown.
+     */
+    fun imageResultShown(id: Long) = mutableState.update { state ->
+        state.copy(imageResults = state.imageResults.filterNot { it.id == id })
+    }
 
     /**
      * Writes [bitmap] as [mimeType], which is the type the file is being saved
@@ -318,7 +353,7 @@ class ItemScreenModel(
         screenModelScope.launch(dispatcher) {
             val bitmap = getImage(url, context)
             if (bitmap == null) {
-                showError(context.getString(R.string.error_image_download))
+                reportImageFailed(context.getString(R.string.error_image_download))
                 return@launch
             }
 
@@ -326,7 +361,7 @@ class ItemScreenModel(
                 saveImageInCache(bitmap, url, context)
             } catch (error: Exception) {
                 Log.w(TAG, "the image could not be prepared for sharing", error)
-                showError(context.getString(R.string.error_image_save))
+                reportImageFailed(context.getString(R.string.error_image_save))
                 return@launch
             }
 
@@ -393,8 +428,29 @@ class ItemScreenModel(
 @Stable
 data class ItemState(
     val imageDialogUrl: String? = null,
-    val fileDownloadedEvent: Boolean = false,
+    /** What has happened to the images the reader asked for, oldest first. */
+    val imageResults: List<ImageResult> = emptyList(),
     val openInExternalBrowser: Boolean = false,
-    val theme: String? = "",
-    val error: String? = null
+    val theme: String? = ""
 )
+
+/**
+ * Something that happened to an image the reader asked for.
+ *
+ * A queue of these replaces the one success flag and the one error message the
+ * screen used to hold. Those were latched: a failure arriving while a success
+ * was on screen was thrown away when the reader dismissed the success, and two
+ * successes in a row were one message. Each result is now its own event, kept
+ * until the snackbar that showed *it* is done.
+ */
+sealed interface ImageResult {
+
+    /** What the screen acknowledges when it has shown this result. */
+    val id: Long
+
+    /** The image is in Downloads, under [fileName]. */
+    data class Saved(override val id: Long, val fileName: String) : ImageResult
+
+    /** The image did not get there, and [message] says why. */
+    data class Failed(override val id: Long, val message: String) : ImageResult
+}

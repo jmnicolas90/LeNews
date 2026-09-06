@@ -61,6 +61,7 @@ import app.lenews.util.components.Placeholder
 import app.lenews.util.extensions.isLoading
 import app.lenews.util.extensions.listState
 import app.lenews.util.extensions.nextPageFailed
+import app.lenews.util.extensions.rowCount
 import app.lenews.util.extensions.openInCustomTab
 import app.lenews.util.extensions.openUrl
 import app.lenews.util.paging.PagedListState
@@ -292,8 +293,13 @@ object TimelineTab : Tab {
                                         contentPadding = PaddingValues(vertical = lazyColumnPadding),
                                         verticalArrangement = Arrangement.spacedBy(lazyColumnPadding)
                                     ) {
+                                        // Not items.itemCount: the rows for
+                                        // articles the next page failed to
+                                        // bring would stay blank, and the retry
+                                        // under this list would be below all of
+                                        // them.
                                         items(
-                                            count = items.itemCount,
+                                            count = items.rowCount(),
                                             key = items.itemKey { it.item.id },
                                         ) { index ->
                                             val itemWithFeed = items[index]
@@ -342,6 +348,9 @@ object TimelineTab : Tab {
                                             }
                                         }
 
+                                        // Right under the last article that
+                                        // did load, the rows above stopping
+                                        // there.
                                         if (items.nextPageFailed()) {
                                             item {
                                                 PagingErrorFooter(onRetry = { items.retry() })
