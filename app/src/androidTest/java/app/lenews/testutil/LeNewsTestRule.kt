@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.rule.GrantPermissionRule
 import app.lenews.api.apiModule
 import app.lenews.appModule
+import app.lenews.userAgent
 import app.lenews.db.Database
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
@@ -80,7 +81,7 @@ class LeNewsTestRule : TestRule {
                                 .build()
                         }
                     },
-                    apiModule, appModule
+                    apiModule(userAgent), appModule
                 )
             }.koin
 

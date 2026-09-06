@@ -1,12 +1,10 @@
 package app.lenews.repositories
 
 import androidx.room.withTransaction
-import app.lenews.api.services.Credentials
 import app.lenews.api.services.DataSourceResult
 import app.lenews.api.services.greader.ArticleStateChange
 import app.lenews.api.services.greader.GReaderDataSource
 import app.lenews.api.services.greader.GReaderSyncData
-import app.lenews.api.utils.AuthInterceptor
 import app.lenews.util.Utils
 import app.lenews.db.Database
 import app.lenews.db.deleteWhatRetentionDrops
@@ -16,6 +14,7 @@ import app.lenews.db.entities.Item
 import app.lenews.db.entities.account.Account
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
+import org.koin.core.parameter.parametersOf
 
 open class GReaderRepository(
     database: Database,
@@ -23,20 +22,17 @@ open class GReaderRepository(
     private val dataSource: GReaderDataSource,
 ) : BaseRepository(database, account), KoinComponent {
 
-    override suspend fun login(account: Account) {
-        val authInterceptor = get<AuthInterceptor>().apply {
-            credentials = Credentials.toCredentials(account)
-        }
-
-        account.token = dataSource.login(account.login!!, account.password!!)
-        // we got the authToken, time to provide it to make real calls
-        authInterceptor.credentials = Credentials.toCredentials(account)
-
-        account.writeToken = dataSource.getWriteToken()
-
-        val userInfo = dataSource.getUserInfo()
-        account.displayedName = userInfo.userName
-    }
+    /**
+     * Deliberately not [dataSource]: the login needs one data source before the
+     * token is known and another after it, which is what [logIn] does. This one
+     * was built with whichever client was in place when the repository was
+     * resolved, and that is the wrong client for both halves.
+     */
+    override suspend fun login(account: Account) = logIn(
+        account = account,
+        httpClients = get(),
+        dataSourceFor = { credentials -> get { parametersOf(credentials) } }
+    )
 
     /**
      * One sync, as `docs/article-store.md` §3 describes it: take the clock, push

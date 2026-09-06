@@ -13,6 +13,7 @@ import coil3.disk.DiskCache
 import coil3.disk.directory
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
+import app.lenews.api.PLAIN_CLIENT
 import app.lenews.api.apiModule
 import app.lenews.util.CrashActivity
 import app.lenews.db.dbModule
@@ -24,6 +25,7 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.component.KoinComponent
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
+import org.koin.core.qualifier.named
 import kotlin.system.exitProcess
 
 open class LeNewsApp : Application(), KoinComponent, SingletonImageLoader.Factory {
@@ -48,7 +50,7 @@ open class LeNewsApp : Application(), KoinComponent, SingletonImageLoader.Factor
             androidLogger(Level.ERROR)
             androidContext(this@LeNewsApp)
 
-            modules(apiModule, dbModule, appModule)
+            modules(apiModule(userAgent), dbModule, appModule)
         }
 
         createNotificationChannels(this)
@@ -57,12 +59,12 @@ open class LeNewsApp : Application(), KoinComponent, SingletonImageLoader.Factor
     override fun newImageLoader(context: PlatformContext): ImageLoader {
         return ImageLoader.Builder(this)
             .components {
+                // The plain client, not a copy of the authenticated one: an
+                // article image comes from wherever its publisher hosts it, and
+                // a copy of a client copies its interceptors, which is how the
+                // FreshRSS token used to travel with those images.
                 add(OkHttpNetworkFetcherFactory(callFactory = {
-                    val client = get<OkHttpClient>()
-                    // custom shared Okhttp instance to avoid mixing
-                    // authentication headers with basic image calls
-                    client.newBuilder()
-                        .build()
+                    get<OkHttpClient>(named(PLAIN_CLIENT))
                 }))
             }
             .diskCache {
@@ -79,6 +81,16 @@ open class LeNewsApp : Application(), KoinComponent, SingletonImageLoader.Factor
         const val SYNC_CHANNEL_ID = "syncChannel"
     }
 }
+
+/**
+ * What LeNews calls itself on every HTTP request, on both clients.
+ *
+ * It lives here rather than in the `api` module because an Android library has
+ * no `versionName`: the version is the app module's, and `BuildConfig` is where
+ * it can be read. `apiModule` takes it as a parameter, so the instrumented
+ * tests pass the same string the app does.
+ */
+val userAgent: String = "LeNews/${BuildConfig.VERSION_NAME}"
 
 /**
  * Creates the notification channels the app posts on.

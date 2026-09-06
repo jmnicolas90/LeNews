@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import app.lenews.api.services.Credentials
-import app.lenews.api.utils.AuthInterceptor
+import app.lenews.api.HttpClients
 import app.lenews.repositories.BaseRepository
 import app.lenews.util.accounterror.AccountError
 import app.lenews.util.accounterror.GReaderError
@@ -63,7 +63,11 @@ abstract class TabScreenModel(
                                 encryptedPreferences.getString(Account.PASSWORD_KEY, null)
                         }
 
-                        get<AuthInterceptor>().credentials = Credentials.toCredentials(account)
+                        // Before the repository is resolved: the repository
+                        // keeps the client it is built with. This is where the
+                        // authenticated client is built at startup, from the
+                        // token the account row already holds.
+                        get<HttpClients>().useCredentials(Credentials.toCredentials(account))
 
                         currentAccount = account
                         repository = get(parameters = { parametersOf(account) })

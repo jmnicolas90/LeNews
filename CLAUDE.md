@@ -450,6 +450,29 @@ screen was opened on, and the page it opens on is found by that id rather than b
 the index the timeline passed, so a screen recreated after process death comes
 back to the article the reader was reading.
 
+**There are two HTTP clients, and there is no unnamed one to ask for**
+(ticket 18). `HttpClients` in the `api` module holds both and is the only place
+either is built. The **plain** client carries no credentials at all and is what
+fetches article images, feed icons and the URL a user types on the new-feed
+screen. The **authenticated** client carries `Authorization: GoogleLogin
+auth=<token>`, attached by a *network* interceptor that compares the request's
+parsed `HttpUrl` — scheme, host and port — against the configured server URL,
+so a redirect to another host goes out bare, and neither a host the
+configured one is only the prefix of (`rss.lan.evil.example`) nor a host hidden
+behind user info (`rss.lan` written as the user name of `evil.example`) matches. Its
+credentials are **fixed for the lifetime of the instance**:
+`useCredentials(...)` builds a new client, so a sync already running keeps the
+one it started with and finishes against it. Koin binds them under
+`AUTHENTICATED_CLIENT` and `PLAIN_CLIENT` and binds nothing unnamed, as
+factories rather than singles — a single would hand out the client built at
+startup for ever. Two consequences to hold on to: **set the credentials before
+resolving a repository**, because Retrofit captures the client it is built with;
+and **logging in asks for a data source twice**, once on the plain client for
+`ClientLogin` and once on the authenticated one for everything after
+(`app/src/main/java/app/lenews/repositories/GReaderLogin.kt`). Both clients send
+`User-Agent: LeNews/<versionName>`; the string is built in the app module, where
+the version lives, and passed to `apiModule(userAgent)`.
+
 ## Tickets and bookkeeping
 
 Tickets live as markdown under `.scratch/appropriate-and-fix/` (committed, not

@@ -36,7 +36,7 @@ class TestApplication : Application(), SingletonImageLoader.Factory {
                             .build()
                     }
                 },
-                apiModule, appModule
+                apiModule(userAgent), appModule
             )
         }*/
     }

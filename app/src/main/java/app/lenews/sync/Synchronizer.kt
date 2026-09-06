@@ -6,7 +6,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat.Builder
 import androidx.core.app.NotificationManagerCompat
 import app.lenews.api.services.Credentials
-import app.lenews.api.utils.AuthInterceptor
+import app.lenews.api.HttpClients
 import app.lenews.R
 import app.lenews.repositories.BaseRepository
 import app.lenews.repositories.SyncResult
@@ -49,6 +49,11 @@ class Synchronizer(
         account.login = encryptedPreferences.getString(Account.LOGIN_KEY, null)
         account.password = encryptedPreferences.getString(Account.PASSWORD_KEY, null)
 
+        // Before the repository is resolved, not after: the repository keeps
+        // the client it is built with, so setting the credentials afterwards
+        // would sync on a client that has none.
+        get<HttpClients>().useCredentials(Credentials.toCredentials(account))
+
         val repository = get<BaseRepository> { parametersOf(account) }
 
         notificationBuilder.setContentTitle(
@@ -62,7 +67,6 @@ class Synchronizer(
             notificationManager.notify(SYNC_NOTIFICATION_ID, notificationBuilder.build())
         }
 
-        get<AuthInterceptor>().credentials = Credentials.toCredentials(account)
         val syncResult = repository.synchronize()
 
         fetchFeedColors(syncResult, notificationBuilder)

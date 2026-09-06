@@ -18,7 +18,7 @@ package app.lenews.sync
 
 import app.lenews.api.services.Credentials
 import app.lenews.api.services.greader.GReaderDataSource
-import app.lenews.api.utils.AuthInterceptor
+import app.lenews.api.HttpClients
 import app.lenews.api.utils.exceptions.ParseException
 import app.lenews.db.Database
 import app.lenews.db.entities.Item
@@ -796,7 +796,9 @@ class SyncTest : KoinTest {
         failInsideTheTransaction: Boolean = false
     ): GReaderRepository {
         val account = storedAccount()
-        getKoin().get<AuthInterceptor>().credentials = Credentials.toCredentials(account)
+        // The host rule comes from the stub's own URL: the test says nothing
+        // about which host and port MockWebServer picked.
+        getKoin().get<HttpClients>().useCredentials(Credentials.toCredentials(account))
 
         val dataSource = getKoin().get<GReaderDataSource> {
             parametersOf(Credentials.toCredentials(account))
