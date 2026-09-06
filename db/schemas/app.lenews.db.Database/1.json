@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "ec5c8e8e906cc8a59d575cadd758de12",
+    "identityHash": "068b2390cf16222cba562443300ad8d8",
     "entities": [
       {
         "tableName": "Feed",
@@ -422,11 +422,29 @@
             ]
           }
         ]
+      },
+      {
+        "tableName": "HorizonDropped",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ec5c8e8e906cc8a59d575cadd758de12')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '068b2390cf16222cba562443300ad8d8')"
     ]
   }
 }

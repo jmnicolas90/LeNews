@@ -44,6 +44,10 @@ interface ItemDao : BaseDao<Item> {
     @Query("Select id From Article Where read = 0")
     suspend fun selectUnreadIds(): List<Long>
 
+    /** Empties the article table; the pending changes cascade with it. */
+    @Query("Delete From Article")
+    suspend fun deleteEveryArticle()
+
     @Query("Select id From Article Where starred = 1")
     suspend fun selectStarredIds(): List<Long>
 

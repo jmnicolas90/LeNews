@@ -7,10 +7,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import app.lenews.db.dao.AccountDao
 import app.lenews.db.dao.FeedDao
 import app.lenews.db.dao.FolderDao
+import app.lenews.db.dao.HorizonDroppedDao
 import app.lenews.db.dao.ItemDao
 import app.lenews.db.dao.PendingChangeDao
 import app.lenews.db.entities.Feed
 import app.lenews.db.entities.Folder
+import app.lenews.db.entities.HorizonDropped
 import app.lenews.db.entities.Item
 import app.lenews.db.entities.PendingChange
 import app.lenews.db.entities.account.Account
@@ -22,7 +24,8 @@ import app.lenews.db.util.Converters
         Item::class,
         Folder::class,
         Account::class,
-        PendingChange::class
+        PendingChange::class,
+        HorizonDropped::class
     ],
     version = 1
 )
@@ -38,6 +41,8 @@ abstract class Database : RoomDatabase() {
     abstract fun folderDao(): FolderDao
 
     abstract fun pendingChangeDao(): PendingChangeDao
+
+    abstract fun horizonDroppedDao(): HorizonDroppedDao
 
     /**
      * Runs `PRAGMA optimize`, which the article store model asks for at the end

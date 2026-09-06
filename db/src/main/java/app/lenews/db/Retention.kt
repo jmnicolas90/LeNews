@@ -67,6 +67,20 @@ const val HORIZON_IN_MILLISECONDS = HORIZON_IN_DAYS * 24 * 60 * 60 * 1000
  * stops making progress fails the sync, so the full id list is either complete
  * or the transaction never opens.
  *
+ * **The horizon branch also writes the ledger** ([app.lenews.db.entities.HorizonDropped]):
+ * every id it is about to delete is remembered there first, because FreshRSS
+ * re-delivers an article whose content it saw change however old that article
+ * is, and a delivery for an id nothing remembers would be stored as a new
+ * article, learned read at that sync, and kept thirty more days with a date
+ * that never happened. The mirror branch writes nothing: an article the server
+ * no longer holds cannot be delivered again.
+ *
+ * **And the ledger is pruned here**, of every id [serverIds] does not name. The
+ * ledger is a defence against re-delivery, the server can only deliver what it
+ * still holds, and so the ledger is bounded by the server's own retention
+ * rather than growing for ever. The pruning runs after the write, so an article
+ * dropped by the horizon *and* absent from the server leaves nothing behind.
+ *
  * @param serverIds every id FreshRSS still holds, from this sync's full list
  * @param now the sync's own clock, in milliseconds
  * @return how many articles were dropped
@@ -83,10 +97,20 @@ fun Database.deleteWhatRetentionDrops(serverIds: Collection<Long>, now: Long): I
     connection.execSQL("Delete From $SERVER_IDS")
     fillServerIds(connection, serverIds)
 
+    val horizon = now - HORIZON_IN_MILLISECONDS
+
+    // the ledger first: after the delete there is no row left to read the ids from
+    connection.compileStatement(REMEMBER_WHAT_THE_HORIZON_DROPS).use { statement ->
+        statement.bindLong(1, horizon)
+        statement.executeInsert()
+    }
+
     val dropped = connection.compileStatement(RETENTION_DELETE).use { statement ->
-        statement.bindLong(1, now - HORIZON_IN_MILLISECONDS)
+        statement.bindLong(1, horizon)
         statement.executeUpdateDelete()
     }
+
+    connection.execSQL(PRUNE_THE_LEDGER)
 
     // one sync's answer, and no other: ids left behind would keep an article
     // the server has since dropped
@@ -121,6 +145,27 @@ private const val RETENTION_DELETE =
     Where starred = 0
     And ((read = 1 And read_at < ?)
         Or (read = 0 And Not Exists (Select 1 From $SERVER_IDS Where $SERVER_IDS.id = Article.id)))"""
+
+/**
+ * The horizon branch of [RETENTION_DELETE], written down before it runs. The
+ * two `Where` clauses are the same clause on purpose: what is remembered is
+ * exactly what that branch removes, and nothing the mirror branch removes.
+ *
+ * `Or Ignore` because an id can be dropped, come back because the reader marked
+ * it unread on the web, be read again and be dropped a second time.
+ */
+private const val REMEMBER_WHAT_THE_HORIZON_DROPS =
+    """Insert Or Ignore Into HorizonDropped(id)
+    Select id From Article Where starred = 0 And read = 1 And read_at < ?"""
+
+/**
+ * The ledger holds ids the server can still deliver, and no others. What the
+ * server no longer holds it cannot re-deliver, so remembering it would only
+ * make the table grow.
+ */
+private const val PRUNE_THE_LEDGER =
+    """Delete From HorizonDropped
+    Where Not Exists (Select 1 From $SERVER_IDS Where $SERVER_IDS.id = HorizonDropped.id)"""
 
 /**
  * How many ids one statement binds. Well under SQLite's 999, and the same

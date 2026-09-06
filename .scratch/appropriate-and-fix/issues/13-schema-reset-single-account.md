@@ -370,3 +370,43 @@ is the case the old query was worst at.
   `Article`, so it is not the same risk, but nobody has put a number on it.
 - **The `Item` class was not renamed to `Article`.** The table is `Article`; the
   class is not, and the mismatch is documented on the entity.
+
+## From the global review (2026-09-06, second run)
+
+Two adversarial reviews read everything committed since the fork point for a
+second time, after tickets 13 to 21 had landed. One finding lands on this
+ticket's schema.
+
+**A sixth table: `HorizonDropped`.** The store had no way of telling a
+re-delivery of an article the horizon deleted from a genuinely new article, so
+such a delivery was inserted neutral, stamped read at that sync by step 4c, and
+kept thirty more days under a date on which nothing happened — breaking
+invariant 5. The defence is a ledger of the ids the horizon branch removed:
+`db/src/main/java/app/lenews/db/entities/HorizonDropped.kt`, one column, `id`,
+the primary key, no foreign key (the article it names is exactly the one that is
+gone). `HorizonDroppedDao` is what the sync reads it with; the writes live in
+`Retention.kt`, with the delete they belong to. `docs/article-store.md` §1 now
+describes it and §4 says how it is written and pruned; ticket 15 has the
+retention half and ticket 14 the sync half.
+
+**Room stays at version 1**, as this ticket set it: nothing is released, so
+there is no database in the world that has to survive the change. The exported
+schema `db/schemas/app.lenews.db.Database/1.json` gained the table and its
+identity hash changed with it.
+
+**The consequence, which is worth knowing before running a debug build.** Room
+compares the stored identity hash on open, and a mismatch at the *same* version
+throws `IllegalStateException: Room cannot verify the data integrity` —
+`fallbackToDestructiveMigrationOnDowngrade` in `DbModule.kt` does not cover it,
+because this is not a downgrade. So a `lenews-db` written before this commit —
+including the one on `bench-pixel6-aosp` that tickets 14, 15, 16 and 19 synced
+against — has to be cleared before the app will open it:
+
+```
+adb -s emulator-5554 shell pm clear app.lenews.debug
+```
+
+That takes the debug login with it, so the account has to be entered again
+afterwards, which a debug build built with `local.properties` in place fills in
+by itself. The emulator's store was **left as it was found** by this round
+rather than cleared, because clearing it is the user's call.

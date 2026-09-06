@@ -351,3 +351,121 @@ what ticket 16 wires next, so it is written into
 `issues/16-history-list.md`; the disposal write's own duty to tolerate a missing
 article is a sentence added to ticket 21's existing item about that block. The
 buffer was not touched here.
+
+## From the global review (2026-09-06, second run)
+
+Two findings of the second global review land on retention. Both are fixed here.
+
+### The horizon now writes down what it drops
+
+An article read thirty-one days ago is deleted by the horizon branch. FreshRSS
+re-delivers an article whose content it saw change however old it is, so that
+article's content comes back on a later sync — and there was nothing left in the
+store to tell that delivery from a new article. Step 4b inserted it neutral,
+step 4c found the server did not call it unread and stamped it read at that
+sync, and it sat thirty more days in the history under a date on which nothing
+happened, counted as a new article on top of that. Invariant 5 — the same
+answers applied twice leave the store identical — was false across a horizon
+drop.
+
+`deleteWhatRetentionDrops` therefore runs three statements now instead of one,
+all in the same transaction:
+
+1. `Insert Or Ignore Into HorizonDropped(id) Select id From Article Where
+   starred = 0 And read = 1 And read_at < ?` — before the delete, because
+   afterwards there is no row left to read the ids from. The `Where` is the
+   horizon branch word for word, so what is written down is exactly what that
+   branch removes and nothing the mirror branch removes: an article the server
+   no longer holds cannot be delivered again, so there is nothing to defend
+   against.
+2. the delete, unchanged.
+3. `Delete From HorizonDropped Where Not Exists (Select 1 From server_ids …)` —
+   the ledger holds ids the server can still deliver and no others, so it is
+   bounded by the server's own retention rather than growing for ever. After the
+   write, so an article both past the horizon and absent from the server leaves
+   nothing behind at all.
+
+`HorizonDropped` is ticket 13's table; step 4b reading it is ticket 14's.
+
+Six cases in `RetentionTest`: the horizon writes down what it drops and only
+that; the mirror writes down nothing; a starred article past the horizon is not
+written down, because it is not dropped; the ledger forgets an id the server has
+purged; an article past the horizon the server no longer holds leaves nothing
+behind; and the same pass twice writes one row. Each was seen red — switching
+off the write turns three of them red and nothing else in `RetentionTest`;
+switching off the pruning turns two red.
+
+### The month-long check called a correctly kept article a failure
+
+The command recorded above under *On the real store* counted **every** article
+read past the horizon and said the count must always be zero. It left the
+starred exception out, so a starred article read thirty-one days ago — which
+`Retention.kt` correctly keeps and `CONTEXT.md` requires it to keep — was
+reported as the rule failing.
+
+**The check to run instead** counts only the unstarred articles past the horizon,
+which is what must be zero, and counts the starred ones separately, which is the
+exception working:
+
+```
+adb -s emulator-5554 shell "run-as app.lenews.debug sqlite3 databases/lenews-db \"
+Begin;
+Select count(*) As articles, sum(read = 0) As unread, sum(starred = 1) As starred,
+  sum(read = 1 And starred = 0 And read_at < (unixepoch() - 30*86400) * 1000)
+    As unstarred_past_the_horizon
+From Article;
+Select count(*) As starred_past_the_horizon From Article
+Where starred = 1 And read = 1 And read_at < (unixepoch() - 30*86400) * 1000;
+Commit;\""
+```
+
+**`unstarred_past_the_horizon` must always be 0 after a sync**: an unstarred
+article read past the horizon and still in the store is this rule failing.
+`starred_past_the_horizon` is articles retention is right to keep, so any number
+there is fine — it is printed so that a reader can see the exception at work
+rather than wonder where the missing rows went. It reads the live database in a
+read transaction rather than a copy of `lenews-db`, for the reason ticket 14
+records: with Room's WAL journal a copy of that file alone can be an older
+snapshot.
+
+Run on 2026-09-06 against the debug store on `bench-pixel6-aosp`, first as it
+stood:
+
+```
+1124|1121|0|0
+0
+```
+
+Then with one row added by hand — starred, read thirty-one days ago, an id the
+server does not hold — which is the case the finding is about. The old query
+called it a failure:
+
+```
+1125|1121|1|1
+```
+
+and the new one calls it the exception:
+
+```
+1125|1121|1|0
+1
+```
+
+Then with a second row, unstarred and read thirty-one days ago, which is a real
+failure and which the check has to keep catching:
+
+```
+1126|1121|1|1
+1
+```
+
+Both probe rows were then deleted and the store is as it was found — 1124
+articles, 1121 unread, nothing starred, nothing past the horizon:
+
+```
+1124|1121|0|0
+0
+```
+
+**Still pending, unchanged: the month.** Nobody can watch thirty days of syncing
+in one sitting; the command above is what repeats the check.

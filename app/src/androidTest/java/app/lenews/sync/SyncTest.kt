@@ -23,7 +23,10 @@ import app.lenews.api.utils.exceptions.ParseException
 import app.lenews.db.Database
 import app.lenews.db.entities.Item
 import app.lenews.db.entities.account.Account
+import app.lenews.db.writeTheAccountAfterLogin
+import app.lenews.repositories.AccountReplacedDuringSync
 import app.lenews.repositories.GReaderRepository
+import app.lenews.repositories.SyncResult
 import app.lenews.testutil.FreshRSSStub
 import app.lenews.testutil.LeNewsTestRule
 import app.lenews.testutil.stubServerOverTls
@@ -299,8 +302,11 @@ class SyncTest : KoinTest {
         // the user stars an article on the web that this phone never held
         server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_C))
         server.starredIdPages = listOf(listOf(ARTICLE_C))
-        server.itemsContentsArticles = listOf(
-            FreshRSSStub.articleJson(ARTICLE_C, title = "the starred article the store lacked")
+        server.itemsContents = mapOf(
+            ARTICLE_C to FreshRSSStub.articleJson(
+                ARTICLE_C,
+                title = "the starred article the store lacked"
+            )
         )
         server.forget()
 
@@ -809,22 +815,318 @@ class SyncTest : KoinTest {
         )
     }
 
+
+    //region the content of an article the store lacks
+
+    /**
+     * §3, step 2, amended after the global review: an unread id the store lacks
+     * has its content fetched by name.
+     *
+     * The incremental pull asks `stream/contents` for what the server discovered
+     * or last saw change since the cursor, and marking an article unread moves
+     * neither date, so the content of an article the phone never held never
+     * arrives on that path. Step 4c writes state on rows the store holds and on
+     * no others, so without this fetch the article is named unread by every sync
+     * from now on and is never there.
+     */
+    @Test
+    fun anUnreadArticleTheStoreLacksHasItsContentFetched() = runTest {
+        server.readingListPages = listOf(listOf(FreshRSSStub.articleJson(ARTICLE_A)))
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        synchronize()
+
+        // the server holds an unread article this phone never saw, and the
+        // incremental contents call does not deliver it
+        server.readingListPages = listOf(emptyList())
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_C))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_C))
+        server.itemsContents = mapOf(
+            ARTICLE_C to FreshRSSStub.articleJson(
+                ARTICLE_C,
+                title = "the unread article the store lacked"
+            )
+        )
+        server.forget()
+
+        synchronize()
+
+        val fetch = assertNotNull(
+            server.requestsTo("stream/items/contents").singleOrNull(),
+            "the content of the unread article was never asked for"
+        )
+        assertTrue(
+            fetch.second.contains("i=$ARTICLE_C"),
+            "the content request does not name the article: ${fetch.second}"
+        )
+
+        val stored = everyArticle().first { it.id == ARTICLE_C }
+        assertEquals("the unread article the store lacked", stored.title)
+        assertFalse(stored.isRead, "the article the unread list names is unread")
+        assertNull(stored.readAt, "an unread article has no read date")
+    }
+
+    /**
+     * An unread id the server's full list does not name is left alone: the
+     * mirror rule deletes it in this same transaction, so asking for its content
+     * would be a request for a row that does not survive the sync.
+     */
+    @Test
+    fun anUnreadIdTheServerNoLongerHoldsHasNoContentAskedFor() = runTest {
+        server.readingListPages = listOf(listOf(FreshRSSStub.articleJson(ARTICLE_A)))
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        // the two lists disagree: the unread one names an article the full one
+        // has already dropped
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_C))
+        server.itemsContents = mapOf(ARTICLE_C to FreshRSSStub.articleJson(ARTICLE_C))
+
+        synchronize()
+
+        assertEquals(
+            emptyList(),
+            server.requestsTo("stream/items/contents"),
+            "content was asked for an article the mirror rule drops anyway"
+        )
+        assertEquals(listOf(ARTICLE_A), everyArticle().map { it.id })
+    }
+
+    //endregion
+
+    //region what the horizon dropped, and what brings it back
+
+    /**
+     * Invariant 5, over the horizon: an article dropped for being read more than
+     * thirty days ago, whose content the server delivers again, leaves the store
+     * exactly as it was.
+     *
+     * FreshRSS re-delivers an article it saw change however old it is. Stored as
+     * it stands that delivery would be a new row — inserted unread, learned read
+     * at this sync, stamped with this sync's clock, kept thirty more days and
+     * counted as a new article. The ledger of what the horizon dropped is what
+     * makes the second sync change nothing.
+     */
+    @Test
+    fun contentDeliveredAgainForAnArticleTheHorizonDroppedChangesNothing() = runTest {
+        dropOneArticlePastTheHorizon()
+
+        val afterTheDrop = everyArticle()
+        assertEquals(listOf(ARTICLE_A), afterTheDrop.map { it.id }, "the old article was dropped")
+        assertEquals(
+            listOf(ARTICLE_B),
+            database.horizonDroppedDao().everyDroppedId(),
+            "the horizon wrote down what it dropped"
+        )
+
+        // the server edited the old article, so it comes back in the contents
+        server.readingListPages = listOf(
+            listOf(
+                FreshRSSStub.articleJson(ARTICLE_A),
+                FreshRSSStub.articleJson(ARTICLE_B, title = "edited on the server")
+            )
+        )
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        val result = synchronize()
+
+        assertEquals(afterTheDrop, everyArticle(), "the replayed content came back into the store")
+        assertEquals(
+            emptyList(),
+            result.items.map { it.id },
+            "the article the horizon dropped was reported as a new article"
+        )
+        assertEquals(
+            listOf(ARTICLE_B),
+            database.horizonDroppedDao().everyDroppedId(),
+            "the ledger forgot an article the server still holds"
+        )
+    }
+
+    /**
+     * The way back: the reader marks a dropped article unread on the FreshRSS
+     * web interface, and it returns — once, unread, with no read date, and with
+     * the ledger row gone so nothing has to be undone twice.
+     */
+    @Test
+    fun anArticleTheHorizonDroppedComesBackWhenTheWebMarksItUnread() = runTest {
+        dropOneArticlePastTheHorizon()
+
+        server.readingListPages = listOf(emptyList())
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.itemsContents = mapOf(
+            ARTICLE_B to FreshRSSStub.articleJson(ARTICLE_B, title = "unread again on the web")
+        )
+
+        synchronize()
+
+        val backAgain = everyArticle().first { it.id == ARTICLE_B }
+        assertEquals("unread again on the web", backAgain.title)
+        assertFalse(backAgain.isRead, "the article came back read")
+        assertNull(backAgain.readAt, "the article came back with a read date")
+        assertTrue(
+            database.horizonDroppedDao().everyDroppedId().isEmpty(),
+            "the ledger still names an article the reader asked back"
+        )
+
+        // once, and once only: the same answers again change nothing
+        val afterItCameBack = everyArticle()
+        synchronize()
+        assertEquals(afterItCameBack, everyArticle())
+    }
+
+    /**
+     * The same, through the star: starring a dropped article on the web brings
+     * it back, because *starred articles survive both rules* has to hold for an
+     * article the phone no longer has.
+     */
+    @Test
+    fun anArticleTheHorizonDroppedComesBackWhenTheWebStarsIt() = runTest {
+        dropOneArticlePastTheHorizon()
+
+        server.readingListPages = listOf(emptyList())
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+        server.starredIdPages = listOf(listOf(ARTICLE_B))
+        server.itemsContents = mapOf(
+            ARTICLE_B to FreshRSSStub.articleJson(ARTICLE_B, title = "starred on the web")
+        )
+
+        synchronize()
+
+        val backAgain = everyArticle().first { it.id == ARTICLE_B }
+        assertEquals("starred on the web", backAgain.title)
+        assertTrue(backAgain.isStarred, "the article the starred list names is starred")
+        assertTrue(database.horizonDroppedDao().everyDroppedId().isEmpty())
+    }
+
+    /**
+     * Fills the store with two articles, has the second read thirty-one days
+     * ago, and syncs so that the horizon drops it. What is left is [ARTICLE_A],
+     * unread, and a ledger holding [ARTICLE_B].
+     */
+    private suspend fun dropOneArticlePastTheHorizon() {
+        server.readingListPages = listOf(
+            listOf(FreshRSSStub.articleJson(ARTICLE_A), FreshRSSStub.articleJson(ARTICLE_B))
+        )
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+
+        synchronize()
+
+        // read on the phone a month ago, and the server has been told
+        database.itemDao().markRead(ARTICLE_B, System.currentTimeMillis() - THIRTY_ONE_DAYS)
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+        server.readingListPages = listOf(emptyList())
+
+        synchronize()
+    }
+
+    //endregion
+
+    //region the account replaced under a running sync
+
+    /**
+     * A sync that started before the account was replaced must not commit into
+     * the store the new account was given.
+     *
+     * The replacement is put in the one window there is: after every network
+     * call, before the transaction opens. SQLite takes one writer at a time, so
+     * a replacement can only land before the transaction or after it — and after
+     * it means it wipes what the sync wrote, which is what replacing an account
+     * is for.
+     */
+    @Test
+    fun aSyncFindingTheAccountReplacedWritesNothing() = runTest {
+        server.readingListPages = listOf(listOf(FreshRSSStub.articleJson(ARTICLE_A)))
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        synchronize()
+        assertEquals(listOf(ARTICLE_A), everyArticle().map { it.id }, "the first sync stored it")
+
+        server.readingListPages = listOf(
+            listOf(FreshRSSStub.articleJson(ARTICLE_A), FreshRSSStub.articleJson(ARTICLE_B))
+        )
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+
+        assertFailsWith<AccountReplacedDuringSync> {
+            synchronize(justBeforeTheTransaction = { logInAsAnotherAccount() })
+        }
+
+        assertEquals(
+            emptyList(),
+            everyArticle().map { it.id },
+            "the previous account's articles were written into the new account's store"
+        )
+        assertEquals(0L, storedAccount().cursor, "the new account's cursor was moved on")
+        assertEquals(ANOTHER_SERVER, storedAccount().url)
+    }
+
+    /**
+     * The other side of the same check: a login that only replaced the password
+     * is the same server and the same user, so a sync running through it keeps
+     * its store and commits.
+     */
+    @Test
+    fun aSyncFindingOnlyANewTokenCommits() = runTest {
+        server.readingListPages = listOf(listOf(FreshRSSStub.articleJson(ARTICLE_A)))
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        synchronize(
+            justBeforeTheTransaction = {
+                database.writeTheAccountAfterLogin(
+                    account = storedAccount().copy(token = SERVER_TOKEN, writeToken = "another"),
+                    theStoreBelongsToAnotherAccount = false
+                )
+            }
+        )
+
+        assertEquals(listOf(ARTICLE_A), everyArticle().map { it.id })
+        assertTrue(storedAccount().cursor > 0, "the sync wrote its cursor")
+    }
+
+    /** What the login screen does when the reader points the app at another account. */
+    private suspend fun logInAsAnotherAccount() {
+        database.writeTheAccountAfterLogin(
+            account = Account(
+                name = "Another account",
+                url = ANOTHER_SERVER,
+                displayedName = "someone-else",
+                token = SERVER_TOKEN,
+                writeToken = "writeToken"
+            ),
+            theStoreBelongsToAnotherAccount = true
+        )
+    }
+
+    //endregion
+
     /**
      * Runs one sync through the repository rather than through [Synchronizer],
      * so that [GReaderRepository.afterTheStoreIsWritten] can be used to fail
      * the transaction where the model says everything must roll back.
      */
-    private suspend fun synchronize(failInsideTheTransaction: Boolean = false) {
-        repository(failInsideTheTransaction).synchronize()
-    }
+    private suspend fun synchronize(
+        failInsideTheTransaction: Boolean = false,
+        justBeforeTheTransaction: suspend () -> Unit = {}
+    ): SyncResult = repository(failInsideTheTransaction, justBeforeTheTransaction).synchronize()
 
     /**
      * The repository the app builds for the one account, pointed at the stub.
      * The tests that act on an article the way a screen does use it too, so what
      * they exercise is the code the screens call.
+     *
+     * [justBeforeTheTransaction] runs after every network call and before the
+     * transaction opens, which is the one window in which the account can be
+     * replaced under a running sync.
      */
     private suspend fun repository(
-        failInsideTheTransaction: Boolean = false
+        failInsideTheTransaction: Boolean = false,
+        justBeforeTheTransaction: suspend () -> Unit = {}
     ): GReaderRepository {
         val account = storedAccount()
         // The host rule comes from the stub's own URL: the test says nothing
@@ -836,6 +1138,8 @@ class SyncTest : KoinTest {
         }
 
         return object : GReaderRepository(database, account, dataSource) {
+            override suspend fun beforeTheStoreIsWritten() = justBeforeTheTransaction()
+
             override suspend fun afterTheStoreIsWritten() {
                 if (failInsideTheTransaction) {
                     throw IOException("a failure injected inside the sync transaction")
@@ -856,6 +1160,9 @@ class SyncTest : KoinTest {
         const val ARTICLE_A = 1625234531559678L
         const val ARTICLE_B = 1625234531559679L
         const val ARTICLE_C = 1625234531559680L
+
+        /** The server of an account that is not the one these tests sync. */
+        const val ANOTHER_SERVER = "https://reader.example.invalid/"
 
         /** Far enough in the past that a restamped read date could not match it. */
         const val A_MINUTE = 60_000L

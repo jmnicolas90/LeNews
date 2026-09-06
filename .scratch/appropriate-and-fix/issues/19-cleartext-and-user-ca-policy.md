@@ -258,3 +258,50 @@ touches the trust anchors those checks observed, and the instrumented suite —
 including the login and sync against a TLS stub — is green on
 `bench-pixel6-aosp`. The three screenshots still show the screen as it was, and
 the message for an `http://` address is unchanged.
+
+## From the global review (2026-09-06, second run)
+
+One finding of the second global review lands on the login screen this ticket
+rewrote.
+
+**Editing the server or the user kept the previous account's store.**
+`AccountCredentialsScreenModel.login()` wrote the new account row and nothing
+else, and `accountToLogInWith` carried the cursor over. So pointing the app at
+another FreshRSS server, or at another user of the same one, left every article,
+every queued read and star, every feed, every folder and the cursor in place —
+all of it belonging to the account that had just been replaced. The next sync
+would then upload the previous account's pending ids to the new server, where
+they name other articles or nothing at all, and its cursor would tell that sync
+the new account's older content had already been fetched, so it never would be.
+
+**Two halves, and the login screen has the first.**
+
+`theStoreBelongsToAnotherAccount(storedUrl, storedLogin, url, login)` is a pure
+function beside `accountToLogInWith`: an account is a server and a user of it,
+so those two decide and the password is not even an argument. The stored URL is
+read from the account row and the stored login from the encrypted preferences,
+where each is authoritative, rather than from the account object the screen was
+opened with — and both addresses are the canonical form `canonicalServerUrl`
+makes, so `rss.lan` retyped without its scheme is the same server rather than a
+new one. `StoreOwnershipTest` covers the six cases, the first login included.
+
+`Database.writeTheAccountAfterLogin(account, theStoreBelongsToAnotherAccount)`
+in `db/src/main/java/app/lenews/db/StoreReset.kt` is the write. When the store
+belongs to another account it empties the articles, the pending changes (through
+the cascade, and named anyway so the sequence says what it does), the feeds, the
+folders and the ledger of ids the horizon dropped, and writes the account row
+with `cursor = 0` — **all in one transaction**, so there is no moment at which a
+new account row sits over half of somebody else's store. A zero cursor makes the
+new account's first sync the initial sync of `docs/article-store.md` §7. When it
+does not, the call is the account write it always was, and a password-only change
+keeps everything. `StoreResetTest` covers both directions, that one account row
+is left, and that the account object handed in is not written back to.
+
+The other half — a sync that was already running when the account was replaced —
+is ticket 14's: the sync re-reads the account row inside its transaction and
+gives up rather than committing into the new account's store.
+
+**Left out on purpose.** The transaction itself is Room's `withTransaction` and
+is asserted by reading rather than by an injected failure: nothing in the
+sequence can be made to fail from outside the function, so a test that pretended
+to prove it would be proving Room instead.

@@ -56,6 +56,10 @@ open class GReaderRepository(
         val syncStart = System.currentTimeMillis()
         val writeToken = account.writeToken!!
 
+        // Which account this sync speaks for. Read now, checked again inside
+        // the transaction: see [refuseToWriteIntoAnotherAccountsStore].
+        val accountThisSyncStartedFrom = AccountIdentity.of(account)
+
         // Step 1: the snapshot of what the server has not been told
         val queued = database.pendingChangeDao().selectAll()
         val pendingChanges = GReaderSyncData(
@@ -72,24 +76,35 @@ open class GReaderRepository(
                 clearUploaded(change, ids)
             }
 
-        // Step 2, last: the starred articles the store has no content for
+        // Step 2, last: the content of the articles the store lacks and the
+        // server still calls unread or starred
         val fetched = pulled.items + dataSource.getItemsContents(
-            starredIdsTheStoreLacks(pulled),
+            idsTheStoreLacks(pulled),
             writeToken
         )
 
+        // The two sets the transaction works from, built before it opens so
+        // that it holds no work it does not have to.
+        val serverIds = pulled.serverIds.toHashSet()
+        val unreadOrStarred = HashSet<Long>(pulled.unreadIds.size + pulled.starredIds.size)
+        unreadOrStarred += pulled.unreadIds
+        unreadOrStarred += pulled.starredIds
+
         // Step 3: still nothing written.
-        // Step 4: one transaction, no network call inside it.
         var newArticles: List<Item> = emptyList()
         var newFeeds: List<Feed> = emptyList()
         val newCursor = syncStart / MILLISECONDS_IN_A_SECOND
 
+        beforeTheStoreIsWritten()
+
+        // Step 4: one transaction, no network call inside it.
         database.withTransaction {
+            refuseToWriteIntoAnotherAccountsStore(accountThisSyncStartedFrom)
+
             insertFolders(pulled.folders)                       // 4a
             newFeeds = insertFeeds(pulled.feeds)                // 4a
-            newArticles = insertItems(fetched)                  // 4b
+            newArticles = insertItems(fetched, unreadOrStarred) // 4b
 
-            val serverIds = pulled.serverIds.toHashSet()
             applyReadState(pulled, serverIds, syncStart)        // 4c
             applyStarredState(pulled, serverIds)                // 4d
 
@@ -121,6 +136,47 @@ open class GReaderRepository(
     protected open suspend fun afterTheStoreIsWritten() = Unit
 
     /**
+     * Runs after every network call and before the transaction opens. It does
+     * nothing, and exists so that a test can put the one event this window is
+     * about into it: the account being replaced while a sync is running. That
+     * window is the only one there is — SQLite takes one writer at a time, so a
+     * login that replaces the account either commits before the transaction
+     * opens, and this sync must refuse to write, or after it commits, and wipes
+     * what this sync wrote, which is what replacing an account means.
+     */
+    protected open suspend fun beforeTheStoreIsWritten() = Unit
+
+    /**
+     * Step 4, first: the account row is read again, inside the transaction, and
+     * compared with the account this sync started from.
+     *
+     * A login that names another server or another user empties the store in one
+     * transaction with the account write, so a sync that started before it and
+     * commits after it would refill the new account's store with the previous
+     * account's articles, upload the previous account's pending ids to it, and
+     * leave a cursor that makes the new account's older articles look like
+     * content already fetched. None of it belongs to the account now on screen.
+     *
+     * So the sync gives up instead, and the transaction rolls back whole: the
+     * new account keeps its empty store and syncs itself from nothing, which is
+     * what it should do.
+     *
+     * The identity is the server address and the user name the server itself
+     * reported at login. Those are the two things a replacement changes and a
+     * password change does not, and both are columns of the row, so this needs
+     * neither the credentials nor a reading of the preferences.
+     */
+    private suspend fun refuseToWriteIntoAnotherAccountsStore(
+        accountThisSyncStartedFrom: AccountIdentity
+    ) {
+        val accountNow = AccountIdentity.of(database.accountDao().select())
+
+        if (accountNow != accountThisSyncStartedFrom) {
+            throw AccountReplacedDuringSync()
+        }
+    }
+
+    /**
      * Clears the half of each queued row that a batch just uploaded, where the
      * row still holds the value that went up, and drops the rows both halves of
      * which have now been sent.
@@ -139,14 +195,37 @@ open class GReaderRepository(
     }
 
     /**
-     * The starred ids that are neither in the store nor in the content this sync
-     * fetched: an article starred on the web that this phone never held, or one
-     * an earlier retention dropped. Without their content, *starred articles
-     * survive both rules* could not be honoured for them.
+     * The starred and unread ids that are neither in the store nor in the
+     * content this sync fetched. Their content is asked for by name, which is
+     * the only way to get it: `stream/contents` with `ot` sends what the server
+     * discovered or last saw change since the cursor, and neither reading nor
+     * unreading an article moves either date.
+     *
+     * **Starred**: an article starred on the web that this phone never held, or
+     * one an earlier retention dropped. Without its content, *starred articles
+     * survive both rules* could not be honoured for it.
+     *
+     * **Unread**: the same article seen from the other side. The horizon drops
+     * an article read thirty days ago; the reader then marks it unread on the
+     * FreshRSS web interface, which changes no date the incremental pull looks
+     * at, so the article would be named in the unread list of every sync from
+     * then on and its content would never arrive. Step 4c only writes state on
+     * rows the store holds, so the article would be missing for good. The same
+     * happens to an article the initial sync skipped for being read.
+     *
+     * An unread id the server's full list does not name is left out: the mirror
+     * rule deletes an unread article the server no longer holds, in this very
+     * transaction, so fetching its content would be a request for a row that is
+     * dropped before the sync ends. A starred id is not filtered that way, on
+     * purpose — a starred article is kept whatever the full list says.
      */
-    private suspend fun starredIdsTheStoreLacks(pulled: DataSourceResult): List<Long> {
+    private suspend fun idsTheStoreLacks(pulled: DataSourceResult): List<Long> {
         val justFetched = pulled.items.mapTo(hashSetOf()) { it.id }
-        val candidates = pulled.starredIds.filterNot { it in justFetched }
+        val serverIds = pulled.serverIds.toHashSet()
+
+        val candidates = LinkedHashSet<Long>()
+        pulled.starredIds.filterTo(candidates) { it !in justFetched }
+        pulled.unreadIds.filterTo(candidates) { it !in justFetched && it in serverIds }
 
         if (candidates.isEmpty()) {
             return emptyList()
@@ -215,7 +294,7 @@ open class GReaderRepository(
      * @return the articles that were new to the store, which are what the new
      * articles notification reports.
      */
-    private suspend fun insertItems(items: List<Item>): List<Item> {
+    private suspend fun insertItems(items: List<Item>, unreadOrStarred: Set<Long>): List<Item> {
         // The last occurrence of an id in the response wins (§2), so the
         // duplicates go here, in the order the server sent them, and not after
         // the sort below: an article whose publication date the server corrected
@@ -223,7 +302,7 @@ open class GReaderRepository(
         // the stale content would be the one stored.
         val lastOfEachId = LinkedHashMap<Long, Item>(items.size)
         items.forEach { lastOfEachId[it.id] = it }
-        val unique = lastOfEachId.values.toList()
+        val unique = whatTheHorizonHasNotDropped(lastOfEachId.values.toList(), unreadOrStarred)
 
         val feedIdsByRemoteId = mutableMapOf<String?, Int>()
 
@@ -238,6 +317,51 @@ open class GReaderRepository(
         }
 
         return database.itemDao().upsertArticles(unique.sortedWith(Item::compareTo))
+    }
+
+    /**
+     * The articles of this response minus the ones the horizon dropped and the
+     * server has nothing new to say about.
+     *
+     * FreshRSS re-delivers an article whose content it saw change however old
+     * that article is, so the content of an article deleted for being read more
+     * than thirty days ago comes back. Stored as it stands it would be a brand
+     * new row: inserted unread, learned read at this sync, stamped with this
+     * sync's clock and kept thirty more days, sitting in the history under a
+     * date on which nothing happened, and counted as a new article on top of
+     * that. Repeating a sync would then not leave the store identical, which is
+     * invariant 5.
+     *
+     * The ledger of ids the horizon dropped is what tells that delivery from a
+     * genuinely new article. An id it holds is left out — until the server calls
+     * the article unread or starred again, which is the reader asking for it
+     * back: then the ledger forgets it and it is stored like any other article,
+     * unread and unstamped, and its thirty days start over from the next read.
+     */
+    private suspend fun whatTheHorizonHasNotDropped(
+        articles: List<Item>,
+        unreadOrStarred: Set<Long>
+    ): List<Item> {
+        val ledger = database.horizonDroppedDao()
+
+        val dropped = articles.map { it.id }
+            .chunked(MAX_IDS_PER_STATEMENT)
+            .flatMap { ledger.droppedAmong(it) }
+
+        if (dropped.isEmpty()) {
+            return articles
+        }
+
+        val wantedBack = dropped.filter { it in unreadOrStarred }
+        wantedBack.chunked(MAX_IDS_PER_STATEMENT).forEach { ledger.forget(it) }
+
+        val stillDropped = dropped.toHashSet() - wantedBack.toHashSet()
+
+        return if (stillDropped.isEmpty()) {
+            articles
+        } else {
+            articles.filterNot { it.id in stillDropped }
+        }
     }
 
     /**
@@ -317,3 +441,28 @@ open class GReaderRepository(
         const val MILLISECONDS_IN_A_SECOND = 1000L
     }
 }
+
+/**
+ * Which FreshRSS account a store belongs to: the server it is on, and the user
+ * name that server itself reported when the login asked it.
+ *
+ * Not the login typed on screen, which is a credential and lives with the
+ * password in the encrypted preferences rather than in the account row — and
+ * not the account name either, which is a label the reader can change without
+ * changing which account it is.
+ */
+internal data class AccountIdentity(val serverUrl: String?, val userName: String?) {
+
+    companion object {
+        /** The identity of [account], or of no account at all when it is null. */
+        fun of(account: Account?) = AccountIdentity(account?.url, account?.displayedName)
+    }
+}
+
+/**
+ * A sync that ran while the account was replaced, and gave up rather than
+ * writing one account's articles into another account's store.
+ */
+class AccountReplacedDuringSync : Exception(
+    "The account was replaced while this sync was running, so nothing it brought back was stored"
+)

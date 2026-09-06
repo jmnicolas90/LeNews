@@ -51,6 +51,10 @@ interface FeedDao : BaseDao<Feed> {
     @Query("Update Feed set name = :name, folder_id = :folderId Where remote_id = :remoteFeedId")
     suspend fun updateFeedNameAndFolder(remoteFeedId: String, name: String, folderId: Int?)
 
+    /** Empties the feed table; the articles and their pending changes cascade with it. */
+    @Query("Delete From Feed")
+    suspend fun deleteEveryFeed()
+
     @Query("Delete from Feed Where remote_id in (:ids)")
     suspend fun deleteByIds(ids: List<String>)
 

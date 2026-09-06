@@ -33,6 +33,9 @@ interface FolderDao : BaseDao<Folder> {
     @Query("Update Folder set name = :name Where remote_id = :remoteId")
     suspend fun updateFolderName(name: String, remoteId: String)
 
+    @Query("Delete From Folder")
+    suspend fun deleteEveryFolder()
+
     @Query("Delete From Folder Where remote_id in (:ids)")
     suspend fun deleteByIds(ids: List<String>)
 
