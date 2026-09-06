@@ -6,6 +6,7 @@ import android.os.SystemClock
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.Configuration
 import androidx.work.ListenableWorker
@@ -19,6 +20,7 @@ import app.lenews.testutil.LeNewsTestRule
 import app.lenews.testutil.TestUtils
 import app.lenews.testutil.okResponseWithBody
 import app.lenews.db.Database
+import app.lenews.db.deleteWhatRetentionDrops
 import app.lenews.db.entities.account.Account
 import app.lenews.R
 import kotlinx.coroutines.delay
@@ -41,6 +43,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
@@ -255,7 +258,7 @@ class SyncWorkerTest : KoinTest {
         delay(1000L)
 
         // read and starred state lives on the article row, dated
-        val item = database.itemDao().select(ARTICLE_ID)
+        val item = assertNotNull(database.itemDao().select(ARTICLE_ID))
         assertTrue { item.isRead }
         assertTrue { item.isStarred }
         assertNotNull(item.readAt, "an article that became read carries the date it did")
@@ -281,6 +284,76 @@ class SyncWorkerTest : KoinTest {
         }
         assertTrue {
             editTagRequests.any { it.contains("a=$GOOGLE_STARRED") && it.contains("$ARTICLE_ID") }
+        }
+    }
+
+    /**
+     * A notification names an article, and the sync that runs next can drop it:
+     * retention deletes what FreshRSS no longer holds. Neither the mark read
+     * action nor the star action may throw on the article that is gone, and
+     * neither may queue a change for a row that no longer exists.
+     */
+    @Test
+    fun theActionsOfANotificationWhoseArticleIsGoneDoNothing() = runBlocking {
+        val worker = TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
+            .setTags(listOf(SyncWorker.WORK_AUTO))
+            .build()
+
+        assertTrue { worker.doWork() is ListenableWorker.Result.Success }
+
+        val posted = awaitNotifications("the auto sync posts its result notification") { active ->
+            active.any { it.id == SyncWorker.SYNC_RESULT_NOTIFICATION_ID }
+        }
+        val notification =
+            posted.first { it.id == SyncWorker.SYNC_RESULT_NOTIFICATION_ID }.notification
+
+        // the retention of a later sync drops the article the notification
+        // names: it is unread, unstarred, and the server holds nothing any more
+        database.withTransaction {
+            database.deleteWhatRetentionDrops(emptyList(), System.currentTimeMillis())
+        }
+        assertNull(
+            database.itemDao().select(ARTICLE_ID),
+            "the article the notification names was not dropped, so this test proves nothing"
+        )
+
+        val (markReadAction, starAction) = notification.actions
+
+        markReadAction.actionIntent.send()
+        delay(1000L) // wait for global scope to execute in SyncBroadcastReceiver
+        starAction.actionIntent.send()
+        delay(1000L)
+
+        assertNull(database.itemDao().select(ARTICLE_ID), "an action brought the article back")
+        assertNull(
+            database.pendingChangeDao().select(ARTICLE_ID),
+            "an action queued a change for an article the store no longer holds"
+        )
+    }
+
+    /**
+     * A sync that has nothing new to say takes the notification the previous
+     * one posted down, rather than leaving it pointing at articles a sync ago —
+     * one of which retention may since have dropped.
+     */
+    @Test
+    fun aSyncWithNothingNewTakesTheLastNotificationDown() = runBlocking<Unit> {
+        fun autoWorker() =
+            TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
+                .setTags(listOf(SyncWorker.WORK_AUTO))
+                .build()
+
+        assertTrue { autoWorker().doWork() is ListenableWorker.Result.Success }
+
+        awaitNotifications("the auto sync posts its result notification") { active ->
+            active.any { it.id == SyncWorker.SYNC_RESULT_NOTIFICATION_ID }
+        }
+
+        // the server sends the same article again, so this sync stores nothing new
+        assertTrue { autoWorker().doWork() is ListenableWorker.Result.Success }
+
+        awaitNotifications("a sync with nothing new takes the last notification down") { active ->
+            active.none { it.id == SyncWorker.SYNC_RESULT_NOTIFICATION_ID }
         }
     }
 

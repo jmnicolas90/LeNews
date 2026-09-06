@@ -70,6 +70,18 @@ class FreshRSSStub : Dispatcher() {
     /** The same, for the full id list. */
     var brokenServerIdPage: BrokenPage? = null
 
+    /**
+     * A body the full id list answers with in place of the page named by
+     * [malformedServerIdPage]: an empty object, an error object sent with an
+     * HTTP 200, anything that is not a page of ids. It stands for a server, or
+     * something between it and the phone, answering with what the client cannot
+     * read as a list of what the account holds.
+     */
+    var malformedServerIdBody: String? = null
+
+    /** Which page of the full id list [malformedServerIdBody] replaces, from zero. */
+    var malformedServerIdPage: Int = 0
+
     /** Run just before an `edit-tag` request is answered, with the request body. */
     var onStateUpload: ((String) -> Unit)? = null
 
@@ -125,7 +137,14 @@ class FreshRSSStub : Dispatcher() {
                 url?.queryParameter("xt") != null ->
                     okWith(idsPage(unreadIdPages, continuation, null))
 
-                else -> okWith(idsPage(serverIdPages, continuation, brokenServerIdPage))
+                else -> {
+                    val malformed = malformedServerIdBody
+                    if (malformed != null && pageIndexOf(continuation) == malformedServerIdPage) {
+                        okWith(malformed)
+                    } else {
+                        okWith(idsPage(serverIdPages, continuation, brokenServerIdPage))
+                    }
+                }
             }
 
             else -> MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_FOUND)

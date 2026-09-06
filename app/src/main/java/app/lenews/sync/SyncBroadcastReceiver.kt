@@ -50,7 +50,11 @@ class SyncBroadcastReceiver : BroadcastReceiver(), KoinComponent {
             try {
                 val account = database.accountDao().select() ?: return@launch
                 val repository = get<BaseRepository> { parametersOf(account) }
-                val item = database.itemDao().select(itemId)
+
+                // the article can have been dropped by the retention of a sync
+                // that ran after the notification was posted; the notification
+                // is cancelled above, and the action has nothing left to act on
+                val item = database.itemDao().select(itemId) ?: return@launch
 
                 when (action) {
                     ACTION_MARK_READ -> repository.setItemReadState(item.apply { isRead = true })

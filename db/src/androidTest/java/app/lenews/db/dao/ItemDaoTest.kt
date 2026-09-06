@@ -78,7 +78,7 @@ class ItemDaoTest {
 
         assertEquals(1, itemDao.count())
 
-        with(itemDao.select(ARTICLE_ID)) {
+        with(itemDao.select(ARTICLE_ID)!!) {
             assertEquals("second", title, "the content is the second one")
             assertEquals("two", content)
 
@@ -105,7 +105,7 @@ class ItemDaoTest {
 
         assertEquals(1, inserted.size)
         assertEquals(1, itemDao.count())
-        assertEquals("second", itemDao.select(ARTICLE_ID).title)
+        assertEquals("second", itemDao.select(ARTICLE_ID)!!.title)
     }
 
     /**
@@ -130,7 +130,7 @@ class ItemDaoTest {
             )
         )
 
-        with(itemDao.select(ARTICLE_ID)) {
+        with(itemDao.select(ARTICLE_ID)!!) {
             assertFalse(isRead, "the article is stored unread")
             assertFalse(isStarred)
             assertNull(readAt)
@@ -156,7 +156,7 @@ class ItemDaoTest {
         itemDao.markReadFromSync(listOf(ARTICLE_ID), READ_AT)
         itemDao.starFromSync(listOf(ARTICLE_ID))
 
-        with(itemDao.select(ARTICLE_ID)) {
+        with(itemDao.select(ARTICLE_ID)!!) {
             assertTrue(isRead)
             assertEquals(READ_AT, readAt, "read = 1 goes with a read_at, never without")
             assertTrue(isStarred)
@@ -178,19 +178,19 @@ class ItemDaoTest {
 
         // the server still calls it unread, and is not listened to
         itemDao.markUnreadFromSync(listOf(ARTICLE_ID))
-        with(itemDao.select(ARTICLE_ID)) {
+        with(itemDao.select(ARTICLE_ID)!!) {
             assertTrue(isRead, "a pending read decision was overwritten by the server")
             assertEquals(READ_AT, readAt)
         }
 
         // the starred half has no pending value, so the server decides it
         itemDao.starFromSync(listOf(ARTICLE_ID))
-        assertTrue(itemDao.select(ARTICLE_ID).isStarred)
+        assertTrue(itemDao.select(ARTICLE_ID)!!.isStarred)
 
         database.pendingChangeDao().queueStarred(ARTICLE_ID, true)
         itemDao.unstarFromSync(listOf(ARTICLE_ID))
         assertTrue(
-            itemDao.select(ARTICLE_ID).isStarred,
+            itemDao.select(ARTICLE_ID)!!.isStarred,
             "a pending starred decision was overwritten by the server"
         )
 
@@ -198,7 +198,7 @@ class ItemDaoTest {
         database.pendingChangeDao().deleteAll()
         itemDao.markUnreadFromSync(listOf(ARTICLE_ID))
         itemDao.unstarFromSync(listOf(ARTICLE_ID))
-        with(itemDao.select(ARTICLE_ID)) {
+        with(itemDao.select(ARTICLE_ID)!!) {
             assertFalse(isRead)
             assertNull(readAt)
             assertFalse(isStarred)
@@ -211,17 +211,17 @@ class ItemDaoTest {
         itemDao.upsertArticles(listOf(article(title = "one")))
 
         itemDao.markRead(ARTICLE_ID, READ_AT)
-        with(itemDao.select(ARTICLE_ID)) {
+        with(itemDao.select(ARTICLE_ID)!!) {
             assertTrue(isRead)
             assertEquals(READ_AT, readAt)
         }
 
         // reading an already read article changes nothing and stamps nothing
         itemDao.markRead(ARTICLE_ID, READ_AT + 1000)
-        assertEquals(READ_AT, itemDao.select(ARTICLE_ID).readAt)
+        assertEquals(READ_AT, itemDao.select(ARTICLE_ID)!!.readAt)
 
         itemDao.markUnread(ARTICLE_ID)
-        with(itemDao.select(ARTICLE_ID)) {
+        with(itemDao.select(ARTICLE_ID)!!) {
             assertFalse(isRead)
             assertNull(readAt)
         }

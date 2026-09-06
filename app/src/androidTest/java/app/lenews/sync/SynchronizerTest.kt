@@ -92,14 +92,19 @@ class SynchronizerTest : KoinTest {
                             MockResponse.okResponseWithBody(TestUtils.loadResource("greader/items_empty.json"))
                         }
 
-                        // the ids the server holds and the unread ones, which
-                        // name other articles than the one delivered here, and
-                        // nothing starred
+                        // The id lists. The full list names the article that
+                        // was delivered, because that is what a server saying
+                        // "I still hold it" looks like and retention drops what
+                        // it does not name. The unread list names other
+                        // articles, so this one is read, and nothing is
+                        // starred.
                         contains("stream/items/ids") -> {
-                            val fixture = if (contains("starred")) {
-                                "greader/items_no_ids.json"
-                            } else {
-                                "greader/items_starred_ids.json"
+                            val fixture = when {
+                                contains("s=user/-/state/com.google/starred") ->
+                                    "greader/items_no_ids.json"
+
+                                contains("xt=") -> "greader/items_starred_ids.json"
+                                else -> "greader/items_all_ids_one.json"
                             }
                             MockResponse.okResponseWithBody(TestUtils.loadResource(fixture))
                         }
@@ -200,7 +205,7 @@ class SynchronizerTest : KoinTest {
 
         assertEquals(1, database.itemDao().count())
 
-        with(database.itemDao().select(1625234531559678L)) {
+        with(database.itemDao().select(1625234531559678L)!!) {
             assertEquals("the delivery the server sent last", title, "the last delivery wins")
             assertEquals("the content the server sent last", content)
 

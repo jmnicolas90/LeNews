@@ -21,6 +21,15 @@ data class GReaderItemIdsPage(
 /**
  * The id lists of `stream/items/ids`, which sends the decimal form. Both this
  * and [GReaderItemsAdapter] end up with the same number for the same article.
+ *
+ * A page is read strictly, because an id list is what the mirror rule of
+ * retention decides against: an answer read as "the server holds these ids" is
+ * an answer to delete the rest by. So `itemRefs` has to be there and every
+ * reference in it has to carry an id; anything else — an empty object, an error
+ * the server sent with an HTTP 200, a reference naming no article — is a
+ * [ParseException] and fails the sync before it writes or deletes anything. An
+ * `itemRefs` that is there and empty is a real answer and the only one that
+ * means the stream holds nothing.
  */
 class GReaderItemsIdsAdapter : JsonAdapter<GReaderItemIdsPage>() {
 
@@ -32,24 +41,32 @@ class GReaderItemsIdsAdapter : JsonAdapter<GReaderItemIdsPage>() {
     override fun fromJson(reader: JsonReader): GReaderItemIdsPage = with(reader) {
         val ids = arrayListOf<Long>()
         var continuation: String? = null
+        var itemRefsWereSent = false
 
         return try {
             beginObject()
             while (hasNext()) {
                 when (nextName()) {
                     "itemRefs" -> {
+                        itemRefsWereSent = true
                         beginArray()
 
                         while (hasNext()) {
                             beginObject()
+                            var id: Long? = null
 
-                            when (nextName()) {
-                                "id" -> ids += ArticleIds.fromDecimal(nextNonEmptyString())
+                            // a reference may carry more than its id, and the
+                            // rest is of no use here
+                            while (hasNext()) {
+                                when (nextName()) {
+                                    "id" -> id = ArticleIds.fromDecimal(nextNonEmptyString())
 
-                                else -> skipValue()
+                                    else -> skipValue()
+                                }
                             }
 
                             endObject()
+                            ids += id ?: throw ParseException("An item reference carries no id")
                         }
 
                         endArray()
@@ -61,6 +78,11 @@ class GReaderItemsIdsAdapter : JsonAdapter<GReaderItemIdsPage>() {
             }
 
             endObject()
+
+            if (!itemRefsWereSent) {
+                throw ParseException("A page of stream/items/ids carries no itemRefs")
+            }
+
             GReaderItemIdsPage(ids, continuation)
         } catch (e: Exception) {
             throw ParseException("GReader items ids parsing failure", e)

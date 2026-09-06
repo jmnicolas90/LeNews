@@ -9,6 +9,7 @@ import app.lenews.api.services.greader.GReaderSyncData
 import app.lenews.api.utils.AuthInterceptor
 import app.lenews.util.Utils
 import app.lenews.db.Database
+import app.lenews.db.deleteWhatRetentionDrops
 import app.lenews.db.entities.Feed
 import app.lenews.db.entities.Folder
 import app.lenews.db.entities.Item
@@ -86,12 +87,17 @@ open class GReaderRepository(
             newFeeds = insertFeeds(pulled.feeds)                // 4a
             newArticles = insertItems(fetched)                  // 4b
 
-            afterArticlesAreStored()
-
             val serverIds = pulled.serverIds.toHashSet()
             applyReadState(pulled, serverIds, syncStart)        // 4c
             applyStarredState(pulled, serverIds)                // 4d
-            deleteWhatRetentionDrops(serverIds, syncStart)      // 4e
+
+            // 4e: the mirror and the horizon, against the ids the server still
+            // holds and this sync's own clock. Here and nowhere else, so that a
+            // failed sync deletes nothing.
+            database.deleteWhatRetentionDrops(serverIds, syncStart)
+
+            afterTheStoreIsWritten()
+
             database.accountDao().updateCursor(newCursor)       // 4f
             database.optimize()                                 // 4g
         }
@@ -105,11 +111,12 @@ open class GReaderRepository(
     }
 
     /**
-     * Runs inside the sync transaction, after the articles have been stored and
-     * before the cursor is written. It does nothing, and exists so that the test
-     * which checks the transaction rolls back as a whole has somewhere to fail.
+     * Runs inside the sync transaction, after everything it writes and deletes
+     * and before the cursor. It does nothing, and exists so that the tests which
+     * check that the transaction rolls back as a whole — the articles it stored
+     * and the articles retention dropped alike — have somewhere to fail.
      */
-    protected open suspend fun afterArticlesAreStored() = Unit
+    protected open suspend fun afterTheStoreIsWritten() = Unit
 
     /**
      * Clears the half of each queued row that a batch just uploaded, where the
@@ -297,15 +304,6 @@ open class GReaderRepository(
 
         noLongerStarred.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.unstarFromSync(it) }
     }
-
-    /**
-     * Step 4e: where the retention delete of `docs/article-store.md` §4 goes —
-     * the mirror and the horizon, against the ids the server still holds and
-     * this sync's clock, run here and nowhere else so that a failed sync deletes
-     * nothing. Ticket 15 writes it; today nothing is deleted.
-     */
-    @Suppress("UNUSED_PARAMETER")
-    private fun deleteWhatRetentionDrops(serverIds: Set<Long>, now: Long) = Unit
 
     private companion object {
         /**

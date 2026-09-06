@@ -35,3 +35,29 @@ changed for them.
   `CLAUDE.md` says — so the statement matches nothing and marking the starred
   list read does nothing at all. That is the shape of upstream issue #341,
   which this ticket already has to reproduce.
+
+## From the review of ticket 15 (2026-09-06)
+
+The adversarial review of ticket 15 found a third defect, in the item screen
+rather than in retention. It belongs here, because this ticket wires the routes
+by which an article becomes read anyway. Nothing was changed for it in
+ticket 15.
+
+- **Read and star decisions must be written the moment the user makes them, and
+  the buffer goes.** `app/src/main/java/app/lenews/item/ItemScreenModel.kt`
+  keeps every read and star decision in memory while the article is open (the
+  buffer around lines 243-257) and writes them all when the screen is disposed
+  (around lines 359-372). Retention now deletes articles inside every sync
+  (ticket 15), and an article that is open but not yet written is still
+  `read = 0`, `starred = 0` in the store — so a background sync can drop the
+  very article the reader has just starred, and the disposal write then queues a
+  pending change for a row that is gone, which fails on the foreign key. The
+  star the reader saw is lost and nothing on screen says so. `docs/article-store.md`
+  §5 says every route writes the state, the date and the pending change in one
+  transaction as it happens; this ticket makes that true for the item screen
+  too.
+
+  The regression to add: open an article, star it, run a sync whose full id list
+  no longer names it, then leave the screen. With the decision written as it is
+  made the article is starred before that sync runs, so retention keeps it —
+  starred articles survive both rules — and nothing throws on the way out.

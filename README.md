@@ -29,18 +29,21 @@ Where the three problems this fork exists to fix stand today:
   it already has. A sync is safe to repeat: it writes everything in one
   database transaction, so one that fails part-way changes nothing at all and
   the next one starts from the same place.
-- **The timeline no longer slows down as articles accumulate**, but the store
-  still grows without bound. Reading a page of any timeline, and the drawer's
-  unread counts, take about the same time on a hundred thousand articles as on
-  ten thousand. What still grows is the count of articles the list paging asks
-  for on every reload, because nothing deletes old articles yet.
+- **The timeline no longer slows down as articles accumulate, and the store no
+  longer grows without bound.** Reading a page of any timeline, and the
+  drawer's unread counts, take about the same time on a hundred thousand
+  articles as on ten thousand. Every sync now also drops what the phone no
+  longer needs: an article FreshRSS itself no longer returns, and any article
+  read more than thirty days ago. Starred articles are kept whatever those two
+  rules say. That is what bounds the one query no index could help — the count
+  the list paging asks for on every reload — which takes 3.7 ms on the store a
+  month of reading leaves, against 46.6 ms on a hoarded year of it.
 - **The date an article became read is recorded, but there is no history
   screen yet.** Every route by which an article becomes read stamps it; the
   chronological list that makes a swiped-away article findable again is the
   next piece of work.
 
-Deleting old articles and the history list are the next pieces of work, not
-features you have today.
+The history list is the next piece of work, not a feature you have today.
 
 ## Where it comes from
 

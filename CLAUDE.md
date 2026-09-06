@@ -369,17 +369,18 @@ article are content, not state, and nothing reads them. Starred ids the store
 has no content for are fetched from `stream/items/contents`, 998 a request.
 `GReaderRepository.synchronize()` then writes everything in **one Room
 transaction with no network call in it** — folders and feeds, the article
-upsert, read state, starred state, the seam where retention will go, the cursor,
+upsert, read state, starred state, the retention delete, the cursor,
 `PRAGMA optimize` — so a failure anywhere rolls back the articles, the state and
 the cursor together and the next sync repeats the same pull harmlessly. The
 inherited 2500 and 1000 caps are gone. **Still pending, so do not write code as
-if it were done**: retention, §4 (ticket 15) — `deleteWhatRetentionDrops` in
-`GReaderRepository` is the named seam and deletes nothing today; the history
-list on screen, §5 and §8 (16); and which of the 14 inherited locales LeNews
-keeps, which is the one product call that clears most of the lint baseline.
+if it were done**: the history list on screen, §5 and §8 (16); and which of the
+14 inherited locales LeNews keeps, which is the one product call that clears
+most of the lint baseline.
 
-**The retention rule** is agreed in principle and not implemented (ticket 15).
-It is two rules with one exception that covers both:
+**The retention rule is built** (ticket 15): `deleteWhatRetentionDrops` in
+`db/src/main/java/app/lenews/db/Retention.kt`, one delete run at step 4e of the
+sync transaction and nowhere else, so a failed sync deletes nothing. It is two
+rules with one exception that covers both:
 
 - **Mirror** — the phone holds what FreshRSS holds, no more: an article the
   server no longer returns is dropped locally, unless it is starred or still
@@ -393,7 +394,24 @@ It is two rules with one exception that covers both:
 The one-line summary "the phone holds what FreshRSS holds, nothing read older
 than 30 days" leaves the starred exception out and says nothing about what the
 thirty days are counted from, which is why it is spelled out here. `CONTEXT.md`
-defines Mirror, Horizon and Starred; ticket 15 implements them.
+defines Mirror, Horizon and Starred.
+
+How it runs: the horizon is `HORIZON_IN_DAYS`, a constant and not a setting, and
+the article read exactly thirty days ago is **kept** — the comparison is strict.
+The server's full id list is tens of thousands of ids, so it goes into a
+**temporary table** (`server_ids`) filled 900 at a time inside the transaction,
+and the mirror branch is a `Not Exists` against it; the table is dropped in the
+same transaction, so one sync's answer can never decide the next one's. That
+temporary table lives on the connection the transaction pins, which is why the
+function refuses to run outside a transaction. A deleted article takes its
+`PendingChange` row with it through the foreign key. **An empty server list is
+an empty account and not a failure** — every call throws rather than returning
+part of an answer, a page walk that stops making progress fails the sync, and a
+page of ids carrying no `itemRefs`, or a reference with no id, fails it too, so
+the transaction never opens on a partial or unreadable list. An explicitly empty
+`itemRefs` is the one answer that means the stream holds nothing. Cost on the
+seeded store: 543 ms to drop 90,630 of 100,000 articles once, then 50 ms a sync
+for the same hundred thousand ids with nothing left to drop.
 
 ## Tickets and bookkeeping
 
