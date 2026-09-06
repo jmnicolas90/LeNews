@@ -117,9 +117,11 @@ the script deleted afterwards and the app uninstalled. `build/about-screen.png`:
 Each of the three icons was tapped and the URL read out of the browser that
 opened: `https://github.com/jmnicolas90/LeNews`,
 `https://github.com/jmnicolas90/LeNews/blob/main/CHANGELOG.md`,
-`https://github.com/jmnicolas90/LeNews/issues`. All three answer 404 today,
-because the GitHub repository rename ticket 05 left pending has not happened yet;
-the URLs are the ones it will make real. The `aboutlibraries` licence list is
+`https://github.com/jmnicolas90/LeNews/issues`. All three answered 404 on the
+day of this ticket, because the GitHub repository rename ticket 05 left pending
+had not happened yet; the URLs were the ones it would make real. **It has
+happened, and all three answer 200 now** (checked 2026-09-06, after the
+repository rename and the working-directory rename; see ticket 05). The `aboutlibraries` licence list is
 untouched and still reachable from "Open source libraries".
 
 ### The lint baseline
@@ -176,5 +178,5 @@ No hit in `app/`, `api/`, `db/`, `scripts/`, `.github/`, the build files or
 
 ### Review round (2026-09-06)
 
-Codex's one finding is the pending GitHub rename, not code: the crash screen's report action, the about screen's three links and the README's contact link all point at `https://github.com/jmnicolas90/LeNews`, which 404s until the repository is renamed. Nothing in the tree changes for that; the orchestrator retries the rename when the token allows it. The review also caught this inventory undercounting itself (52 instead of 69: the ticket's own answer is the largest tracker hit); corrected above.
+Codex's one finding is the pending GitHub rename, not code: the crash screen's report action, the about screen's three links and the README's contact link all point at `https://github.com/jmnicolas90/LeNews`, which 404s until the repository is renamed. Nothing in the tree changes for that; the orchestrator retries the rename when the token allows it. **Closed on 2026-09-06**: the repository is `jmnicolas90/LeNews`, and the three URLs and the crash screen's target all answer 200. No file in this ticket's scope changed — the finding was always about the remote, never about the tree. The review also caught this inventory undercounting itself (52 instead of 69: the ticket's own answer is the largest tracker hit); corrected above.
 

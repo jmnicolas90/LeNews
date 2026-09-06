@@ -261,18 +261,65 @@ both variants), G3 unit tests, G4 Google guard, G5 debug APK, G6 release APK
 (R8 included), G7 instrumented tests. G7 found the emulator already up, used it
 and left it running, as designed.
 
-### Pending, not done here
+### What was pending here, and is done now (2026-09-06)
 
-- **The GitHub repository rename**, `jmnicolas90/Readrops` → `jmnicolas90/LeNews`,
-  and then `git remote set-url origin` onto the new URL (the same scheme the current `origin` uses, `jmnicolas90/LeNews` in place of `jmnicolas90/Readrops`).
-  The orchestrator does both, in that order; `.git/config` was not touched by
-  this ticket. Both are still blocked on the same thing ticket 03 recorded: the
-  `gh` fine-grained token only covers `jmnicolas90/Ding`.
+All three items this ticket left to the user or the orchestrator have happened.
+They were checked from the renamed working directory, not assumed.
+
+- **The GitHub repository rename and the `origin` URL.**
+  `gh repo view jmnicolas90/LeNews` answers `nameWithOwner jmnicolas90/LeNews`
+  with `defaultBranchRef main`, and `git remote -v` reads
+  `https://github.com/jmnicolas90/LeNews.git` on fetch and push. So the 403 that
+  ticket 03 recorded is gone: the token reaches this repository now.
+- **`main` is pushed and CI has run.** `git ls-remote --heads origin` returns
+  one head, `refs/heads/main` at `ef10d6da`, which is this checkout's `main` —
+  the remote `develop` is gone as well, so nothing is left of upstream's
+  git-flow split on either side. One CI run exists, `34053906941`, `push` on
+  `main`, its single `Gate` job **success** in 14 min 57 s. That is the first
+  time `.github/workflows/ci.yml` has ever run; ticket 03's "CI has not run"
+  no longer holds.
+- **The three in-app GitHub URLs resolve.** `app_url`, `changelog_url` and
+  `app_issues_url` — and the crash screen's report button, which uses the third
+  — all answer **200** now. Ticket 06 recorded them as 404 pending this rename;
+  that note is updated in its own file.
 - **The working directory rename**, `/home/skynet/dev/Readrops` →
-  `/home/skynet/dev/LeNews`. The user's to do. It moves the agent memory path
-  (`~/.claude/projects/-home-skynet-dev-Readrops/` becomes
-  `-home-skynet-dev-LeNews`), so the auto-memory file and this tracker's entry in
-  it have to be carried across or they are simply not found by the next session.
-  The worktrees under `.claude/worktrees/` move with it and their `.git` files
-  hold absolute paths, so any worktree still open at that moment has to be
-  removed first or re-pointed afterwards.
+  `/home/skynet/dev/LeNews`, done by the user. What it moved, and what had to be
+  done about it:
+  - **The agent memory path moved and the memory did not follow it.**
+    `~/.claude/projects/-home-skynet-dev-LeNews/` was created empty by the first
+    session in the renamed directory, while the five memory files and their
+    `MEMORY.md` index stayed behind under `-home-skynet-dev-Readrops/`. They were
+    copied across; the old directory was left in place, since it also holds the
+    session transcripts of the two unattended runs. This is exactly the failure
+    this ticket predicted, so: **after a directory rename, copy
+    `memory/` across before anything else**, or the next session starts with no
+    index and re-derives what is already written down.
+  - **No worktree had to be re-pointed.** `.claude/worktrees/` was empty at the
+    time of the move and `git worktree list` names only the main checkout, so the
+    absolute paths in a worktree's `.git` file were never a problem here.
+  - **Nothing in the tree holds the old path.** `.gradle/` and `.kotlin/` carry
+    no `dev/Readrops` string; only regenerated AGP intermediates under
+    `app/build/` do, and they are gitignored and rewritten on the next build.
+    `local.properties` carries no `sdk.dir` by design, so the SDK lookup stays on
+    `$ANDROID_HOME` and never pointed inside the renamed directory. The SDK, the
+    JDK and the AVDs all live outside it.
+  - **One consequence worth knowing, not a defect.** `settings.gradle.kts` sets
+    no `rootProject.name`, so Gradle takes the root project's name from the
+    directory: it was `Readrops` and is `LeNews` now. Nothing observable depends
+    on it — the modules are `:api`, `:db`, `:app` and no artifact carries the
+    root name — but it does mean a checkout in a differently named directory
+    renames the root project again.
+
+**The gate is green G0 to G7 from the renamed directory**, on `ef10d6da` with a
+clean working tree: `scripts/check.sh` end to end, G7 on `bench-pixel6-aosp`
+started outside the agent sandbox and found on `emulator-5554`. Lint is as
+documented — one warning, the baseline filtering the rest, and the ten baseline
+entries that no longer match anything still reported as fixed findings.
+
+### Still pending, elsewhere
+
+- The **CI half of the play-services red proof**, ticket 03's: push a throwaway
+  branch carrying a `play-services-base` dependency and watch G4 go red on the
+  runner. It is unblocked now that the token reaches the repository, but it
+  publishes a branch, so it is the user's call to make; it belongs to ticket 03
+  and is recorded there.

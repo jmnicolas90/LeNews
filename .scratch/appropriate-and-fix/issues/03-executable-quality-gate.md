@@ -379,7 +379,24 @@ keeps.
 
 Done locally after the merge: `develop` renamed to `main` (same history), the ticket worktree and branch deleted, and the full gate run on `main` twice outside the agent sandbox: once with no emulator (G7 cold-booted `bench-pixel6-aosp`, ran 20 db + 32 app tests, shut it down; 28 s end to end with a warm Gradle) and once with the emulator started two seconds before the gate (G7 saw `emulator-5554 offline`, waited for boot, used it and left it running; 1 min 28 s).
 
-Pending on GitHub access: `git push origin main` was refused with 403 and the default-branch change too. The `gh` fine-grained token only covers `jmnicolas90/Ding`; it needs `jmnicolas90/Readrops` added with Contents, Workflows and Administration write and Actions read. Until then: CI has not run on `main`, the CI half of the play-services red proof is not done, and GitHub's default branch is still `develop`. The remote `develop` is left as history either way; only the local one is gone.
+~~Pending on GitHub access: `git push origin main` was refused with 403 and the default-branch change too. The `gh` fine-grained token only covers `jmnicolas90/Ding`; it needs `jmnicolas90/Readrops` added with Contents, Workflows and Administration write and Actions read. Until then: CI has not run on `main`, the CI half of the play-services red proof is not done, and GitHub's default branch is still `develop`. The remote `develop` is left as history either way; only the local one is gone.~~
+
+**Resolved (2026-09-06), except one half.** The token reaches the repository now
+and every GitHub step above has happened, checked from the renamed working
+directory: `jmnicolas90/LeNews` exists with `defaultBranchRef main`, `origin` is
+`https://github.com/jmnicolas90/LeNews.git`, and `git ls-remote --heads origin`
+returns exactly one head — `refs/heads/main` at `ef10d6da`, this checkout's
+`main`. The remote `develop` is gone too, so neither side keeps upstream's
+git-flow split. **CI has run**: one run, `34053906941`, `push` on `main`, its
+single `Gate` job **success** in 14 min 57 s — the first execution of
+`.github/workflows/ci.yml`, and the first evidence that CI and `scripts/check.sh`
+agree about this tree rather than only being written to.
+
+**Still not done: the CI half of the play-services red proof.** The local half
+stands (this ticket provoked G4 red on all three modules); the runner half wants
+a throwaway branch carrying a `play-services-base` dependency pushed so G4 goes
+red in CI, then deleted. It is unblocked, but it publishes a branch to a public
+repository, so it waits on the user asking for it.
 
 
 
