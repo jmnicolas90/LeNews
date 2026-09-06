@@ -60,6 +60,16 @@ class FreshRSSStub : Dispatcher() {
     /** Set to fail every `edit-tag` request, which fails the sync before any pull. */
     var refuseStateUploads: Boolean = false
 
+    /**
+     * When set, the reading-list contents send this broken answer once every
+     * page above has been sent, so the client has a whole page of content in
+     * hand when the answer that must fail it arrives.
+     */
+    var brokenReadingListPage: BrokenPage? = null
+
+    /** The same, for the full id list. */
+    var brokenServerIdPage: BrokenPage? = null
+
     /** Run just before an `edit-tag` request is answered, with the request body. */
     var onStateUpload: ((String) -> Unit)? = null
 
@@ -103,15 +113,19 @@ class FreshRSSStub : Dispatcher() {
                 okWith(contentsJson(itemsContentsArticles, null))
 
             path.contains("contents/user/-/state/com.google/reading-list") ->
-                okWith(contentsPage(readingListPages, continuation))
+                okWith(contentsPage(readingListPages, continuation, brokenReadingListPage))
 
             path.contains("contents/user/-/state/com.google/starred") ->
-                okWith(contentsPage(starredContentPages, continuation))
+                okWith(contentsPage(starredContentPages, continuation, null))
 
             path.contains("stream/items/ids") -> when {
-                url?.queryParameter("s") == STARRED -> okWith(idsPage(starredIdPages, continuation))
-                url?.queryParameter("xt") != null -> okWith(idsPage(unreadIdPages, continuation))
-                else -> okWith(idsPage(serverIdPages, continuation))
+                url?.queryParameter("s") == STARRED ->
+                    okWith(idsPage(starredIdPages, continuation, null))
+
+                url?.queryParameter("xt") != null ->
+                    okWith(idsPage(unreadIdPages, continuation, null))
+
+                else -> okWith(idsPage(serverIdPages, continuation, brokenServerIdPage))
             }
 
             else -> MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_FOUND)
@@ -121,25 +135,73 @@ class FreshRSSStub : Dispatcher() {
     private fun okWith(body: String): MockResponse =
         MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody(body)
 
-    private fun contentsPage(pages: List<List<String>>, continuation: String?): String {
-        val index = pageIndexOf(continuation)
-        return contentsJson(pages.getOrElse(index) { emptyList() }, continuationAfter(pages, index))
+    private fun contentsPage(
+        pages: List<List<String>>,
+        continuation: String?,
+        broken: BrokenPage?
+    ): String {
+        val (articles, next) = page(pages, continuation, broken)
+        return contentsJson(articles, next)
     }
 
-    private fun idsPage(pages: List<List<Long>>, continuation: String?): String {
-        val index = pageIndexOf(continuation)
-        return idsJson(pages.getOrElse(index) { emptyList() }, continuationAfter(pages, index))
+    private fun idsPage(
+        pages: List<List<Long>>,
+        continuation: String?,
+        broken: BrokenPage?
+    ): String {
+        val (ids, next) = page(pages, continuation, broken)
+        return idsJson(ids, next)
     }
 
     /**
-     * The continuation a page carries, which the real server sends only when
-     * there is another page behind it.
+     * The rows of the page a request asks for and the continuation to send with
+     * it. The real server sends a continuation only when there is another page
+     * behind the one it just sent.
+     *
+     * A stream told to send a [BrokenPage] sends every page above first, each
+     * with a continuation, and answers the request after them with the broken
+     * page instead of ending the walk.
      */
-    private fun continuationAfter(pages: List<*>, index: Int): Long? =
-        if (index + 1 < pages.size) FIRST_CONTINUATION + index + 1 else null
+    private fun <T> page(
+        pages: List<List<T>>,
+        continuation: String?,
+        broken: BrokenPage?
+    ): Pair<List<T>, Long?> {
+        val index = pageIndexOf(continuation)
+        val nextContinuation = FIRST_CONTINUATION + index + 1
+
+        if (broken != null && index >= pages.size) {
+            return when (broken) {
+                BrokenPage.NOTHING_BACK_AND_ANOTHER_PAGE_ASKED_FOR ->
+                    emptyList<T>() to nextContinuation
+
+                BrokenPage.THE_CONTINUATION_SENT_BACK ->
+                    pages.last() to continuation!!.toLong()
+            }
+        }
+
+        val rows = pages.getOrElse(index) { emptyList() }
+        val thereIsMore = index + 1 < pages.size || broken != null
+
+        return rows to if (thereIsMore) nextContinuation else null
+    }
 
     private fun pageIndexOf(continuation: String?): Int =
         if (continuation.isNullOrEmpty()) 0 else (continuation.toLong() - FIRST_CONTINUATION).toInt()
+
+    /**
+     * The two answers that end no walk and are no page: a real FreshRSS sends
+     * neither, and a client that took them for an end would treat part of a
+     * list as the whole of it.
+     */
+    enum class BrokenPage {
+
+        /** No row, and a continuation asking the client to come back. */
+        NOTHING_BACK_AND_ANOTHER_PAGE_ASKED_FOR,
+
+        /** The continuation the request carried, sent straight back. */
+        THE_CONTINUATION_SENT_BACK
+    }
 
     companion object {
 

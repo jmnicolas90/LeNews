@@ -2,6 +2,7 @@ package app.lenews.api.services.greader
 
 import app.lenews.api.services.DataSourceResult
 import app.lenews.api.services.greader.adapters.FreshRSSUserInfo
+import app.lenews.api.utils.exceptions.ParseException
 import app.lenews.db.entities.Item
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -163,9 +164,19 @@ class GReaderDataSource(private val service: GReaderService) {
      * Walks a paged call to its end and returns everything it brought back.
      *
      * FreshRSS sends a continuation only when the page it just sent was full,
-     * so an absent one is the end of the walk. The two other stops are guards
-     * against a server that never ends it: a page that brought nothing back, and
-     * a continuation that repeats the one just used.
+     * so an absent one is the end of the walk and the only end there is. Two
+     * other answers can arrive and neither is an end: a page that brought
+     * nothing back and still asks for another one, and a page whose
+     * continuation is the one the request carried, which would walk the same
+     * page for ever. A real FreshRSS sends neither — the empty page that
+     * follows a full last one carries no continuation, and the continuation is
+     * the last row's id, which strictly moves on — so both mean the answer is
+     * broken and only part of it is in hand.
+     *
+     * Both therefore throw instead of returning what has accumulated. Handing
+     * the caller a partial list would let it commit partial content and move
+     * the cursor past articles it never saw, or unstar articles that the
+     * missing part of a starred list still names.
      */
     private suspend fun <T> everyPage(
         fetchPage: suspend (continuation: String?) -> Pair<List<T>, String?>
@@ -177,8 +188,16 @@ class GReaderDataSource(private val service: GReaderService) {
             val (rows, next) = fetchPage(continuation)
             everything += rows
 
-            if (next.isNullOrBlank() || rows.isEmpty() || next == continuation) {
+            if (next.isNullOrBlank()) {
                 return everything
+            }
+
+            if (rows.isEmpty()) {
+                throw ParseException("A page brought nothing back and asked for another one")
+            }
+
+            if (next == continuation) {
+                throw ParseException("A page sent back the continuation the request carried")
             }
 
             continuation = next

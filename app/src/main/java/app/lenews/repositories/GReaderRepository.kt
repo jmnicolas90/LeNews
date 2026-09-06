@@ -239,6 +239,14 @@ open class GReaderRepository(
      * which is the only date the server allows since no API output says when an
      * article became read.
      *
+     * Both directions are about the articles the server's full id list still
+     * names, and nothing else. The full list and the unread list come from two
+     * separate calls and can disagree — the server can drop an article between
+     * them — so the unread list is cut down to what the full list holds before
+     * anything is written. Without that, an article read on the phone and
+     * dropped by the server would be put back to unread and lose the date on
+     * which it became read, which nothing could give back.
+     *
      * Only the articles whose state actually differs are named in a statement.
      * The candidates for becoming read are the articles this store holds as
      * unread, never the server's whole read list, which on a full account is
@@ -251,21 +259,32 @@ open class GReaderRepository(
         syncStart: Long
     ) {
         val itemDao = database.itemDao()
+        val stillUnreadOnTheServer = pulled.unreadIds.filter { it in serverIds }
 
-        pulled.unreadIds.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.markUnreadFromSync(it) }
+        stillUnreadOnTheServer
+            .chunked(MAX_IDS_PER_STATEMENT)
+            .forEach { itemDao.markUnreadFromSync(it) }
 
-        val stillUnreadOnTheServer = pulled.unreadIds.toHashSet()
+        val unreadIds = stillUnreadOnTheServer.toHashSet()
         val becameRead = itemDao.selectUnreadIds()
-            .filter { it in serverIds && it !in stillUnreadOnTheServer }
+            .filter { it in serverIds && it !in unreadIds }
 
         becameRead.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.markReadFromSync(it, syncStart) }
     }
 
     /**
-     * Step 4d: starred state. An article the starred list names is starred; an
-     * article the server still holds and no longer calls starred is unstarred.
-     * An article in neither list is left alone — the server has nothing to say
-     * about it, and retention decides whether it stays.
+     * Step 4d: starred state. An article this store holds and the starred list
+     * names is starred; an article the server still holds and no longer calls
+     * starred is unstarred. An article in neither list is left alone — the
+     * server has nothing to say about it, and retention decides whether it
+     * stays.
+     *
+     * The two directions are not symmetrical, and the model says so: starring
+     * asks only that the store hold the article, which the statement itself
+     * enforces since it can only update rows that are there, while unstarring
+     * asks in addition that the full id list still name it — the server saying
+     * nothing about an article is not the server saying it is no longer
+     * starred.
      */
     private suspend fun applyStarredState(pulled: DataSourceResult, serverIds: HashSet<Long>) {
         val itemDao = database.itemDao()

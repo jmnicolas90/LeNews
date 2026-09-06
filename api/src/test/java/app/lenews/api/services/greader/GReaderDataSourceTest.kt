@@ -5,6 +5,7 @@ import app.lenews.api.apiModule
 import app.lenews.api.enqueueOK
 import app.lenews.api.enqueueOKStream
 import app.lenews.api.okResponseWithBody
+import app.lenews.api.utils.exceptions.ParseException
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -204,6 +205,70 @@ class GReaderDataSourceTest : KoinTest {
         assertEquals(listOf(1L, 2L), items.map { it.id })
         assertNull(mockServer.takeRequest().requestUrl!!.queryParameter("c"))
         assertEquals("1", mockServer.takeRequest().requestUrl!!.queryParameter("c"))
+    }
+
+    /**
+     * A page that brings nothing back and still asks for another one is not the
+     * end of the walk and is not a page either: what came back is part of an
+     * answer, and a real FreshRSS never sends it — the empty page that follows a
+     * full last one carries no continuation. Returning the rows already
+     * accumulated would hand the caller a partial list it would treat as whole.
+     */
+    @Test
+    fun anEmptyIdPageThatStillAsksForAnotherFailsTheWalk() = runTest {
+        mockServer.enqueueJson(
+            """{ "itemRefs": [ { "id": "1" } ], "continuation": "1" }"""
+        )
+        mockServer.enqueueJson("""{ "itemRefs": [ ], "continuation": "2" }""")
+
+        assertFailsWith<ParseException> {
+            freshRSSDataSource.getItemsIds(null, GReaderDataSource.GOOGLE_READING_LIST)
+        }
+    }
+
+    /**
+     * A continuation identical to the one just sent walks the same page for
+     * ever, so it is a broken answer rather than an end.
+     */
+    @Test
+    fun anIdPageRepeatingTheContinuationItWasSentFailsTheWalk() = runTest {
+        mockServer.enqueueJson(
+            """{ "itemRefs": [ { "id": "1" } ], "continuation": "1" }"""
+        )
+        mockServer.enqueueJson(
+            """{ "itemRefs": [ { "id": "2" } ], "continuation": "1" }"""
+        )
+
+        assertFailsWith<ParseException> {
+            freshRSSDataSource.getItemsIds(null, GReaderDataSource.GOOGLE_READING_LIST)
+        }
+    }
+
+    /** The same two broken answers, for the contents. */
+    @Test
+    fun anEmptyContentsPageThatStillAsksForAnotherFailsTheWalk() = runTest {
+        mockServer.enqueueJson(
+            """{ "items": [ ${itemJson(1)} ], "continuation": "1" }"""
+        )
+        mockServer.enqueueJson("""{ "items": [ ], "continuation": "2" }""")
+
+        assertFailsWith<ParseException> {
+            freshRSSDataSource.getItems(excludeTarget = null, cursor = null)
+        }
+    }
+
+    @Test
+    fun contentsRepeatingTheContinuationTheyWereSentFailTheWalk() = runTest {
+        mockServer.enqueueJson(
+            """{ "items": [ ${itemJson(1)} ], "continuation": "1" }"""
+        )
+        mockServer.enqueueJson(
+            """{ "items": [ ${itemJson(2)} ], "continuation": "1" }"""
+        )
+
+        assertFailsWith<ParseException> {
+            freshRSSDataSource.getItems(excludeTarget = null, cursor = null)
+        }
     }
 
     /**

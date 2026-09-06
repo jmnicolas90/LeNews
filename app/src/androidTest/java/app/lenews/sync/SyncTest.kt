@@ -19,6 +19,7 @@ package app.lenews.sync
 import app.lenews.api.services.Credentials
 import app.lenews.api.services.greader.GReaderDataSource
 import app.lenews.api.utils.AuthInterceptor
+import app.lenews.api.utils.exceptions.ParseException
 import app.lenews.db.Database
 import app.lenews.db.entities.Item
 import app.lenews.db.entities.account.Account
@@ -386,6 +387,108 @@ class SyncTest : KoinTest {
     }
 
     /**
+     * §3, 4c: read state is only about the articles the server's full id list
+     * still names. That list and the unread list are two separate calls and can
+     * disagree — the server can drop an article between them — so an article
+     * missing from the full list keeps the read it already had, and the date it
+     * became read, which nothing could give back.
+     */
+    @Test
+    fun anArticleMissingFromTheFullIdListKeepsItsReadState() = runTest {
+        server.readingListPages = listOf(listOf(FreshRSSStub.articleJson(ARTICLE_A)))
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        synchronize()
+
+        // read on the phone and already uploaded, so nothing waits in the queue
+        val readAtStamp = System.currentTimeMillis() - A_MINUTE
+        database.itemDao().markRead(ARTICLE_A, readAtStamp)
+
+        // the server dropped the article between the two calls: its full id
+        // list no longer names it, its unread list still does
+        server.readingListPages = listOf(emptyList())
+        server.serverIdPages = listOf(emptyList())
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        synchronize()
+
+        val article = everyArticle().single()
+        assertNull(
+            database.pendingChangeDao().select(ARTICLE_A),
+            "the read had already been uploaded, so nothing was queued"
+        )
+        assertTrue(article.isRead, "an article the full id list does not name keeps its read state")
+        assertEquals(readAtStamp, article.readAt, "and the date on which it became read")
+    }
+
+    /**
+     * §3, step 2: a page that brings nothing back and still asks for another one
+     * is a broken answer, not the end of the walk. The sync fails with what it
+     * had in hand and writes nothing: no article, no state, no cursor.
+     */
+    @Test
+    fun contentsThatStopMakingProgressFailTheSyncAndWriteNothing() = runTest {
+        server.readingListPages = listOf(listOf(FreshRSSStub.articleJson(ARTICLE_A)))
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        synchronize()
+
+        val articlesBefore = everyArticle()
+        val cursorBefore = storedAccount().cursor
+
+        // a whole page of new content, then the broken answer behind it
+        server.readingListPages = listOf(listOf(FreshRSSStub.articleJson(ARTICLE_B)))
+        server.brokenReadingListPage =
+            FreshRSSStub.BrokenPage.NOTHING_BACK_AND_ANOTHER_PAGE_ASKED_FOR
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_B))
+
+        assertFailsWith<ParseException> { synchronize() }
+
+        assertEquals(
+            articlesBefore,
+            everyArticle(),
+            "the partial content was committed, or the state of an article was changed"
+        )
+        assertEquals(cursorBefore, storedAccount().cursor, "the cursor moved past content")
+    }
+
+    /**
+     * The same for an id list, which sends back the continuation it was given.
+     * A partial full list is worse than partial content: it is what 4c, 4d and
+     * retention decide against.
+     */
+    @Test
+    fun anIdListThatStopsMakingProgressFailsTheSyncAndWritesNothing() = runTest {
+        server.readingListPages = listOf(listOf(FreshRSSStub.articleJson(ARTICLE_A)))
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+        server.starredIdPages = listOf(listOf(ARTICLE_A))
+
+        synchronize()
+
+        val articlesBefore = everyArticle()
+        val cursorBefore = storedAccount().cursor
+        assertTrue(articlesBefore.single().isStarred, "the starred id list names the article")
+
+        server.serverIdPages = listOf(listOf(ARTICLE_A))
+        server.brokenServerIdPage = FreshRSSStub.BrokenPage.THE_CONTINUATION_SENT_BACK
+        server.unreadIdPages = listOf(emptyList())
+        server.starredIdPages = listOf(emptyList())
+
+        assertFailsWith<ParseException> { synchronize() }
+
+        assertEquals(
+            articlesBefore,
+            everyArticle(),
+            "state was applied from a list the server never finished sending"
+        )
+        assertEquals(cursorBefore, storedAccount().cursor, "the cursor moved")
+    }
+
+    /**
      * Runs one sync through the repository rather than through [Synchronizer],
      * so that [GReaderRepository.afterArticlesAreStored] can be used to fail
      * the transaction where the model says everything must roll back.
@@ -418,5 +521,8 @@ class SyncTest : KoinTest {
         const val ARTICLE_A = 1625234531559678L
         const val ARTICLE_B = 1625234531559679L
         const val ARTICLE_C = 1625234531559680L
+
+        /** Far enough in the past that a restamped read date could not match it. */
+        const val A_MINUTE = 60_000L
     }
 }

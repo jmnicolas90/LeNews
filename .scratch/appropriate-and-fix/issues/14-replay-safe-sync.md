@@ -149,7 +149,8 @@ compile error, since the seam they use did not exist yet.
 answers the page a request asks for from the `c` it carries — so a client that
 dropped a continuation gets page one again and the test sees it. It builds its
 JSON from decimal ids and derives the hexadecimal long form from the same number,
-so a fixture cannot mix the two forms. Nine tests: the same answers applied twice
+so a fixture cannot mix the two forms. Nine tests at first, twelve after the review
+round below: the same answers applied twice
 leave every row identical, `read_at` included; one article delivered twice in one
 response is one row with the last delivery; a failure injected after the articles
 and before the cursor leaves cursor, articles and state unchanged and the retry
@@ -225,6 +226,48 @@ sqlite3 /tmp/lenews-db "Select count(*), count(Distinct id) From Article;
 Also still pending, from ticket 22 and unchanged by this one: the root certificate
 on the **phone**, and a second sample proving the feeds really produce a few
 hundred articles a day. The 746 articles above are one snapshot, not a rate.
+
+### Review round (2026-09-06)
+
+An adversarial review of the branch found two things, both accepted and both
+fixed here.
+
+**Step 4c ignored the full id list.** `applyReadState` marked unread every id the
+unread list named, without asking whether the full list still named it. The two
+lists come from two separate calls, so they can disagree: FreshRSS can return an
+article in the unread list and have dropped it by the time the full-list walk
+reaches it. An article read on the phone, already uploaded, with nothing left in
+the queue, was then put back to unread and its `read_at` set to `NULL` — a date
+no server can give back, since no API output carries when an article became read.
+The unread ids are now cut down to the full list before anything is written, so
+both directions of 4c speak only about articles the server still holds, which is
+what the model says. 4d was read again and already obeyed it: starring can only
+touch rows the store holds, because the statement updates rows and there are no
+others, and unstarring already asked that the full list still name the article —
+the asymmetry is the model's and the comment now says so.
+
+**A page walk that stopped making progress passed for a whole answer.**
+`everyPage` treated an empty page carrying a continuation, and a continuation
+equal to the one just sent, as the end of the walk and returned what had
+accumulated. Both are broken answers rather than ends: the research file's
+account of `c` says the empty page that follows a full last one carries no
+continuation, and the continuation is the last row's id, which strictly moves on.
+Taking them for an end let a malformed second response commit partial content and
+advance the cursor past articles the store never saw, and a half-sent starred list
+unstar articles the rest of it still named. Both throw `ParseException` now, which
+is what the adapters already throw for an answer that cannot be made sense of and
+which `AccountError` already has a message for.
+
+Tests, written before the fixes and each seen red first: three in
+`app/src/androidTest/.../sync/SyncTest.kt` — a held read article the unread list
+still names and the full list does not keeps `read = 1` and its `read_at`; a
+whole page of new content followed by an empty page with a continuation fails the
+sync with articles, state and cursor unchanged; and a full id list that sends back
+the continuation it was given does the same, with a starred article left starred.
+`FreshRSSStub` learned to send those two broken answers, on the contents and on
+the full id list, after every real page. Four in
+`api/src/test/.../GReaderDataSourceTest.kt` cover `everyPage` directly through the
+two calls that use it, one broken answer each.
 
 ### What was consciously left out
 
