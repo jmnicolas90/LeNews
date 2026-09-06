@@ -7,7 +7,13 @@ is the UI and the sync worker. One account, one service, and a lot of
 articles — a few hundred a day is the shape it is built for, so anything that
 gets slower as articles accumulate, stores an article twice, or loses the way
 back to an article that was swiped away is the most serious class of bug in
-this repo.
+this repo. "One account" is the **intended scope, not what the tree does
+today**: upstream's multi-account screens are all still here — `AccountTab` has
+an add-account button and an "Other accounts" switcher, and
+`AccountCredentialsScreenModel.login()` inserts a second row — because the
+account is threaded through the schema. Ticket 13 collapses it, after ticket 12
+decides the article store. Do not write code that assumes one account until
+then, and do not write a document that says there is one.
 
 **Hard fork** of `readrops/Readrops` at commit `9ebbe038` (2025-07-20, its
 `develop` branch: v2.1.1 plus an unfinished tag feature), GPL-3.0. Upstream is
@@ -23,13 +29,31 @@ is a legal obligation, not a leftover.
 namespace are both `app.lenews`, the libraries are `app.lenews.db` and
 `app.lenews.api`, the source package is `app.lenews.*`, the launcher icon is
 this fork's own and the app on screen is "LeNews", v0.1.0. Nothing under
-`app/src/` says Readrops any more, and no Kotlin file in this repo carries a
-copyright header — upstream shipped none, so the attribution the GPL asks for
-lives in `LICENSE` and in what ticket 08 writes into `README.md`. What still
-says Readrops is deliberate and stays: `CHANGELOG.md`, which records upstream's
-release history; `code-review-02-09-2026.md` at the root, which reviewed
-upstream's code; `docs/research/`, which reports on upstream; and the
-historical record under `.scratch/`.
+`app/src/` says Readrops any more, and no *inherited* file carries a copyright
+header — upstream shipped none, so the attribution the GPL asks for lives in
+`LICENSE`, in `README.md` and in the header rule `CONTRIBUTING.md` states
+(ticket 08). What still says Readrops is deliberate and stays: the
+*Readrops history* half of `CHANGELOG.md`, which is upstream's release history
+kept unedited below LeNews's own; `code-review-02-09-2026.md` at the root, which
+reviewed upstream's code; `docs/research/`, which reports on upstream; the fork
+paragraph of `README.md`; and the historical record under `.scratch/`.
+
+**The public documents are written** (ticket 08). `README.md` describes LeNews
+and only LeNews, including what is *not* done: the three pain points are still
+there. `CONTRIBUTING.md` holds the rule for copyright headers —
+`Copyright (C) 2026 Jean-Michel Nicolas`, name only, on files this fork creates,
+in the comment syntax of their language, *added* under upstream's header and
+never substituted for it, and **not** on Markdown documentation, which says in
+its own prose who wrote it. In this tree that means five `scripts/*.sh`,
+`.github/workflows/ci.yml`, the two fork-drawn launcher drawables and
+`app/src/test/java/app/lenews/util/accounterror/GReaderErrorTest.kt` carry the
+header, `LICENSE` is byte-identical to upstream's, and nothing else does.
+`CONTRIBUTING.md` lists the six non-Markdown fork-created files that
+deliberately carry no header and why — JSON has no comments, the lint baseline is regenerated, and
+`util/components/LoadingScreen.kt` is upstream's own code moved into a file of
+its own when `RefreshScreen.kt` was deleted, so a fork line on it would claim
+someone else's work. **Adding a fork-created source file means adding the
+header in the same commit.**
 
 ## Hard constraints — do not break these
 
@@ -49,7 +73,14 @@ historical record under `.scratch/`.
   and are in the graph today: `com.google.android.material` (AndroidX Material
   Components), `com.google.accompanist` (Compose helpers) and
   `com.google.devtools.ksp` (the annotation processor). None of them has
-  anything to do with Play Services.
+  anything to do with Play Services. The guard is not only a gate stage: the
+  root `build.gradle.kts` makes `check` **and every task whose name starts with
+  `assemble`** depend on it, so a bare `./gradlew assembleDebug` goes red too
+  and no APK can come out of this tree with such a dependency in it. That is
+  what lets `README.md` and `CHANGELOG.md` state it as a property of the build
+  rather than of one script. Note the consequence: because the guard walks
+  *every* variant, `assembleDebug` also resolves the release runtime classpath,
+  so a release-only offender fails a debug build.
 - **`minSdk 31`, `targetSdk 35`, `compileSdk 35`**, set once in the root
   `build.gradle.kts` for all three modules. The floor is 31 since ticket 02,
   which also deleted every compat shim the raise made dead (notification
@@ -122,6 +153,10 @@ Eight stages, fail-fast, in this order. The individual invocations:
 Every Gradle stage names all three modules explicitly rather than trusting an
 unqualified task name to reach them all: it costs a line and it means a red
 stage says which module failed.
+
+G4 stays a stage of its own even though G5 and G6 now pull the same guard in
+through their `assemble` dependency: a stage that names the offence is worth the
+seconds, and it fails before two APK builds instead of during one.
 
 `.github/workflows/ci.yml` runs the same stages in the same order on every
 branch push and pull request. (It runs G1 before G0, because on a runner the

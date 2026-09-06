@@ -1,3 +1,46 @@
+# Changelog
+
+What LeNews has changed, newest first. Everything below the *Readrops history*
+heading is the original project's changelog, kept unedited.
+
+## 0.1.0 — unreleased
+
+Nothing has been released yet. This is what the fork has changed so far.
+
+- **It is a FreshRSS client and nothing else.** Local RSS parsing, Nextcloud
+  News, the Fever API and OPML import/export are gone. FreshRSS is the only
+  service you can add an account for, and adding a feed asks the website what
+  feeds it publishes instead of parsing it on the phone. The account screen
+  still adds, lists and switches between several accounts, as Readrops's did:
+  one account is the scope LeNews is designed for, and collapsing the screen
+  into a login screen is a later change.
+- **The app is LeNews.** New name on screen, new application id (`app.lenews`),
+  new launcher icon, version 0.1.0. Android treats it as a different app, so it
+  installs alongside Readrops rather than upgrading it: expect to log in again
+  and to sync from scratch.
+- **Android 12 or later.** The minimum was raised from Android 5, and the code
+  that existed only to support older versions is gone.
+- **No Play Store, no F-Droid, no donation prompt, no crash reporting to
+  anyone.** GitHub releases are the only distribution, and GitHub issues on the
+  LeNews repository the only contact channel; the report button on the crash
+  screen opens that tracker.
+- **Being usable without Google is now enforced, not just true.** A Play
+  Services, Firebase or other Google Mobile Services dependency reaching any of
+  the three modules, including indirectly, fails `./gradlew check`, fails
+  `./gradlew assembleDebug` and `assembleRelease`, and fails both the quality
+  gate and CI — so no APK can be built with one in it, and LeNews keeps running
+  on GrapheneOS and plain AOSP.
+- **One command has to be green before anything is committed** —
+  `scripts/check.sh`, which runs lint, the unit tests, the Google-dependency
+  check, both APKs and the database and sync tests on an emulator. The same
+  stages run in CI on every push.
+
+# Readrops history (before the fork)
+
+Everything below is Readrops's own changelog as it stood at commit `9ebbe038`
+(v2.1.1, 20 July 2025), the point LeNews forked from. It is kept as history and
+left unedited: the releases it lists are Readrops releases, not LeNews ones.
+
 # v2.1.1
 
 - Fix unclickable feeds at the bottom of the drawer  on long lists (#301)
