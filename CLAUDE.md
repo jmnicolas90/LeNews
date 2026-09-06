@@ -406,10 +406,12 @@ temporary table lives on the connection the transaction pins, which is why the
 function refuses to run outside a transaction. A deleted article takes its
 `PendingChange` row with it through the foreign key. **An empty server list is
 an empty account and not a failure** — every call throws rather than returning
-part of an answer, and a page walk that stops making progress fails the sync, so
-the transaction never opens on a partial list. Cost on the seeded store: 543 ms
-to drop 90,630 of 100,000 articles once, then 50 ms a sync for the same hundred
-thousand ids with nothing left to drop.
+part of an answer, a page walk that stops making progress fails the sync, and a
+page of ids carrying no `itemRefs`, or a reference with no id, fails it too, so
+the transaction never opens on a partial or unreadable list. An explicitly empty
+`itemRefs` is the one answer that means the stream holds nothing. Cost on the
+seeded store: 543 ms to drop 90,630 of 100,000 articles once, then 50 ms a sync
+for the same hundred thousand ids with nothing left to drop.
 
 ## Tickets and bookkeeping
 

@@ -96,6 +96,17 @@ class SyncWorker(
         }
     }
 
+    /**
+     * The new articles notification, or the removal of the last one.
+     *
+     * A sync with nothing new to say takes down the notification the previous
+     * one posted, because retention may have dropped the very article that one
+     * names and a notification about an article the store no longer holds can
+     * only disappoint whoever taps it. It cancels on every sync that posts
+     * nothing new rather than only when this sync deleted that article: one
+     * line instead of carrying the previous notification's id around, and a
+     * notification about articles a sync ago is stale anyway.
+     */
     private suspend fun displaySyncResult(outcome: SyncOutcome) {
         val notificationContent = get<SyncAnalyzer>()
             .getNotificationContent(outcome.account, outcome.syncResult)
@@ -136,6 +147,8 @@ class SyncWorker(
             if (notificationManager.areNotificationsEnabled()) {
                 notificationManager.notify(SYNC_RESULT_NOTIFICATION_ID, notificationBuilder.build())
             }
+        } else {
+            notificationManager.cancel(SYNC_RESULT_NOTIFICATION_ID)
         }
     }
 

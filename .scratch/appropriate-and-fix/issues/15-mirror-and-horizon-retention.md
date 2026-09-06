@@ -90,12 +90,16 @@ whole list. Rewriting them as joins against it would trade short statements for
 a scan of tens of thousands of rows and change no behaviour. The one thing it
 would save is the `HashSet` the repository already builds for other reasons.
 
-**An empty server id list is an empty account, not a failure.** Checked, and it
-holds: every call throws on a transport error or a non-2xx, and since ticket 14
-a page walk that stops making progress throws as well, so a partial list never
-reaches the transaction. The transaction only opens on a complete answer. If
-that answer is empty the account really holds nothing, and dropping the unread
-articles the phone still has is exactly what Mirror asks for.
+**An empty server id list is an empty account, not a failure** — but only
+because an *empty* answer and an answer the client could not read are now two
+different things. Every call throws on a transport error or a non-2xx; since
+ticket 14 a page walk that stops making progress throws as well; and since the
+review round below the adapter refuses a page that carries no `itemRefs` or a
+reference with no id, which is the case this paragraph originally missed. So a
+partial or unreadable list never reaches the transaction, and the transaction
+only opens on a complete answer. If that answer is an explicitly empty
+`itemRefs` the account really holds nothing, and dropping the unread articles
+the phone still has is exactly what Mirror asks for.
 
 **Cascade.** A deleted article takes its `PendingChange` row with it through the
 foreign key that was already in the schema; a test asserts it, and asserts the
@@ -279,3 +283,71 @@ hundred articles a day.
 - **`CHANGELOG.md` was not touched.** Its unreleased section has been stale
   since ticket 13 (it still says the account screen adds and switches accounts),
   and half-fixing it here would hide that rather than fix it.
+
+### Review round (2026-09-06)
+
+An adversarial review of this branch found three defects. Two are fixed here,
+one is routed.
+
+**A malformed page of the server's id list was read as an empty one, and
+retention deleted against it.** `GReaderItemsIdsAdapter` accepted `{}` and an
+error object sent with an HTTP 200 as `ids = []`, `continuation = null`, which
+`everyPage` took for a completed walk. The sync then ran the mirror rule against
+a list the server never sent: every unread, unstarred article the malformed
+answer left out was deleted, and the cursor moved on, so an ordinary incremental
+pull could not bring the older ones back. This is why the paragraph above about
+an empty list had to be corrected: "every call throws" was true of transport
+errors and stalled walks and not of a 200 carrying something else.
+
+The adapter is strict now. `itemRefs` has to be there and every reference in it
+has to carry an id; anything else is a `ParseException` and the sync fails
+before it writes or deletes anything. An `itemRefs` that is there and empty is
+still a real answer and still the only one that means the stream holds nothing —
+`items_no_ids.json`, the fixture the tests use for an empty starred list, is
+exactly that. A reference is also read field by field now, so one carrying more
+than its id parses instead of failing.
+
+Five cases in `GReaderItemsIdsAdapterTest`: `{}`, an error object, a reference
+without an id, the explicit empty list, and a reference carrying more than its
+id. Two more in `SyncTest` against MockWebServer, on a store the sync has
+already filled: a malformed **first** page of the full id list and a malformed
+**continuation** page each fail the sync with the articles, their state and the
+cursor exactly as they were. Both were seen red — removing the `itemRefs` check
+alone makes them report that the sync "completed successfully", which is the
+defect in one line.
+
+**A notification whose article retention deleted no longer crashes the app.**
+`ItemDao.select` returned a non-null `Item` and Room throws when the row is
+gone, so tapping the new-articles notification (`MainActivity`) or either of its
+read and star actions (`SyncBroadcastReceiver`) after a sync had dropped that
+article killed the app. Retention makes that an everyday case rather than a
+corner one. The query returns `Item?` now, the tap opens the timeline and stops
+there, and the actions do nothing but take the notification down.
+
+**The stale notification is cancelled on every sync that posts nothing new**,
+which is the simpler of the two options: `displaySyncResult` cancels
+`SYNC_RESULT_NOTIFICATION_ID` when there is no new-article content to post,
+rather than working out whether this sync deleted the article the last
+notification named. It costs one line instead of carrying the previous
+notification's article id around, and a notification about articles a sync ago
+is stale anyway. It only runs for automatic syncs, as posting always did: a
+manual sync shows its result on screen. So a stale notification can outlive a
+manual sync, until the next automatic one — which cannot crash anything, because
+of the nullable lookup above.
+
+Two tests in `SyncWorkerTest`: the read and star actions on an article that
+retention (the real `deleteWhatRetentionDrops`, run against an empty server
+list) has dropped throw nothing, bring nothing back and queue nothing; and a
+second sync with nothing new takes the previous notification down. The first was
+seen red — with the non-null lookup it fails with a `NullPointerException`
+raised in `SyncBroadcastReceiver`.
+
+**Routed, not fixed here: the item screen buffers read and star decisions until
+`onDispose`.** A background sync's retention can delete an article that is open
+and still `read = 0`, `starred = 0` in the store, and the disposal write then
+fails on the foreign key with the star the reader saw lost. Persisting every
+decision the moment the user acts is what `docs/article-store.md` §5 says and
+what ticket 16 wires next, so it is written into
+`issues/16-history-list.md`; the disposal write's own duty to tolerate a missing
+article is a sentence added to ticket 21's existing item about that block. The
+buffer was not touched here.

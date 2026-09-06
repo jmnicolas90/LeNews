@@ -159,8 +159,12 @@ class MainActivity : ComponentActivity(), KoinComponent {
                 if (intent.hasExtra(SyncWorker.ITEM_ID_KEY)) {
                     val itemId = intent.getLongExtra(SyncWorker.ITEM_ID_KEY, -1L)
                     val account = database.accountDao().select() ?: return@withContext
-                    val item = database.itemDao().select(itemId)
-                        .apply { isRead = true }
+
+                    // retention can have dropped the article between the sync
+                    // that named it in the notification and this tap; the
+                    // timeline is open already, so there is nothing else to do
+                    val item = database.itemDao().select(itemId) ?: return@withContext
+                    item.isRead = true
 
                     get<BaseRepository>(parameters = { parametersOf(account) })
                         .setItemReadState(item)

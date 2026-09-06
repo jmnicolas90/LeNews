@@ -612,6 +612,82 @@ class SyncTest : KoinTest {
     }
 
     /**
+     * §4: a page of the full id list the client cannot read is a broken answer,
+     * not an empty one. Retention deletes what that list leaves out, so a
+     * malformed first page — an empty object, an error the server sent with an
+     * HTTP 200 — must fail the sync rather than be read as "the account holds
+     * nothing". The store, the state and the cursor are untouched.
+     */
+    @Test
+    fun aMalformedFirstPageOfTheIdListFailsTheSyncAndDeletesNothing() = runTest {
+        server.readingListPages = listOf(
+            listOf(FreshRSSStub.articleJson(ARTICLE_A), FreshRSSStub.articleJson(ARTICLE_B))
+        )
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+
+        synchronize()
+
+        val articlesBefore = everyArticle()
+        val cursorBefore = storedAccount().cursor
+        assertEquals(2, articlesBefore.size)
+        assertTrue(
+            articlesBefore.none { it.isStarred },
+            "these articles are the ones the mirror rule would drop: unread and unstarred"
+        )
+
+        // the server answers the full id list with an error object, which is
+        // neither a page of ids nor an empty list
+        server.readingListPages = listOf(emptyList())
+        server.malformedServerIdBody = """{ "errors": [ "Unauthorized" ] }"""
+        server.malformedServerIdPage = 0
+
+        assertFailsWith<ParseException> { synchronize() }
+
+        assertEquals(
+            articlesBefore,
+            everyArticle(),
+            "an answer the client could not read was taken for the ids the server holds"
+        )
+        assertEquals(cursorBefore, storedAccount().cursor, "the cursor moved")
+    }
+
+    /**
+     * The same for a page in the middle of the walk: the first page is a real
+     * one, the answer behind it is not, and the ids already in hand are only
+     * part of what the server holds.
+     */
+    @Test
+    fun aMalformedContinuationPageOfTheIdListFailsTheSyncAndDeletesNothing() = runTest {
+        server.readingListPages = listOf(
+            listOf(FreshRSSStub.articleJson(ARTICLE_A), FreshRSSStub.articleJson(ARTICLE_B))
+        )
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+
+        synchronize()
+
+        val articlesBefore = everyArticle()
+        val cursorBefore = storedAccount().cursor
+        assertEquals(2, articlesBefore.size)
+
+        // one id a page, and the second page comes back empty of any list
+        server.readingListPages = listOf(emptyList())
+        server.serverIdPages = listOf(listOf(ARTICLE_A), listOf(ARTICLE_B))
+        server.malformedServerIdBody = "{}"
+        server.malformedServerIdPage = 1
+
+        assertFailsWith<ParseException> { synchronize() }
+
+        assertEquals(
+            articlesBefore,
+            everyArticle(),
+            "half the server's id list was taken for the whole of it"
+        )
+        assertEquals(cursorBefore, storedAccount().cursor, "the cursor moved")
+    }
+
+    /**
      * Runs one sync through the repository rather than through [Synchronizer],
      * so that [GReaderRepository.afterTheStoreIsWritten] can be used to fail
      * the transaction where the model says everything must roll back.

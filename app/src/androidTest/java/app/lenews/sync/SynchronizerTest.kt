@@ -205,7 +205,7 @@ class SynchronizerTest : KoinTest {
 
         assertEquals(1, database.itemDao().count())
 
-        with(database.itemDao().select(1625234531559678L)) {
+        with(database.itemDao().select(1625234531559678L)!!) {
             assertEquals("the delivery the server sent last", title, "the last delivery wins")
             assertEquals("the content the server sent last", content)
 

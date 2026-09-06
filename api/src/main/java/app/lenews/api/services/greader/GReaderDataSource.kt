@@ -177,6 +177,12 @@ class GReaderDataSource(private val service: GReaderService) {
      * the caller a partial list would let it commit partial content and move
      * the cursor past articles it never saw, or unstar articles that the
      * missing part of a starred list still names.
+     *
+     * The walk only ever sees pages that parsed. A page this walk cannot tell
+     * apart from a real one is the adapter's business, and
+     * [app.lenews.api.services.greader.adapters.GReaderItemsIdsAdapter] is
+     * strict for that reason: an empty object or an error object read as "no
+     * ids" would end the walk here and be taken for the whole answer.
      */
     private suspend fun <T> everyPage(
         fetchPage: suspend (continuation: String?) -> Pair<List<T>, String?>

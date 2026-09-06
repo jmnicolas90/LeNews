@@ -39,4 +39,8 @@ changed for them.
   throws inside a `GlobalScope.launch` — the exception is unhandled, and the
   star changes the same block would have written afterwards
   (`ItemScreenModel.kt:374-380`) are lost as well. A fifth item for this
-  cluster.
+  cluster. The review of ticket 15 (2026-09-06) added a second way for that same
+  block to fail: retention now deletes articles at every sync, so whatever
+  `onDispose` still writes has to tolerate an article dropped while the screen
+  was open — a pending change for a row that is gone fails on the foreign key —
+  even once ticket 16 has moved the decisions themselves out of the buffer.

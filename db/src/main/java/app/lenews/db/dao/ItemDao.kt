@@ -23,8 +23,13 @@ interface ItemDao : BaseDao<Item> {
     @Query("Select Count(id) From Article")
     suspend fun count(): Int
 
+    /**
+     * One article, or null when the store no longer holds it — retention drops
+     * articles at every sync, so anything holding an id from before a sync has
+     * to be ready for the row to be gone.
+     */
     @Query("Select * From Article Where id = :itemId")
-    suspend fun select(itemId: Long): Item
+    suspend fun select(itemId: Long): Item?
 
     @Query("Select * From Article Limit 1")
     suspend fun selectFirst(): Item?
