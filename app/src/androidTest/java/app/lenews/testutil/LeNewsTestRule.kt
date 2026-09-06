@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.rule.GrantPermissionRule
+import app.lenews.api.HttpClients
 import app.lenews.api.apiModule
 import app.lenews.appModule
 import app.lenews.userAgent
@@ -81,7 +82,15 @@ class LeNewsTestRule : TestRule {
                                 .build()
                         }
                     },
-                    apiModule(userAgent), appModule
+                    apiModule(userAgent), appModule,
+                    // Last, so it replaces the HttpClients apiModule declares.
+                    // The app speaks nothing but HTTPS, so the stub servers
+                    // these tests run on the device serve TLS with a
+                    // certificate of their own; this is what makes the clients
+                    // under test trust it. See StubServerTls.
+                    module {
+                        single { HttpClients(userAgent, StubServerTls.trustTheStubServer) }
+                    }
                 )
             }.koin
 

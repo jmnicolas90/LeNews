@@ -3,9 +3,10 @@ package app.lenews.util
 import app.lenews.api.utils.ApiUtils
 import app.lenews.testutil.LeNewsTestRule
 import app.lenews.testutil.TestUtils
+import app.lenews.testutil.stubServerOverTls
+import app.lenews.testutil.tlsUrl
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
 import okio.Buffer
 import org.junit.After
 import org.junit.Before
@@ -17,7 +18,7 @@ import kotlin.test.assertTrue
 
 class FeedColorsTest : KoinTest {
 
-    private val mockServer = MockWebServer()
+    private val mockServer = stubServerOverTls()
 
     @get:Rule
     val testRule = LeNewsTestRule()
@@ -43,7 +44,7 @@ class FeedColorsTest : KoinTest {
                 .setBody(Buffer().readFrom(stream))
         )
 
-        val url = mockServer.url("/rss").toString()
+        val url = mockServer.tlsUrl("/rss").toString()
         val color = FeedColors.getFeedColor(url)
 
         assertTrue { color != 0 }

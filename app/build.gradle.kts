@@ -149,11 +149,13 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.bundles.kointest)
     testImplementation(libs.okhttp.mockserver)
+    testImplementation(libs.okhttp.tls)
 
     androidTestImplementation(libs.coroutines.test)
     androidTestImplementation(libs.bundles.test)
     androidTestImplementation(libs.bundles.kointest)
     androidTestImplementation(libs.okhttp.mockserver)
+    androidTestImplementation(libs.okhttp.tls)
     androidTestImplementation(libs.coil.test)
     androidTestImplementation(libs.workmanager.test)
 }

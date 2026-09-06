@@ -8,12 +8,13 @@ import app.lenews.LeNewsApp
 import app.lenews.testutil.LeNewsTestRule
 import app.lenews.testutil.TestUtils
 import app.lenews.testutil.okResponseWithBody
+import app.lenews.testutil.stubServerOverTls
+import app.lenews.testutil.tlsUrl
 import app.lenews.db.Database
 import app.lenews.db.entities.account.Account
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
 import org.junit.After
 import org.junit.Rule
@@ -32,14 +33,14 @@ class SynchronizerTest : KoinTest {
     private val database: Database by inject()
     private val synchronizer: Synchronizer by inject()
     private val context = ApplicationProvider.getApplicationContext<Context>()
-    private val mockServer = MockWebServer()
+    private val mockServer = stubServerOverTls()
 
     @get:Rule
     val rule = LeNewsTestRule()
 
     private val account = Account(
         name = "Account",
-        url = mockServer.url("/remote").toString(),
+        url = mockServer.tlsUrl("/remote").toString(),
         writeToken = "writeToken"
     )
 

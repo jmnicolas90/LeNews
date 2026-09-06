@@ -2,12 +2,16 @@
 <!--
   What this app is allowed to speak, and to whom.
 
-  Nothing in cleartext, anywhere, in any build type, with one exception that
-  never reaches a network — the loopback interface, described below. The login
-  sends a password and every later call carries a token, and article images and
-  feed icons come from hosts the user never chose. There is no <debug-overrides>
-  block, so a debuggable build is held to exactly the same rules as a release
-  one.
+  Nothing in cleartext: not to any host, not in any build type, not even to the
+  loopback interface. The login sends a password and every later call carries a
+  token, and article images and feed icons come from hosts the user never chose.
+  There is no <debug-overrides> block, so a debuggable build is held to exactly
+  the same rules as a release one.
+
+  The instrumented tests run their stub FreshRSS server on the device, so they
+  serve TLS with a certificate of their own and hand the client a block that
+  trusts it (HttpClients.configure). This file therefore says the same thing
+  under test as it does on a phone.
 
   User-installed certificate authorities are trusted for one host and one host
   only: rss.lan, the FreshRSS server. It is on the LAN, behind Caddy's local
@@ -16,6 +20,10 @@
   themselves. Every other host is checked against the preinstalled authorities
   alone, which is what keeps a user-installed root from being usable against,
   say, an image host.
+
+  Because those two sets of authorities differ, neither HTTP client may reuse a
+  connection across hosts: both are restricted to HTTP/1.1, and HttpClients says
+  why.
 
   The root itself is not bundled with the app. It is the user's, theirs to
   rotate; a copy pinned in here would break the day they re-key it.
@@ -28,25 +36,6 @@
             <certificates src="system" />
         </trust-anchors>
     </base-config>
-
-    <!--
-      The one cleartext exception, and it is not network traffic: the loopback
-      interface, where the instrumented tests run their stub FreshRSS server.
-      Bytes sent there never leave the device, so nothing can read them on the
-      way, and the app never connects to the loopback interface outside those
-      tests — the login screen refuses an http:// address before it builds a
-      request, whatever the host.
-
-      It is here rather than in a debug-only copy of this file on purpose: one
-      file, identical in every build type, is what makes the instrumented test
-      that reads this policy back speak about the app that ships. Two files
-      would drift, and the copy nobody runs the tests against would be the one
-      making the promise.
-    -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">localhost</domain>
-        <domain includeSubdomains="false">127.0.0.1</domain>
-    </domain-config>
 
     <!--
       includeSubdomains is false on purpose: the FreshRSS server is exactly

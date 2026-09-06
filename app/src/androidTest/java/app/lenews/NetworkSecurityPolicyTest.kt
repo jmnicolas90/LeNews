@@ -20,17 +20,16 @@ package app.lenews
 import android.security.NetworkSecurityPolicy
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
  * What the system made of `res/xml/network_security_config.xml`, read back from
  * the platform rather than from the file: the app cannot open a cleartext
- * connection to any host on a network, and that holds for the FreshRSS host as
- * much as for any other. The one exception is the loopback interface, where the
- * stub server the other instrumented tests talk to runs, and it is asserted
- * here too so that widening it means changing this test.
+ * connection to any host at all. Not to the FreshRSS host, not to an image
+ * host, and not to the device itself — the stub servers the other instrumented
+ * tests talk to serve TLS for that reason, and this file is the shipped one
+ * rather than a test copy, so what is asserted here is what a phone gets.
  *
  * The rest of the file — that user-installed authorities are trusted for
  * `rss.lan` and for nothing else — has no public API to read it back. The
@@ -48,8 +47,6 @@ class NetworkSecurityPolicyTest {
 
     @Test
     fun noCleartextAnywhere() {
-        // The platform answers true only when cleartext is permitted for every
-        // destination, so the loopback exception below does not make it true.
         assertFalse(policy.isCleartextTrafficPermitted)
     }
 
@@ -64,18 +61,17 @@ class NetworkSecurityPolicyTest {
     }
 
     @Test
-    fun cleartextToTheLoopbackInterfaceOnly() {
-        // The single exception, asserted rather than merely commented, so that
-        // widening it means changing this test. It is what lets the tests below
-        // this one run their stub FreshRSS server on the device itself; bytes
-        // sent there never leave it.
-        assertTrue(policy.isCleartextTrafficPermitted("localhost"))
-        assertTrue(policy.isCleartextTrafficPermitted("127.0.0.1"))
+    fun noCleartextToTheDeviceItselfEither() {
+        // There was an exception here once, for the stub servers the sync tests
+        // run on the device. It went: it was reachable outside the tests — an
+        // article image or a redirect to http://127.0.0.1:port would have been
+        // fetched in the clear, and an account saved with an http loopback URL
+        // by an older build would have synced over it. The stub servers serve
+        // TLS instead.
+        assertFalse(policy.isCleartextTrafficPermitted("localhost"))
+        assertFalse(policy.isCleartextTrafficPermitted("127.0.0.1"))
 
-        // Nothing else on the machine, and nothing that merely ends in the same
-        // letters.
-        assertFalse(policy.isCleartextTrafficPermitted("notlocalhost"))
-        assertFalse(policy.isCleartextTrafficPermitted("localhost.example.org"))
-        assertFalse(policy.isCleartextTrafficPermitted("127.0.0.2"))
+        // What the emulator calls the machine it runs on, which is a network.
+        assertFalse(policy.isCleartextTrafficPermitted("10.0.2.2"))
     }
 }

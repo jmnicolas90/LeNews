@@ -11,6 +11,9 @@ sealed class TextFieldError {
 
     /** The address asks for plain HTTP, which this app never speaks. */
     data object CleartextUrl : TextFieldError()
+
+    /** The address carries a user name, which is not how this app logs in. */
+    data object UrlWithUserName : TextFieldError()
     data object UnreachableUrl : TextFieldError()
     data object NoRSSFeed : TextFieldError()
     data object NoRSSUrl : TextFieldError()
@@ -20,6 +23,7 @@ sealed class TextFieldError {
         when (this) {
             BadUrl -> stringResource(R.string.wrong_url)
             CleartextUrl -> stringResource(R.string.url_must_be_https)
+            UrlWithUserName -> stringResource(R.string.url_must_have_no_user_name)
             EmptyField -> stringResource(R.string.empty_field)
             NoRSSFeed -> stringResource(R.string.no_rss_feed_found)
             NoRSSUrl -> stringResource(R.string.not_valid_rss_feed)

@@ -169,6 +169,7 @@
     <!-- Shown under the server address on the login screen when it starts with
          http://. Untranslated for the same reason as the two strings above. -->
     <string name="url_must_be_https" tools:ignore="MissingTranslation">The address must start with https://. LeNews never sends your password or your token in the clear.</string>
+    <string name="url_must_have_no_user_name" tools:ignore="MissingTranslation">The address must be the server address alone. Your login and password go in the fields below.</string>
     <string name="error_image_download">An error occurred while downloading the image</string>
     <string name="enable_notifications">Enable notifications</string>
     <string name="account_notifications_disabled">Account notifications are currently disabled</string>

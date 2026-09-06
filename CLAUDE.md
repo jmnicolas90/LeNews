@@ -42,7 +42,7 @@ there. `CONTRIBUTING.md` holds the rule for copyright headers —
 in the comment syntax of their language, *added* under upstream's header and
 never substituted for it, and **not** on Markdown documentation, which says in
 its own prose who wrote it. `CONTRIBUTING.md` carries the list itself,
-file by file — forty-five non-Markdown files carry the header today, and
+file by file — forty-nine non-Markdown files carry the header today, and
 `grep -rl "Copyright (C) 2026 Jean-Michel Nicolas"` is how the table is checked;
 `LICENSE` is byte-identical to upstream's. The same file lists the ten
 non-Markdown fork-created files that deliberately carry no header and why — JSON has no comments, the lint baseline is regenerated, and
@@ -490,19 +490,29 @@ type, with no `<debug-overrides>`: the base configuration refuses cleartext and
 trusts **preinstalled authorities only**, and one `<domain-config>` for
 **`rss.lan`** — `includeSubdomains="false"` — adds `user` to its trust anchors,
 which is how the Caddy local-authority root the user installed is honoured for
-their server and for nothing else. The root is not bundled. Neither HTTP client
-carries a `TrustManager`, a `hostnameVerifier` or `ConnectionSpec.CLEARTEXT`, and
-none may be added. There is **one cleartext exception and it is not a network**:
-`localhost` and `127.0.0.1`, where the instrumented tests run their stub server —
-take it out and the instrumented tests that talk to it fail with
-`UnknownServiceException: CLEARTEXT communication to localhost not permitted` —
-seen on `SyncWorkerTest`, and six androidTest files use that stub. It lives in the shipped file rather
-than in a debug-only copy so that `NetworkSecurityPolicyTest`, which reads the
-policy back on the device, speaks about the app that ships; that test also pins
-how wide the exception is. The login screen refuses an `http://` server address
-**before it builds a request** — `serverUrlIsCleartext(...)` in
-`AccountCredentialsScreenModel.kt`, decided on the parsed `HttpUrl`, with a
-schemeless address read as `https://`.
+their server and for nothing else. The root is not bundled. Neither shipped HTTP
+client carries a `TrustManager`, a `hostnameVerifier` or
+`ConnectionSpec.CLEARTEXT`, and none may be added. There is **no cleartext
+exception at all**, the loopback interface included: the stub servers the
+instrumented tests run on the device serve TLS with a certificate of their own,
+and the clients under test are given trust in it through the `configure`
+parameter of `HttpClients` — a seam `apiModule` never passes and only the test
+Koin modules do (`app/src/androidTest/.../testutil/StubServerTls.kt`,
+`LeNewsTestRule`). `NetworkSecurityPolicyTest` reads the policy back on the
+device and asserts cleartext is refused to `localhost`, `127.0.0.1` and
+`10.0.2.2` as much as to `rss.lan`. **Both clients speak `Protocol.HTTP_1_1`
+only**, and that is a security setting rather than a preference: over HTTP/2
+OkHttp shares one connection between two hostnames at one address when the
+certificate covers both, re-checking hostname and pins but not which authorities
+the second host is allowed — which is exactly the difference between `rss.lan`
+and everywhere else. Do not widen it back. The login screen reads the typed
+server address **once**, before any request exists: `canonicalServerUrl(...)` in
+`AccountCredentialsScreenModel.kt` answers either the exact string the login
+request and `Account.url` will carry, or the reason there is none (not https, no
+user name, unreadable, empty). Nothing downstream re-reads the typed text —
+checking one reading and sending another is how `http:127.0.0.1:8888/#http://`
+once got out in the clear. The canonical address always ends in `/`, because
+`Credentials.toCredentials` concatenates `api/greader.php/` onto it.
 
 ## Tickets and bookkeeping
 

@@ -98,8 +98,10 @@ Carrying the header — forty-seven files:
 | `app/src/test/java/app/lenews/repositories/GReaderLoginTest.kt` | Kotlin |
 | `app/src/test/java/app/lenews/repositories/LoginOverTheWireTest.kt` | Kotlin |
 | `app/src/androidTest/java/app/lenews/sync/LoginAndSyncTest.kt` | Kotlin |
-| `app/src/test/java/app/lenews/account/credentials/ServerUrlSchemeTest.kt` | Kotlin |
+| `app/src/test/java/app/lenews/account/credentials/ServerUrlTest.kt` | Kotlin |
 | `app/src/androidTest/java/app/lenews/NetworkSecurityPolicyTest.kt` | Kotlin |
+| `app/src/androidTest/java/app/lenews/testutil/StubServerTls.kt` | Kotlin |
+| `api/src/test/java/app/lenews/api/ConnectionReuseTest.kt` | Kotlin |
 
 Not carrying it, and why — ten files, each for a reason, not by oversight:
 
