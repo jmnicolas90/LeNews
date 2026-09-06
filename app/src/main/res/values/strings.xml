@@ -164,6 +164,7 @@
          there", so this message names both. Untranslated on purpose: which of
          the 14 inherited locales LeNews keeps is still an open product call,
          and inventing translations would pre-empt it. -->
+    <string name="history" tools:ignore="MissingTranslation">History</string>
     <string name="freshrss_feed_not_added" tools:ignore="MissingTranslation">FreshRSS could not add this feed: it is not a feed it can read, or it is already subscribed</string>
     <string name="error_image_download">An error occurred while downloading the image</string>
     <string name="enable_notifications">Enable notifications</string>

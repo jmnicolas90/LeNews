@@ -350,7 +350,7 @@ private class SeededStore(articleCount: Int) {
         measurePage("timeline, one folder", POPULATED_FOLDER),
         measurePage("timeline, a folder with no article", EMPTY_FOLDER),
         measurePage("timeline, starred", QueryFilters(mainFilter = MainFilter.STARS)),
-        measure("history, first page", firstPageOf(HistoryQuery.SQL)),
+        measurePage("history, first page", HISTORY),
         measure(
             "drawer, unread count per feed",
             FeedUnreadCountQueryBuilder.build(MainFilter.ALL).sql
@@ -376,7 +376,7 @@ private class SeededStore(articleCount: Int) {
         }
 
         val becameReadAt = ArrayList<Long>()
-        writable().query(firstPageOf(HistoryQuery.SQL)).use { cursor ->
+        writable().query(firstPageOf(ItemsQueryBuilder.buildItemsQuery(HISTORY).sql)).use { cursor ->
             val column = cursor.getColumnIndexOrThrow("read_at")
             while (cursor.moveToNext()) becameReadAt += cursor.getLong(column)
         }
@@ -469,6 +469,9 @@ private class SeededStore(articleCount: Int) {
 
         /** Folder 1 holds a tenth of the feeds, so a tenth of the articles. */
         val POPULATED_FOLDER = QueryFilters(subFilter = SubFilter.FOLDER, folderId = 1)
+
+        /** The history list: every article that became read, newest first. */
+        val HISTORY = QueryFilters(mainFilter = MainFilter.HISTORY)
 
         /** The folder [SeededStore.addTheEmptyFolder] creates. */
         val EMPTY_FOLDER = QueryFilters(

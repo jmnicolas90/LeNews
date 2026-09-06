@@ -55,7 +55,8 @@ fun RegularTimelineItem(
     onClick: () -> Unit,
     onFavorite: () -> Unit,
     onShare: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    becameReadAt: Long? = null
 ) {
     val displayColor = itemWithFeed.displayColor(CardDefaults.cardColors().containerColor.toArgb())
 
@@ -76,7 +77,8 @@ fun RegularTimelineItem(
                 duration = itemWithFeed.item.readTime,
                 isStarred = itemWithFeed.isStarred,
                 onFavorite = onFavorite,
-                onShare = onShare
+                onShare = onShare,
+                becameReadAt = becameReadAt
             )
 
             ShortSpacer()
@@ -88,7 +90,8 @@ fun RegularTimelineItem(
             TimelineItemBadge(
                 date = itemWithFeed.item.pubDate!!,
                 duration = itemWithFeed.item.readTime,
-                color = displayColor
+                color = displayColor,
+                becameReadAt = becameReadAt
             )
         }
     }
@@ -100,7 +103,8 @@ fun CompactTimelineItem(
     onClick: () -> Unit,
     onFavorite: () -> Unit,
     onShare: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    becameReadAt: Long? = null
 ) {
     val containerColor = MaterialTheme.colorScheme.background
     val displayColor = itemWithFeed.displayColor(CardDefaults.cardColors().containerColor.toArgb())
@@ -134,7 +138,8 @@ fun CompactTimelineItem(
                 date = itemWithFeed.item.pubDate!!,
                 duration = itemWithFeed.item.readTime,
                 isStarred = itemWithFeed.isStarred,
-                displayActions = false
+                displayActions = false,
+                becameReadAt = becameReadAt
             )
 
             ShortSpacer()
@@ -156,7 +161,8 @@ fun LargeTimelineItem(
     onClick: () -> Unit,
     onFavorite: () -> Unit,
     onShare: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    becameReadAt: Long? = null
 ) {
     val displayColor = itemWithFeed.displayColor(CardDefaults.cardColors().containerColor.toArgb())
 
@@ -166,7 +172,8 @@ fun LargeTimelineItem(
             onClick = onClick,
             onFavorite = onFavorite,
             onShare = onShare,
-            modifier = modifier
+            modifier = modifier,
+            becameReadAt = becameReadAt
         )
     } else {
         TimelineItemContainer(
@@ -187,7 +194,8 @@ fun LargeTimelineItem(
                         duration = itemWithFeed.item.readTime,
                         isStarred = itemWithFeed.isStarred,
                         onFavorite = onFavorite,
-                        onShare = onShare
+                        onShare = onShare,
+                        becameReadAt = becameReadAt
                     )
 
                     ShortSpacer()
@@ -195,7 +203,8 @@ fun LargeTimelineItem(
                     TimelineItemBadge(
                         date = itemWithFeed.item.pubDate!!,
                         duration = itemWithFeed.item.readTime,
-                        color = displayColor
+                        color = displayColor,
+                        becameReadAt = becameReadAt
                     )
 
                     ShortSpacer()
@@ -277,7 +286,8 @@ fun TimelineItemHeader(
     isStarred: Boolean,
     onFavorite: () -> Unit,
     onShare: () -> Unit,
-    displayActions: Boolean = true
+    displayActions: Boolean = true,
+    becameReadAt: Long? = null
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -356,7 +366,8 @@ fun TimelineItemHeader(
             TimelineItemBadge(
                 date = date,
                 duration = duration,
-                color = feedColor
+                color = feedColor,
+                becameReadAt = becameReadAt
             )
         }
     }
@@ -381,6 +392,7 @@ fun TimelineItemBadge(
     date: LocalDateTime,
     duration: Double,
     color: Color,
+    becameReadAt: Long? = null,
 ) {
     val onAccentColor =
         if (Color.White.toArgb().canDisplayOnBackground(color.toArgb(), threshold = 2.5f))
@@ -398,7 +410,13 @@ fun TimelineItemBadge(
             )
         ) {
             Text(
-                text = DateUtils.formattedDateByLocal(date),
+                text = if (becameReadAt != null) {
+                    // the history shows the moment the article became read, with
+                    // the hour: a whole day of reading falls on one date
+                    DateUtils.formattedDateTimeByLocal(DateUtils.fromEpochMillis(becameReadAt))
+                } else {
+                    DateUtils.formattedDateByLocal(date)
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = onAccentColor
             )

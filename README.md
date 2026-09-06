@@ -12,7 +12,8 @@ else taken out. It talks to a FreshRSS server through the Google Reader API
 that FreshRSS exposes, and it does what that path already did: log in, sync
 feeds, folders and articles in the background, manage the subscriptions, show a
 timeline, read an article in the app or in a browser, mark it read or starred,
-share it, and notify you when a background sync brings new ones.
+share it, find again anything it has marked read, and notify you when a
+background sync brings new ones.
 
 What is gone is everything that was not FreshRSS: local RSS parsing, Nextcloud
 News, the Fever API, OPML import and export.
@@ -38,12 +39,20 @@ Where the three problems this fork exists to fix stand today:
   rules say. That is what bounds the one query no index could help — the count
   the list paging asks for on every reload — which takes 3.7 ms on the store a
   month of reading leaves, against 46.6 ms on a hoarded year of it.
-- **The date an article became read is recorded, but there is no history
-  screen yet.** Every route by which an article becomes read stamps it; the
-  chronological list that makes a swiped-away article findable again is the
-  next piece of work.
+- **An article you swiped away can be found again.** Every route by which an
+  article becomes read records the moment it happened: opening it, swiping it,
+  reading past it, marking the list, a feed, a folder, the starred articles or
+  the last day read, and a read done on the FreshRSS web interface and learned
+  at the next sync. *History*, in the drawer next to Articles, New articles and
+  Favorites, is all of them in one list, newest first, showing the feed and the
+  hour it became read; tapping one opens the article as the timeline does. It
+  reaches back as far as the thirty days above, because past those the article
+  itself is gone.
 
-The history list is the next piece of work, not a feature you have today.
+All three are addressed and every one of them is held to its behaviour by the
+test suite. What has not happened is time: the sync, the retention rule and the
+history have been checked against a real FreshRSS server in single sittings,
+never watched across the week — or the thirty days — they are really about.
 
 ## Where it comes from
 
