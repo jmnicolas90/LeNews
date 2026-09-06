@@ -31,3 +31,37 @@ What has to be decided:
 Constraint from charting: **do not design features beyond the three pain points.** The model must serve the timeline, the drawer, the item screen, the history list and sync, nothing else.
 
 **Done when** `docs/article-store.md` exists with the entities, the identity rule, the sync sequence with its transaction boundary, the mirror-and-horizon rule, the becoming-read rule and the index list, such that tickets 13 to 16 can be implemented against it and a test can be written from it directly.
+
+## From the global review (2026-09-06)
+
+Two adversarial reviews — one on the repo's own standards, one on what the
+tickets asked for — read everything committed since the fork point. The upstream
+defects below are still in the tree at HEAD and belong to this ticket rather
+than to the round that found them, so they are recorded here and nothing was
+changed for them.
+
+- **The fetch stops at the caps and throws the continuation away.**
+  `api/src/main/java/app/lenews/api/services/greader/GReaderDataSource.kt:50-56`
+  (initial) and `:73-78` (incremental) ask for `MAX_ITEMS = 2500` contents and
+  `MAX_STARRED_ITEMS = 1000` (`:161-162`) and read no `continuation` from any
+  response. `GReaderRepository.insertItemsIds` then replaces every `ItemState`
+  row of the account from those capped lists, so an unread article the cap left
+  out comes back as read, and the cursor (`account.lastModified`,
+  `GReaderRepository.kt:64` and `:78-79`) advances past content that was never
+  fetched. Ticket 09 found `stream/items/ids` has no server cap and pages with
+  `continuation`. The *Initial sync* question of this ticket is exactly this
+  one; ticket 14 implements whatever it decides.
+- **Articles are inserted with no identity.**
+  `app/src/main/java/app/lenews/repositories/GReaderRepository.kt:176-180`
+  inserts every returned article with `insert`, and no unique constraint on
+  `remote_id` exists to stop it. With `ot` inclusive (ticket 09), the boundary
+  article and every article edited upstream come back and are stored again.
+  The identity rule and the constraint are this ticket's; the upsert is 14's.
+- **The starred-exclusion workaround runs on incremental syncs too.**
+  `GReaderRepository.kt:165-171` drops any article that arrives with
+  `isStarred` set from the main items call, on every sync and not only on the
+  initial one, because the API exclusion filter was found unreliable. An
+  article starred elsewhere between two syncs therefore has its body discarded
+  and appears in neither the timeline nor the stars. What the store does with
+  an article that arrives starred is a model question; ticket 15 owns the
+  retention half of it.

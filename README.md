@@ -56,11 +56,13 @@ LeNews is Google-free: no Play Services, no Firebase, nothing from Google Mobile
 Services in the dependency graph. It runs on GrapheneOS and on plain AOSP. This
 is checked rather than promised: a Gradle task walks the full runtime classpath
 of every variant of all three modules and fails if such a dependency appears,
-including one pulled in indirectly. It is wired to `check` and to every
-`assemble` task, so `./gradlew assembleDebug`, `./gradlew assembleRelease`,
-`./gradlew check`, the quality gate below (its stage G4) and CI all go red on
-it. Only a task that builds nothing and checks nothing — `./gradlew clean`, a
-plain `compileDebugKotlin` — gets past it.
+including one pulled in indirectly. It is wired to `check` and to every task
+whose name starts with `assemble`, `package`, `install` or `bundle`, so
+`./gradlew assembleDebug`, `assembleRelease`, `packageDebug`, `installDebug`,
+`bundleRelease`, `./gradlew check`, the quality gate below (its stage G4) and CI
+all go red on it: no APK or app bundle can be built, and none installed on a
+device, with such a dependency in it. Only a task that produces no artifact —
+`./gradlew clean`, a plain `compileDebugKotlin` — gets past it.
 
 ## Building
 

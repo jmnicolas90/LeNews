@@ -178,6 +178,11 @@ removed; `git diff` on `app/build.gradle.kts` is empty.
 So the three documents now say the same true thing: a Play Services or Firebase
 dependency fails `./gradlew check`, fails `assembleDebug` and `assembleRelease`,
 and fails the gate and CI — no APK can come out of this tree with one in it.
+(**Not quite, as the global review round of 2026-09-06 found**: `packageDebug`,
+`installDebug` and the `bundle*` tasks depend on no `assemble` task, so all
+three still went through. The wiring is four prefixes now — `assemble`,
+`package`, `install`, `bundle` — and the three documents were corrected with
+it. See the section at the end of this file.)
 `README.md` also says what does *not* trigger it (a task that builds nothing,
 such as `clean` or a bare `compileDebugKotlin`), because a guarantee with no
 stated edge is the kind that gets overstated again. `CLAUDE.md` records the
@@ -235,3 +240,38 @@ file that cannot take one gets added to the exception list with its reason.
 `CLAUDE.md`'s summary was corrected from eight header files to nine and from "no
 Kotlin file carries a header" to "no *inherited* file carries one", and it points
 at the exception list rather than restating it. No inherited file was touched.
+
+
+## From the global review (2026-09-06)
+
+The global review of everything since the fork point found the guarantee this
+ticket wrote into `README.md`, `CHANGELOG.md` and `CLAUDE.md` still slightly
+wider than the build: `assemble*` and `check` do not cover `packageDebug`,
+`installDebug` or `bundle*`, none of which depends on an `assemble` task, so an
+APK could be packaged or an app bundle built — or an APK installed on a device —
+with a banned dependency in it.
+
+Proved before the change, with
+`implementation("com.google.android.gms:play-services-base:18.5.0")` planted in
+`app/build.gradle.kts`: `./gradlew -q :app:packageDebug` was `BUILD SUCCESSFUL`,
+and `--dry-run` on `:app:packageDebug`, `:app:installDebug` and
+`:app:bundleDebug` listed no `checkNoGoogleDependencies` at all.
+
+The wiring in the root `build.gradle.kts` now matches four prefixes:
+
+    val guardedTaskPrefixes = listOf("assemble", "package", "install", "bundle")
+    tasks.matching { task ->
+        task.name == "check" || guardedTaskPrefixes.any { task.name.startsWith(it) }
+    }.configureEach { dependsOn(guard) }
+
+With the plant still in place: `:app:packageDebug`, `:app:bundleDebug` and
+`ANDROID_SERIAL=emulator-5554 ./gradlew -q :app:installDebug` all fail at
+`:app:checkNoGoogleDependencies`, naming `play-services-base` and the two
+dependencies behind it in both runtime classpaths; the install fails before
+anything is installed (`:app:checkNoGoogleDependencies FAILED` is the task that
+stops the build). Plant removed, `git diff` on `app/build.gradle.kts` empty, and
+each of the four task graphs now lists the guard three times, once per module.
+
+`README.md`, `CHANGELOG.md`, `CLAUDE.md` and the paragraph above were reworded
+to say the four prefixes and to say that no artifact can be built *or installed*
+with such a dependency.
