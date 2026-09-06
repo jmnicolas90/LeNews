@@ -3,11 +3,11 @@ package app.lenews.sync
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import app.lenews.repositories.BaseRepository
+import app.lenews.util.ApplicationScope
 import app.lenews.db.Database
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -22,13 +22,20 @@ import org.koin.core.parameter.parametersOf
  * because becoming read is two writes: the state and its date on the article,
  * and a pending change so the next sync tells FreshRSS. Writing the row alone
  * would leave the server none the wiser.
+ *
+ * The write outlives `onReceive`, which is why there are two things holding it
+ * up. [goAsync] asks the system to keep the process alive until the work says
+ * it is done, and [ApplicationScope] — the application's own scope, the same
+ * one the reading screen writes through — is what it runs in. Neither replaces
+ * the other: the scope keeps the coroutine from being cancelled, the pending
+ * result keeps the process from being killed under it.
  */
 class SyncBroadcastReceiver : BroadcastReceiver(), KoinComponent {
 
     private val notificationManager by inject<NotificationManagerCompat>()
     private val database by inject<Database>()
+    private val applicationScope by inject<ApplicationScope>()
 
-    @OptIn(DelicateCoroutinesApi::class)
     override fun onReceive(context: Context, intent: Intent) {
         notificationManager.cancel(SyncWorker.SYNC_RESULT_NOTIFICATION_ID)
 
@@ -42,11 +49,9 @@ class SyncBroadcastReceiver : BroadcastReceiver(), KoinComponent {
             return
         }
 
-        // the work outlives onReceive, so the system is asked to keep the process
-        // alive until it is done
         val pendingResult = goAsync()
 
-        GlobalScope.launch {
+        applicationScope.launch {
             try {
                 val account = database.accountDao().select() ?: return@launch
                 val repository = get<BaseRepository> { parametersOf(account) }
@@ -61,6 +66,11 @@ class SyncBroadcastReceiver : BroadcastReceiver(), KoinComponent {
                     ACTION_SET_FAVORITE ->
                         repository.setItemStarState(item.apply { isStarred = true })
                 }
+            } catch (error: Exception) {
+                // there is no screen left to tell, and the notification this
+                // action came from is already gone, so the log is the only
+                // place this can be said
+                Log.e(TAG, "$action failed for article $itemId", error)
             } finally {
                 pendingResult.finish()
             }
@@ -68,6 +78,8 @@ class SyncBroadcastReceiver : BroadcastReceiver(), KoinComponent {
     }
 
     companion object {
+        private val TAG: String = SyncBroadcastReceiver::class.java.simpleName
+
         const val ACTION_MARK_READ = "ACTION_MARK_READ"
         const val ACTION_SET_FAVORITE = "ACTION_SET_FAVORITE"
     }

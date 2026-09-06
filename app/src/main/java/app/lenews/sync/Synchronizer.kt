@@ -7,6 +7,7 @@ import androidx.core.app.NotificationCompat.Builder
 import androidx.core.app.NotificationManagerCompat
 import app.lenews.api.services.Credentials
 import app.lenews.api.HttpClients
+import app.lenews.api.PLAIN_CLIENT
 import app.lenews.R
 import app.lenews.repositories.BaseRepository
 import app.lenews.repositories.SyncResult
@@ -19,7 +20,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import org.koin.core.component.KoinComponent
+import org.koin.core.qualifier.named
 import org.koin.core.component.get
 import org.koin.core.parameter.parametersOf
 
@@ -80,6 +83,10 @@ class Synchronizer(
     ) = withContext(dispatcher) {
         notificationBuilder.setContentTitle(context.getString(R.string.get_feeds_colors))
 
+        // a feed icon is hosted by the feed, not by FreshRSS: the plain client,
+        // resolved once for the whole round rather than per feed
+        val client = get<OkHttpClient>(named(PLAIN_CLIENT))
+
         var index = 0
         syncResult.feeds.chunked(MAX_PARALLEL_REQUESTS)
             .map {
@@ -96,7 +103,7 @@ class Synchronizer(
 
                         try {
                             if (feed.iconUrl != null) {
-                                val color = FeedColors.getFeedColor(feed.iconUrl!!)
+                                val color = FeedColors.getFeedColor(feed.iconUrl!!, client)
                                 database.feedDao().updateFeedColor(feed.id, color)
                             }
 
