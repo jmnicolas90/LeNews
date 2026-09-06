@@ -46,7 +46,11 @@ import org.jsoup.safety.Safelist
  * - **`srcset` and `sizes` are dropped**, for the same reason they are not in
  *   the relaxed safelist: they are a second list of image URLs, and the point
  *   of this file is that every URL rendered has been through one check. The
- *   image loads from its `src`, which has.
+ *   image loads from its `src`, which has. An image is allowed to carry its
+ *   source in `srcset` alone, though, and that is ordinary HTML rather than a
+ *   trick: such an image is given the first candidate of its `srcset` as a
+ *   `src` **before** the clean, so that one URL goes through exactly the same
+ *   check as any other source and the picture survives instead of vanishing.
  *
  * URLs are checked by scheme: `http` and `https` on a link, those two plus
  * `data:image/` on an image. Everything is resolved to an absolute URL against
@@ -94,7 +98,13 @@ object ArticleHtml {
     fun sanitise(html: String, articleUrl: String?): String {
         val trimmedUrl = articleUrl?.trim().orEmpty()
         val baseUrl = if (ArticleLinks.mayOpen(trimmedUrl)) trimmedUrl else ""
-        val cleaned = Cleaner(safelist).clean(Jsoup.parseBodyFragment(html, baseUrl))
+        val parsed = Jsoup.parseBodyFragment(html, baseUrl)
+
+        // Before the clean, because the clean is what resolves and checks a
+        // source and what removes srcset.
+        useSrcsetWhereThereIsNoSource(parsed)
+
+        val cleaned = Cleaner(safelist).clean(parsed)
 
         // The output is read by a WebView, not by a person, and every test in
         // this repo asserts exact markup. Pretty printing would add whitespace
@@ -128,6 +138,45 @@ object ArticleHtml {
      * could not be resolved, whose `src` attribute the clean removed and which
      * would otherwise sit in the page as a broken image with no source at all.
      */
+    /**
+     * Gives an image that has no `src` of its own the first source listed in its
+     * `srcset`, so that it has one when the clean resolves and checks sources.
+     * Without this the image would lose its `srcset` to the safelist and then be
+     * dropped by [dropImagesWithoutACheckedSource] for having no source at all,
+     * which is how a perfectly ordinary picture disappears from an article.
+     *
+     * The **first** candidate is taken. A browser chooses by viewport and pixel
+     * density, which is a decision this reader cannot make while cleaning text,
+     * and the first entry is the smallest in almost every list a feed sends —
+     * the cheaper file over mobile data. An image that already has a `src` keeps
+     * it: that source is the one the feed nominated for a reader that cannot
+     * choose.
+     */
+    private fun useSrcsetWhereThereIsNoSource(document: Document) {
+        for (image in document.select("img[srcset]")) {
+            if (image.attr("src").isNotBlank()) continue
+
+            val candidate = firstSourceInSrcset(image.attr("srcset")) ?: continue
+            image.attr("src", candidate)
+        }
+    }
+
+    /**
+     * The URL of the first candidate in a `srcset`, or null when the list holds
+     * none. A `srcset` is a comma-separated list of `URL descriptor` pairs, and
+     * a URL is allowed to contain a comma of its own, so a candidate's URL ends
+     * at the first whitespace rather than at the first comma; commas trailing
+     * the URL are the separator and belong to no address.
+     */
+    private fun firstSourceInSrcset(srcset: String): String? {
+        val firstCandidate = srcset
+            .dropWhile { it.isWhitespace() || it == ',' }
+            .takeWhile { !it.isWhitespace() }
+            .trimEnd(',')
+
+        return firstCandidate.ifEmpty { null }
+    }
+
     private fun dropImagesWithoutACheckedSource(document: Document) {
         for (image in document.select("img")) {
             val source = image.attr("src")

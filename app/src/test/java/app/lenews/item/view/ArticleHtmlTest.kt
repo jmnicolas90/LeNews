@@ -218,6 +218,43 @@ class ArticleHtmlTest {
         )
     }
 
+    @Test
+    fun anImageWhoseOnlySourceIsInSrcsetKeepsItsFirstCandidate() {
+        assertEquals(
+            "<img alt=\"Chart\" src=\"https://site.example/chart-small.png\">",
+            sanitise(
+                "<img srcset=\"https://site.example/chart-small.png 480w, " +
+                        "https://site.example/chart-large.png 1200w\" " +
+                        "sizes=\"100vw\" alt=\"Chart\">"
+            )
+        )
+    }
+
+    @Test
+    fun aSrcsetCandidateResolvesAgainstTheArticleLikeAnyOtherSource() {
+        assertEquals(
+            "<img src=\"https://site.example/news/chart.png\">",
+            sanitise("<img srcset=\"chart.png 1x\">")
+        )
+    }
+
+    @Test
+    fun aSrcsetCandidateMayCarryACommaOfItsOwn() {
+        assertEquals(
+            "<img src=\"https://site.example/chart,small.png\">",
+            sanitise(
+                "<img srcset=\"https://site.example/chart,small.png 480w, " +
+                        "https://site.example/chart-large.png 1200w\">"
+            )
+        )
+    }
+
+    @Test
+    fun anImageWhoseOnlySrcsetCandidateIsRefusedIsDropped() {
+        assertEquals("", sanitise("<img srcset=\"javascript:alert(1) 1x\" alt=\"Chart\">"))
+        assertEquals("", sanitise("<img srcset=\"chart.png 1x\" alt=\"Chart\">", url = null))
+    }
+
     // --- the article itself -----------------------------------------------
 
     @Test

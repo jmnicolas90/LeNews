@@ -45,7 +45,10 @@ Three decisions the ticket asked to be stated:
 - **`srcset` and `sizes` are removed**, for the same reason they are not in the
   relaxed safelist: they are a second list of image URLs, and the point of the
   file is that every URL rendered has been through one check. The image loads
-  from its `src`, which has.
+  from its `src`, which has — and when the feed put the source in `srcset`
+  alone, the first candidate becomes that `src` before the clean, so it goes
+  through the same check rather than the image disappearing (review round
+  below).
 - **A `data:image/svg+xml` image that carries script is inert.** An image
   document runs no script in any engine, and the WebView has JavaScript off
   besides.
@@ -81,11 +84,16 @@ itself navigates nowhere: a URL that passes the rule goes to the app's existing
 `onOpenUrl` (in-app custom tab, or the system browser when the preference says
 so), and `file:`, `content:`, `intent:`, `javascript:`, `tel:`, `mailto:` and
 any custom scheme are dropped. `Context.openUrl` and `Context.openInCustomTab`
-now catch `ActivityNotFoundException` — the custom tab falls back to
-`openUrl`, and `openUrl` logs and does nothing. That is upstream #353 to #358
-(`FileUriExposedException`) closed at both ends: nothing but a web URL is ever
-handed to `startActivity`, and a phone with nothing to open it with no longer
-takes the app down. `target="_blank"` loses its attribute in the sanitiser,
+now catch `ActivityNotFoundException` — the custom tab falls back to `openUrl`,
+and `openUrl` logs and does nothing — so a phone with nothing to open a link
+with no longer takes the app down.
+
+That closed the WebView's own links. It did **not** close upstream #353 to #358
+everywhere, and this section first claimed it did: the rule sat at one caller
+rather than at the two helpers every caller ends in, so the article toolbar's
+"open in browser" button still handed `Item.link` over untouched. The review
+round below is what makes "nothing but a web URL is ever handed to
+`startActivity`" actually true. `target="_blank"` loses its attribute in the sanitiser,
 `setSupportMultipleWindows(false)` is explicit, and `onCreateWindow` returns
 `false`, so there is no second WebView nobody configured.
 
@@ -117,7 +125,7 @@ with `git checkout` and the correct APK reinstalled.
 
 ### Tests
 
-- `app/src/test/java/app/lenews/item/view/ArticleHtmlTest.kt` — 20 tests, each
+- `app/src/test/java/app/lenews/item/view/ArticleHtmlTest.kt` — 24 tests, each
   asserting the **exact** surviving markup: `<script>`, `<style>`, `onclick` and
   `onload`, `<iframe>`, `<embed>`, `<object>`, `<svg onload>`, `<math>`,
   `<form>` with an input and a button, `<base>` and `<meta http-equiv=refresh>`,
@@ -125,7 +133,8 @@ with `git checkout` and the correct APK reinstalled.
   entity-encoded, a `data:text/html` link, a `file:` link, `content:`, `intent:`,
   `tel:`, `<a target=_blank>`, a relative link, a relative image, a
   protocol-relative image with and without an article URL, a `data:image/png`
-  image, a `data:text/html` image, `srcset`, and a benign article with an image,
+  image, a `data:text/html` image, `srcset` (four cases more since the review
+  round), and a benign article with an image,
   a figure with a caption, a code block, a table, a list and a blockquote that
   comes through byte for byte unchanged.
 - `app/src/test/java/app/lenews/item/view/ArticleLinksTest.kt` — 8 tests on the
@@ -159,3 +168,65 @@ screen.
   come up adds nothing the test does not already say.
 - **`Item.imageLink`**, the picture behind the title, is not part of this and is
   not sanitised HTML — it is a URL column loaded by Coil.
+
+### Review round (2026-09-06)
+
+An adversarial review of the branch found two things, and both are fixed here.
+
+**Every URL that leaves the app now goes through the rule, not just the
+WebView's.** The rule was applied in `shouldOverrideUrlLoading`, so a link
+tapped inside the article was checked — but the bottom bar's "open in browser"
+button, the timeline's open-in-a-browser path and the More tab call
+`Context.openUrl` / `Context.openInCustomTab` themselves, with whatever
+`Item.link` holds. A feed that sets an article's link to `file:///sdcard/x.html`
+therefore still reached `startActivity` and still threw
+`FileUriExposedException`, which is the crash this ticket was meant to close.
+
+`ArticleLinks.mayOpen` now sits **inside both helpers**, at the top: a URL that
+is not an `http`/`https` address is logged — without the URL itself, which says
+what is being read — and nothing happens. No caller can forget the check any
+more, because there is nowhere left to forget it. Both helpers also catch
+`FileUriExposedException` and `SecurityException` around `startActivity` as a
+last line; they should be unreachable now, which is exactly why they cost
+nothing. The custom tab still falls back to `openUrl` on
+`ActivityNotFoundException` and on nothing else.
+
+The toolbar button follows the same rule rather than a weaker one: it is shown
+when `ArticleLinks.mayOpen(item.link)` instead of when the link is merely not
+empty, so a link that would open nothing no longer offers a button, and the `!!`
+on `item.link` is gone with it.
+
+`app/src/androidTest/java/app/lenews/util/extensions/OpenUrlTest.kt` is the new
+test: a `ContextWrapper` that records `startActivity` instead of launching it,
+so what is asserted is which intents would have left the app. Four tests — a web
+address goes through each helper as an `ACTION_VIEW` intent carrying that exact
+address; `file:`, `content:`, `intent:`, `javascript:` plain and with a tab, a
+custom scheme, `tel:`, `mailto:`, `data:text/html` and the empty string launch
+nothing at all, through either helper. The decision function's own cases were
+already covered by `ArticleLinksTest`.
+
+**An image whose source is only in `srcset` survives.** The safelist strips
+`srcset`, and the pass after the clean then removed the image for having no
+`src` — so an ordinary picture, `<img srcset="…small.png 480w, …large.png
+1200w" alt="Chart">`, vanished from the article. Every existing test had
+supplied a fallback `src`, which hid it.
+
+`ArticleHtml.sanitise` now hoists a `srcset` into `src` **before** the clean,
+when and only when the image has no `src` of its own, so the candidate is
+resolved against the article's link and checked by scheme exactly like any other
+source. The **first** candidate is taken: a browser chooses by viewport and
+pixel density, which is not a decision available while cleaning text, and the
+first entry is the smallest in nearly every list a feed sends — the cheaper file
+over mobile data. A candidate's URL ends at the first whitespace rather than at
+the first comma, because a URL is allowed to contain a comma of its own. Four
+exact-output tests: a `srcset`-only image with two https candidates keeps the
+first and its `alt`; a relative candidate resolves against the article; a
+candidate with a comma in it survives whole; and an image whose only candidate
+is `javascript:`, or is relative with no article URL, is dropped exactly as
+before.
+
+Left out of this round: `TimelineTab.openItem` still writes
+`itemWithFeed.item.link!!`, so a null link there would still throw — that is
+upstream's own code and a different bug from the scheme check, which the helpers
+now make safe whatever they are handed. The image dialog and the dead
+`iframe`/`video` CSS listed above are still as they were.

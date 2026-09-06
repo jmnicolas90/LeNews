@@ -24,12 +24,17 @@ import java.util.Locale
  * article, nothing else may.
  *
  * It is deliberately a plain function of a string rather than a check spread
- * over the WebView client, because both places that need it need the same
- * answer — the sanitiser, deciding which `href` to keep, and the WebView,
- * deciding what to hand to `startActivity`. Handing anything else to
- * `startActivity` is what crashes upstream with `FileUriExposedException` when
- * an article links to a `file:` URL, and what would let a feed aim an intent at
- * another app.
+ * over the WebView client, because every place that needs it needs the same
+ * answer: the sanitiser, deciding which `href` to keep; the WebView, deciding
+ * which tapped link to pass on; and `Context.openUrl` and
+ * `Context.openInCustomTab`, which are where every one of them, plus the
+ * article toolbar and the timeline, actually reaches `startActivity`. The last
+ * of those is the one that matters, because a caller that hands over the feed's
+ * link untouched cannot then be trusted to have checked it.
+ *
+ * Handing anything else to `startActivity` is what crashes upstream with
+ * `FileUriExposedException` when an article links to a `file:` URL, and what
+ * would let a feed aim an intent at another app.
  */
 object ArticleLinks {
 
