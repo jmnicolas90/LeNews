@@ -32,6 +32,7 @@ import app.lenews.item.components.BottomBarState
 import app.lenews.item.components.ItemScreenBottomBar
 import app.lenews.item.components.SimpleTitle
 import app.lenews.item.components.rememberBottomBarNestedScrollConnection
+import app.lenews.item.view.ArticleLinks
 import app.lenews.item.view.ItemNestedScrollView
 import app.lenews.item.view.ItemWebView
 import app.lenews.util.extensions.displayColor
@@ -69,7 +70,9 @@ fun ItemScreenPage(
                 state = BottomBarState(
                     isRead = itemWithFeed.isRead,
                     isStarred = itemWithFeed.isStarred,
-                    isOpenUrlVisible = !item.link.isNullOrEmpty()
+                    // Not merely "there is a link": the button opens it,
+                    // and a link that is not a web address opens nothing.
+                    isOpenUrlVisible = ArticleLinks.mayOpen(item.link)
                 ),
                 accentColor = accentColor,
                 modifier = Modifier
@@ -86,7 +89,7 @@ fun ItemScreenPage(
                         }
                     },
                 onShare = onShareItem,
-                onOpenUrl = { onOpenUrl(item.link!!) },
+                onOpenUrl = { item.link?.let(onOpenUrl) },
                 onChangeReadState = onSetReadState,
                 onChangeStarState = onSetStarState
             )
