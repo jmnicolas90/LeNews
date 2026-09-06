@@ -101,14 +101,19 @@ the articles that did load. `TimelineTab` and `ItemScreen` read
 `isLoading()` now answers `listState() == Loading`, so there is one decision
 rather than two.
 
-**Prepend is consciously given no separate UI.** Nothing in this app opens a
-list in its middle — the timeline starts at the top, the item screen loads whole
-pages from the first one — so a prepend never runs. It is counted in the empty
-case above, and `retry()` covers every load type at once. The reason is written
-in the source.
+**Prepend was consciously given no separate UI**, on the grounds that nothing
+in this app opens a list in its middle — the timeline starting at the top, the
+item screen loading whole pages from the first one — so a prepend never runs.
+**That was wrong, and the second global review said so**: Room builds the list
+again around the row the reader is on, so the pages held after any store change
+start in the middle of the query and scrolling up prepends. See *From the global
+review (2026-09-06, second run)* at the end of this file for what the timeline
+does about it now.
 
-The item screen shows the placeholder but no footer: it is a pager, not a list,
-and there is no room under an article for a message about the next one.
+The item screen showed the placeholder but no footer: it is a pager, not a list,
+and there is no room under an article for a message about the next one. **What
+it needed instead** — an unloaded page whose load failed saying so, in place of
+a blank page — is the first finding of that same round.
 
 ### 2. Image download through MediaStore — fixed
 
@@ -290,8 +295,13 @@ worth writing down because the reasoning goes the other way:
   how far to load so that `initialPage` can find the article by its id. Give it
   5 instead of 379 and it loads the first hundred articles, does not find the
   id, falls back to the index and opens the article at position 5 — one the
-  reader did not tap. Ticket 16's `initialPage` is unchanged and still works,
-  because nothing about the index it is given has changed.
+  reader did not tap. Ticket 16's `initialPage` was unchanged and still worked,
+  because nothing about the index it was given had changed. (**Since the second
+  global review the index no longer comes from the timeline at all**: the item
+  screen counts the article's position in the store when it opens. Placeholders
+  still stay on, for the reason above — a row's index is still the article's
+  position in the query, which is what the timeline hands over and what the
+  screen checks against the store.)
 
 So the rule is a plain function of three numbers,
 `timelineRowCount(itemCount, placeholdersAfter, nextPageFailed)` in
@@ -341,3 +351,64 @@ was done about `MarkItemsRead`, which compares a row index across rebuilds and
 can mark articles read that were never on screen when a sync inserts articles
 above the reader: it is an inherited defect of the same file, not something
 this round's findings raised, and it wants a ticket of its own.
+
+## From the global review (2026-09-06, second run)
+
+Two findings about paging that the first round of this ticket had left open.
+Both accepted, both fixed here.
+
+**1. A page of the reader's pager that failed to load showed nothing at all.**
+`pagedListState` answers `Content` for an append that failed with articles
+already on screen — which is right — and the pager's page count stays every
+article the query matches, loaded or not. So the reader could swipe past the
+articles that had loaded onto a page whose article was null, and that page drew
+nothing: a blank screen, no message, no retry, and the only way out was to leave
+the screen. The timeline had gained a retry row in the first round; the reader
+had gained nothing.
+
+The decision is one more pure function beside the others in
+`app/src/main/java/app/lenews/util/paging/PagedListState.kt`:
+`articlePageState(articleIsLoaded, append, prepend)` answers `Article`,
+`Loading` or `Failed`. An article that loaded is shown whatever else has failed;
+a page with no article is `Loading` while a load is running and `Failed` once one
+has failed, in either direction — the retry covers every load type at once, so
+telling the two directions apart would change nothing the reader can act on.
+`ItemScreen` reads it and does nothing else: the loaded page moved into a
+private `LoadedArticlePage` composable, the loading page is
+`CenteredProgressIndicator`, and the failed page is the same
+`PagingErrorPlaceholder` the failed refresh already used — a pager page is a
+whole screen, so the full placeholder is the right shape rather than a footer.
+Six tests in `PagedListStateTest`.
+
+**2. "A prepend never runs" was false, and the timeline had no recovery for
+one.** The first round wrote that nothing in this app opens a list in its
+middle. It does: Room builds the list again around the row the reader is on
+whenever the store changes — every sync, every article marked read on scroll —
+so the pages held afterwards start in the middle of the query, and scrolling up
+from there is a prepend. Since the second-run fix to ticket 16 the item screen
+opens its list at the tapped article on purpose, which asks for one immediately.
+A failed prepend left leading placeholders that nothing would ever fill, with no
+message and no retry — the mirror of the defect the first round fixed at the
+bottom of the timeline.
+
+`previousPageFailed(loadState)` joins `nextPageFailed`, and
+`timelineRowCount` gained the other end: it now takes `placeholdersBefore` and
+`previousPageFailed` as well, and `timelineFirstRow(placeholdersBefore,
+previousPageFailed)` says where the list starts. `TimelineTab` draws the retry
+row above the first article that loaded and offsets every row by that first row,
+key included. `PagingErrorFooter` is `PagingErrorRow` now, because it is used at
+both ends. The KDoc that claimed a prepend never runs is gone and says the
+opposite, with the reason; the *Answer* above and the map line said the same
+thing and are corrected in the same commit.
+
+Tests in `TimelineRowCountTest`: the three cases of the function at the new end,
+both ends failing at once, and one that holds it to **placeholder-bearing
+`PagingData` with a real prepend failure** — a thousand articles, a list opened
+at position 400, the page above returning an error, and the first row 400 rather
+than 0. `PagedListStateTest` covers `previousPageFailed` and that a failed
+append is not read as a failed prepend.
+
+Left out: nothing was done about the retry row being the same component at both
+ends of the list without saying which end failed. It says the load failed and
+offers the retry, which retries both.
+

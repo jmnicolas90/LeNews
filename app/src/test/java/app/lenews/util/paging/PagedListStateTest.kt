@@ -103,6 +103,87 @@ class PagedListStateTest {
         )
     }
 
+    @Test
+    fun `a prepend that failed keeps the articles it already has`() {
+        val states = loadStates(prepend = failed())
+
+        assertEquals(PagedListState.Content, pagedListState(states, itemCount = 20))
+        assertTrue(previousPageFailed(states))
+        assertFalse(nextPageFailed(states), "a failed prepend was read as a failed append")
+    }
+
+    @Test
+    fun `an append that failed is not a prepend that failed`() {
+        assertFalse(previousPageFailed(loadStates(append = failed())))
+    }
+
+    //region one page of the reader's pager
+
+    @Test
+    fun `a page whose article is loaded shows the article`() {
+        assertEquals(
+            ArticlePageState.Article,
+            articlePageState(
+                articleIsLoaded = true,
+                append = LoadState.NotLoading(endOfPaginationReached = false),
+                prepend = LoadState.NotLoading(endOfPaginationReached = false)
+            )
+        )
+    }
+
+    /** A failure elsewhere in the list is no reason to hide an article. */
+    @Test
+    fun `a page whose article is loaded shows it even when a page failed`() {
+        assertEquals(
+            ArticlePageState.Article,
+            articlePageState(articleIsLoaded = true, append = failed(), prepend = failed())
+        )
+    }
+
+    @Test
+    fun `a page still being loaded waits`() {
+        assertEquals(
+            ArticlePageState.Loading,
+            articlePageState(
+                articleIsLoaded = false,
+                append = LoadState.Loading,
+                prepend = LoadState.NotLoading(endOfPaginationReached = true)
+            )
+        )
+    }
+
+    /**
+     * The one the reader could not get out of: the pager counts every matching
+     * article, so a failed append leaves pages the reader can swipe to that
+     * nothing is going to fill. Blank, with no message and no retry.
+     */
+    @Test
+    fun `a page the next load failed to bring says so`() {
+        assertEquals(
+            ArticlePageState.Failed,
+            articlePageState(
+                articleIsLoaded = false,
+                append = failed(),
+                prepend = LoadState.NotLoading(endOfPaginationReached = true)
+            )
+        )
+    }
+
+    /** The same at the other end, which the item screen reaches by opening in the middle. */
+    @Test
+    fun `a page the previous load failed to bring says so`() {
+        assertEquals(
+            ArticlePageState.Failed,
+            articlePageState(
+                articleIsLoaded = false,
+                append = LoadState.NotLoading(endOfPaginationReached = true),
+                prepend = failed()
+            )
+        )
+    }
+
+    //endregion
+
     private fun failed() = LoadState.Error(RuntimeException("no"))
 
     private fun loadStates(

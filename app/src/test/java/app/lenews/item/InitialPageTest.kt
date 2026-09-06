@@ -25,13 +25,14 @@ class InitialPageTest {
     /**
      * The list the pager gets is built again when the screen is created, so a
      * sync that arrived meanwhile can have put articles above the one the
-     * reader tapped. The id is what says where it went.
+     * reader tapped. The id is what says where it went, whatever position it
+     * was given.
      */
     @Test
     fun theArticleIsFoundByItsIdAndNotAtThePositionItWasOpenedFrom() {
         val ids = listOf(NEW_ARTICLE, ANOTHER_NEW_ARTICLE, THE_ARTICLE, ONE_MORE)
 
-        assertEquals(2, initialPage(ids, itemId = THE_ARTICLE, itemIndex = 0))
+        assertEquals(2, initialPage(ids, itemId = THE_ARTICLE, articlePosition = 0))
     }
 
     /** The ordinary case: nothing moved, and the two answers agree. */
@@ -39,19 +40,19 @@ class InitialPageTest {
     fun theArticleIsWhereTheTimelineSaidItWas() {
         val ids = listOf(NEW_ARTICLE, THE_ARTICLE, ONE_MORE)
 
-        assertEquals(1, initialPage(ids, itemId = THE_ARTICLE, itemIndex = 1))
+        assertEquals(1, initialPage(ids, itemId = THE_ARTICLE, articlePosition = 1))
     }
 
     /**
      * Beyond the pages the pager has loaded there are placeholders, and the
-     * article the screen was opened on can be one of them. The position the
-     * timeline gave is then the best guess there is.
+     * article the screen was opened on can be one of them. The position counted
+     * in the store is then the answer, and it is a position in the same list.
      */
     @Test
     fun aPositionIsWhatIsLeftWhenTheArticleHasNotLoadedYet() {
         val ids = listOf(NEW_ARTICLE, ONE_MORE, null, null, null)
 
-        assertEquals(3, initialPage(ids, itemId = THE_ARTICLE, itemIndex = 3))
+        assertEquals(3, initialPage(ids, itemId = THE_ARTICLE, articlePosition = 3))
     }
 
     /**
@@ -60,8 +61,8 @@ class InitialPageTest {
      */
     @Test
     fun aScreenWithNoListOpensOnItsOnlyPage() {
-        assertEquals(0, initialPage(listOf(THE_ARTICLE), itemId = THE_ARTICLE, itemIndex = -1))
-        assertEquals(0, initialPage(emptyList(), itemId = THE_ARTICLE, itemIndex = -1))
+        assertEquals(0, initialPage(listOf(THE_ARTICLE), itemId = THE_ARTICLE, articlePosition = -1))
+        assertEquals(0, initialPage(emptyList(), itemId = THE_ARTICLE, articlePosition = -1))
     }
 
     /**
@@ -73,7 +74,7 @@ class InitialPageTest {
     fun aPositionPastTheEndOfTheListIsBroughtBackIntoIt() {
         val ids = listOf(NEW_ARTICLE, ONE_MORE)
 
-        assertEquals(1, initialPage(ids, itemId = THE_ARTICLE, itemIndex = 40))
+        assertEquals(1, initialPage(ids, itemId = THE_ARTICLE, articlePosition = 40))
     }
 
     private companion object {

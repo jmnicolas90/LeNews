@@ -40,12 +40,12 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Where the timeline's list ends, and so where the retry for a failed next page
- * sits.
+ * Where the timeline's list starts and ends, and so where the retry for a page
+ * that failed sits.
  *
- * The rule is a plain function of three numbers, and the last test holds it to
- * the real thing: a paged list with placeholders, a thousand matching articles,
- * fifty loaded and the next page failing.
+ * The rule is a plain function of a handful of numbers, and the last two tests
+ * hold it to the real thing: a paged list with placeholders, a thousand
+ * matching articles, fifty loaded, and a load failing at one end or the other.
  */
 class TimelineRowCountTest {
 
@@ -53,10 +53,8 @@ class TimelineRowCountTest {
     fun `while pages are still arriving every matching article is a row`() {
         // The rows for articles not loaded yet are blank for a moment and then
         // fill: the reader reaches one just before it arrives.
-        assertEquals(
-            1000,
-            timelineRowCount(itemCount = 1000, placeholdersAfter = 950, nextPageFailed = false)
-        )
+        assertEquals(1000, rowCount(itemCount = 1000, placeholdersAfter = 950))
+        assertEquals(0, timelineFirstRow(placeholdersBefore = 0, previousPageFailed = false))
     }
 
     @Test
@@ -65,15 +63,59 @@ class TimelineRowCountTest {
         // between the last article and the retry.
         assertEquals(
             50,
-            timelineRowCount(itemCount = 1000, placeholdersAfter = 950, nextPageFailed = true)
+            rowCount(itemCount = 1000, placeholdersAfter = 950, nextPageFailed = true)
         )
     }
 
     @Test
     fun `a failure with everything loaded takes nothing off the list`() {
+        assertEquals(50, rowCount(itemCount = 50, placeholdersAfter = 0, nextPageFailed = true))
+    }
+
+    /**
+     * The mirror at the other end. A list opened in its middle has placeholders
+     * before the articles it loaded too, and they stay blank just the same when
+     * the page above has failed — with the retry above all of them, where nobody
+     * scrolls up far enough to find it.
+     */
+    @Test
+    fun `once the page above has failed the list starts at the loaded articles`() {
+        assertEquals(
+            400,
+            timelineFirstRow(placeholdersBefore = 400, previousPageFailed = true)
+        )
+        assertEquals(
+            600,
+            rowCount(
+                itemCount = 1000,
+                placeholdersBefore = 400,
+                placeholdersAfter = 550,
+                previousPageFailed = true
+            )
+        )
+    }
+
+    @Test
+    fun `a page above that is still loading leaves the rows alone`() {
+        assertEquals(0, timelineFirstRow(placeholdersBefore = 400, previousPageFailed = false))
+        assertEquals(
+            1000,
+            rowCount(itemCount = 1000, placeholdersBefore = 400, placeholdersAfter = 550)
+        )
+    }
+
+    /** Both ends failed: the list is exactly the articles that did load. */
+    @Test
+    fun `a failure at both ends leaves only the loaded articles`() {
         assertEquals(
             50,
-            timelineRowCount(itemCount = 50, placeholdersAfter = 0, nextPageFailed = true)
+            rowCount(
+                itemCount = 1000,
+                placeholdersBefore = 400,
+                placeholdersAfter = 550,
+                nextPageFailed = true,
+                previousPageFailed = true
+            )
         )
     }
 
@@ -113,16 +155,97 @@ class TimelineRowCountTest {
 
         assertEquals(
             PAGING_INITIAL_SIZE,
-            timelineRowCount(presenter.size, snapshot.placeholdersAfter, nextPageFailed(loadState)),
+            timelineRowCount(
+                itemCount = presenter.size,
+                placeholdersBefore = snapshot.placeholdersBefore,
+                placeholdersAfter = snapshot.placeholdersAfter,
+                nextPageFailed = nextPageFailed(loadState),
+                previousPageFailed = previousPageFailed(loadState)
+            ),
             "the retry is not the row after the last article the reader can see"
         )
 
         collection.cancelAndJoin()
     }
 
+    /**
+     * The same against the real machinery at the other end. The item screen
+     * opens the list on the article the reader tapped, so the pages it holds
+     * start in the middle of the query; scrolling up from there is a prepend,
+     * and this is one that fails.
+     */
+    @Test
+    fun `the retry precedes the first loaded article of a real paged list`() = runBlocking {
+        val presenter = TimelinePresenter()
+        val pager = Pager(
+            config = PagingConfig(
+                initialLoadSize = PAGING_INITIAL_SIZE,
+                pageSize = PAGING_PAGE_SIZE,
+                prefetchDistance = PAGING_PREFETCH_DISTANCE
+            ),
+            initialKey = OPENED_AT,
+            pagingSourceFactory = { NothingAbove(total = 1000, openedAt = OPENED_AT) }
+        )
+
+        val presented = Channel<Unit>(Channel.CONFLATED)
+        presenter.addOnPagesUpdatedListener { presented.trySend(Unit) }
+
+        val collection = launch(Dispatchers.Default) {
+            pager.flow.collectLatest { presenter.collectFrom(it) }
+        }
+        withTimeout(TIMEOUT_MS) { presented.receive() }
+
+        // the reader reaches the first article that loaded, which is what asks
+        // for the page above it
+        presenter.get(OPENED_AT)
+        withTimeout(TIMEOUT_MS) {
+            while (presenter.loadStateFlow.value?.prepend !is LoadState.Error) delay(POLL_MS)
+        }
+
+        val loadState = requireNotNull(presenter.loadStateFlow.value)
+        val snapshot = presenter.snapshot()
+
+        assertEquals(1000, presenter.size, "the list does not count the articles not loaded")
+        assertEquals(
+            OPENED_AT,
+            snapshot.placeholdersBefore,
+            "the articles not loaded are not before the loaded ones"
+        )
+        assertTrue(
+            previousPageFailed(loadState),
+            "the page above did not fail, so this proves nothing"
+        )
+
+        assertEquals(
+            OPENED_AT,
+            timelineFirstRow(snapshot.placeholdersBefore, previousPageFailed(loadState)),
+            "the list does not start at the first article the reader can see"
+        )
+
+        collection.cancelAndJoin()
+    }
+
+    /** The two ends the tests above vary, with the settled case as the default. */
+    private fun rowCount(
+        itemCount: Int,
+        placeholdersBefore: Int = 0,
+        placeholdersAfter: Int,
+        nextPageFailed: Boolean = false,
+        previousPageFailed: Boolean = false
+    ) = timelineRowCount(
+        itemCount = itemCount,
+        placeholdersBefore = placeholdersBefore,
+        placeholdersAfter = placeholdersAfter,
+        nextPageFailed = nextPageFailed,
+        previousPageFailed = previousPageFailed
+    )
+
     private companion object {
         const val TIMEOUT_MS = 10_000L
         const val POLL_MS = 10L
+
+        /** Far enough down the query that the pages above it are worth a retry. */
+        const val OPENED_AT = 400
     }
 }
 
@@ -154,6 +277,34 @@ private class FirstPageOnly(private val total: Int) : PagingSource<Int, Int>() {
             prevKey = null,
             nextKey = end,
             itemsBefore = 0,
+            itemsAfter = total - end
+        )
+    }
+
+    override fun getRefreshKey(state: PagingState<Int, Int>): Int? = null
+}
+
+/**
+ * A list of [total] articles opened at [openedAt] — the way the item screen
+ * opens one on the article the reader tapped — whose pages downwards arrive and
+ * whose page upwards fails.
+ */
+private class NothingAbove(private val total: Int, private val openedAt: Int) :
+    PagingSource<Int, Int>() {
+
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Int> = when (params) {
+        is LoadParams.Prepend -> LoadResult.Error(IllegalStateException("no page above"))
+        else -> page(params.key ?: openedAt, params.loadSize)
+    }
+
+    private fun page(start: Int, size: Int): LoadResult<Int, Int> {
+        val end = minOf(start + size, total)
+
+        return LoadResult.Page(
+            data = (start until end).toList(),
+            prevKey = if (start > 0) start - 1 else null,
+            nextKey = if (end < total) end else null,
+            itemsBefore = start,
             itemsAfter = total - end
         )
     }

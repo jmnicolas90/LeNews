@@ -55,15 +55,17 @@ import app.lenews.timelime.components.TimelineItemSize
 import app.lenews.timelime.dialog.TimelineDialogs
 import app.lenews.timelime.drawer.TimelineDrawer
 import app.lenews.util.components.LoadingScreen
-import app.lenews.util.components.PagingErrorFooter
 import app.lenews.util.components.PagingErrorPlaceholder
+import app.lenews.util.components.PagingErrorRow
 import app.lenews.util.components.Placeholder
+import app.lenews.util.extensions.firstRow
 import app.lenews.util.extensions.isLoading
 import app.lenews.util.extensions.listState
 import app.lenews.util.extensions.nextPageFailed
-import app.lenews.util.extensions.rowCount
 import app.lenews.util.extensions.openInCustomTab
 import app.lenews.util.extensions.openUrl
+import app.lenews.util.extensions.previousPageFailed
+import app.lenews.util.extensions.rowCount
 import app.lenews.util.paging.PagedListState
 import app.lenews.util.theme.spacing
 import app.lenews.db.entities.OpenIn
@@ -288,20 +290,33 @@ object TimelineTab : Tab {
                                         screenModel = screenModel
                                     )
 
+                                    // The rows the list draws, which are not
+                                    // always all of them: the rows for articles
+                                    // a failed page will never bring would stay
+                                    // blank, and the retry past them would be
+                                    // on the far side of all that blank space.
+                                    val firstRow = items.firstRow()
+                                    val keyOfRow = items.itemKey { it.item.id }
+
                                     LazyColumn(
                                         state = lazyListState,
                                         contentPadding = PaddingValues(vertical = lazyColumnPadding),
                                         verticalArrangement = Arrangement.spacedBy(lazyColumnPadding)
                                     ) {
-                                        // Not items.itemCount: the rows for
-                                        // articles the next page failed to
-                                        // bring would stay blank, and the retry
-                                        // under this list would be below all of
-                                        // them.
+                                        // Right above the first article that
+                                        // did load, the rows before it stopping
+                                        // there.
+                                        if (items.previousPageFailed()) {
+                                            item {
+                                                PagingErrorRow(onRetry = { items.retry() })
+                                            }
+                                        }
+
                                         items(
                                             count = items.rowCount(),
-                                            key = items.itemKey { it.item.id },
-                                        ) { index ->
+                                            key = { row -> keyOfRow(firstRow + row) },
+                                        ) { row ->
+                                            val index = firstRow + row
                                             val itemWithFeed = items[index]
 
                                             if (itemWithFeed != null) {
@@ -353,7 +368,7 @@ object TimelineTab : Tab {
                                         // there.
                                         if (items.nextPageFailed()) {
                                             item {
-                                                PagingErrorFooter(onRetry = { items.retry() })
+                                                PagingErrorRow(onRetry = { items.retry() })
                                             }
                                         }
                                     }

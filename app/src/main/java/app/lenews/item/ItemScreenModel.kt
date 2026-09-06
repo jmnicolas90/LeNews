@@ -24,6 +24,7 @@ import coil3.toBitmap
 import app.lenews.R
 import app.lenews.repositories.BaseRepository
 import app.lenews.util.ApplicationScope
+import app.lenews.util.PAGING_INITIAL_SIZE
 import app.lenews.util.PAGING_PAGE_SIZE
 import app.lenews.util.PAGING_PREFETCH_DISTANCE
 import app.lenews.util.Preferences
@@ -74,6 +75,15 @@ class ItemScreenModel(
      */
     private val repository = MutableStateFlow<BaseRepository?>(null)
 
+    /**
+     * Whether this screen is one article of a list, rather than the single
+     * article a notification opened. [itemIndex] is -1 for the second, which is
+     * all this model still reads off it: the position it carries is the
+     * position the article had in the list the *timeline* was showing, and this
+     * screen asks the store for the position it has now.
+     */
+    private val openedFromAList = itemIndex > -1
+
     private val useCustomShareIntentTpl = preferences.useCustomShareIntentTpl.flow.stateIn(
         screenModelScope, SharingStarted.Eagerly, false
     )
@@ -121,6 +131,9 @@ class ItemScreenModel(
      */
     private var lastPagedArticleId: Long? = null
 
+    /** So that an account write does not build the reader's list a second time. */
+    private var listWasBuilt = false
+
     private val _itemState: MutableStateFlow<PagingData<ItemWithFeed>> =
         MutableStateFlow(
             PagingData.empty(
@@ -144,8 +157,14 @@ class ItemScreenModel(
 
                     repository.value = get<BaseRepository> { parametersOf(account) }
 
-                    if (itemIndex > -1) {
-                        itemState = buildPager()
+                    if (openedFromAList) {
+                        // the list is built once, on the first account this
+                        // reads; nothing about editing the account moves the
+                        // article the reader is on
+                        if (!listWasBuilt) {
+                            listWasBuilt = true
+                            openTheListOnTheTappedArticle()
+                        }
                     } else {
                         val query = ItemSelectionQueryBuilder.buildQuery(itemId)
 
@@ -177,27 +196,67 @@ class ItemScreenModel(
         }
     }
 
+    /**
+     * Opens the list on the article the reader tapped, wherever it is now.
+     *
+     * The position the timeline handed this screen is the position the article
+     * had in the list the timeline was showing. By the time this screen builds
+     * its own list that can be a different list — a sync that arrived in
+     * between, or the process having been killed and the screen recreated —
+     * and the article can be anywhere in it. Loading a first page and hoping
+     * the article is in it is what let the screen open on a *neighbour* and
+     * mark that one read, which is the reader losing an article they never saw.
+     *
+     * So the store is asked where the article is, under the same conditions and
+     * the same order as the list, and the answer is both the page the pager
+     * opens on and the row the pager loads around.
+     *
+     * An article that is not there any more — retention drops articles at every
+     * sync — has no position at all, and there is no neighbour worth showing in
+     * its place. The screen is told, and it goes back to the timeline.
+     */
+    private suspend fun openTheListOnTheTappedArticle() {
+        val itemDao = database.itemDao()
+
+        if (!itemDao.itemExists(itemId)) {
+            mutableState.update { it.copy(articleIsGone = true) }
+            return
+        }
+
+        val position = itemDao.countArticlesBefore(
+            ItemsQueryBuilder.buildItemPositionQuery(queryFilters, itemId, keptArticleIds.value)
+        )
+
+        itemState = buildPager(position)
+        mutableState.update { it.copy(articlePosition = position) }
+    }
+
     private fun createPagingSource(): PagingSource<Int, ItemWithFeed> {
         val query = ItemsQueryBuilder.buildItemsQuery(queryFilters, keptArticleIds.value)
 
         return database.itemDao().selectAll(query)
     }
 
-    private fun buildPager(): Flow<PagingData<ItemWithFeed>> {
-        val pageNb = (((itemIndex + PAGING_PAGE_SIZE - 1) / PAGING_PAGE_SIZE) + 1)
-            .coerceAtLeast(1)
-
-        return Pager(
+    /**
+     * The pager, anchored on [position] so that the first page loaded is the one
+     * holding the article the reader tapped rather than the first page of the
+     * list. Reading the four hundred articles above it only to reach it would
+     * be a query that grows with how far down the reader tapped; the pages
+     * before are prepended when they are scrolled to, which is why a failed
+     * prepend has a retry of its own.
+     */
+    private fun buildPager(position: Int): Flow<PagingData<ItemWithFeed>> =
+        Pager(
             config = PagingConfig(
-                initialLoadSize = PAGING_PAGE_SIZE * pageNb,
+                initialLoadSize = PAGING_INITIAL_SIZE,
                 pageSize = PAGING_PAGE_SIZE,
                 prefetchDistance = PAGING_PREFETCH_DISTANCE
             ),
+            initialKey = position,
             pagingSourceFactory = { createPagingSource() }
         )
             .flow
             .cachedIn(screenModelScope)
-    }
 
     /**
      * The article the reader has just swiped to becomes read, once. It is not a
@@ -430,6 +489,17 @@ data class ItemState(
     val imageDialogUrl: String? = null,
     /** What has happened to the images the reader asked for, oldest first. */
     val imageResults: List<ImageResult> = emptyList(),
+    /**
+     * Where in the list the article the screen was opened on is now, counted
+     * from zero, or null while that is still being read from the store — and
+     * for the single-article screen a notification opens, which has no list.
+     */
+    val articlePosition: Int? = null,
+    /**
+     * The store no longer holds the article this screen was opened on, so there
+     * is nothing to show and the screen goes back to the list it came from.
+     */
+    val articleIsGone: Boolean = false,
     val openInExternalBrowser: Boolean = false,
     val theme: String? = ""
 )

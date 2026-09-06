@@ -63,6 +63,18 @@ interface ItemDao : BaseDao<Item> {
     @RawQuery(observedEntities = [Item::class])
     fun selectItemById(query: SupportSQLiteQuery): Flow<ItemWithFeed>
 
+    /**
+     * The position an article has in a list right now, counted from zero: how
+     * many of the list's articles come before it. The query is
+     * `ItemsQueryBuilder.buildItemPositionQuery`, which is where the conditions
+     * and the order are.
+     *
+     * The answer means nothing at all for an article the store no longer
+     * holds — not even zero — so ask [itemExists] first.
+     */
+    @RawQuery
+    suspend fun countArticlesBefore(query: SupportSQLiteQuery): Int
+
     //region storing what a sync brought back
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)

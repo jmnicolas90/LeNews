@@ -18,6 +18,8 @@ package app.lenews.item
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.paging.PagingDataEvent
+import androidx.paging.PagingDataPresenter
 import androidx.sqlite.db.SupportSQLiteQuery
 import androidx.datastore.preferences.core.Preferences as StoredPreferences
 import cafe.adriel.voyager.core.model.screenModelScope
@@ -38,11 +40,17 @@ import app.lenews.util.DataStorePreferences
 import app.lenews.util.Preferences
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
@@ -55,6 +63,7 @@ import org.koin.test.inject
 import java.time.LocalDateTime
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
@@ -230,15 +239,28 @@ class ItemScreenModelTest : KoinTest {
      * The reader opens an article from the unread timeline, it is marked read,
      * and the process is killed. The screen that comes back is given the same
      * article id and the same position; the list behind it no longer holds the
-     * article, and a sync has put another one above it.
+     * article, and a sync has put **sixty** articles above it — more than the
+     * pager loads at once, so a screen that looked for the article in the first
+     * page it loaded would not find it, would fall back to the position the
+     * timeline passed, and would open a stranger's article and mark it read.
+     *
+     * This goes through the model's own pager rather than through a query
+     * written here, because the loaded window is the whole point.
      */
     @Test
     fun afterTheProcessDiesTheReaderIsBackOnTheArticleTheyWereReading() = runBlocking {
-        store(
-            article(ARTICLE_A, published = LocalDateTime.now().minusHours(2)),
-            article(ARTICLE_B, published = LocalDateTime.now().minusHours(1))
-        )
+        store(article(ARTICLE_A, published = LocalDateTime.now().minusHours(NEWER_ARTICLES + 1L)))
         database.itemDao().markRead(ARTICLE_A, NOW)
+
+        // the sync that arrived while the process was dead, newest last
+        store(
+            *(1..NEWER_ARTICLES).map {
+                article(
+                    ARTICLE_A + it,
+                    published = LocalDateTime.now().minusHours(NEWER_ARTICLES + 1L - it)
+                )
+            }.toTypedArray()
+        )
 
         val unreadTimeline = QueryFilters(showReadItems = false)
         assertFalse(
@@ -253,12 +275,37 @@ class ItemScreenModelTest : KoinTest {
             "the recreated screen does not ask for the article it was opened on"
         )
 
-        val pages = idsOf(ItemsQueryBuilder.buildItemsQuery(unreadTimeline, model.keptArticles))
-        assertEquals(listOf(ARTICLE_B, ARTICLE_A), pages, "the list is not what the pager gets")
+        val position = awaitPosition(model)
+        assertEquals(NEWER_ARTICLES, position, "the store was not asked where the article is now")
+
+        val pages = presentedList(model)
+        assertEquals(ARTICLE_A, pages[position], "the pager did not load the page it is on")
         assertEquals(
-            1,
-            initialPage(pages, itemId = ARTICLE_A, itemIndex = 0),
-            "the screen opens on the article that has taken the reader's place"
+            position,
+            initialPage(pages, itemId = ARTICLE_A, articlePosition = position),
+            "the screen opens on an article that has taken the reader's place"
+        )
+    }
+
+    /**
+     * Retention drops articles inside every sync, so the article a screen was
+     * opened on can be gone by the time the screen builds its list. There is no
+     * honest page to show: the neighbour that would take its place is another
+     * article, and opening it marks it read. The screen is told instead, and it
+     * goes back to the list.
+     */
+    @Test
+    fun anArticleTheStoreNoLongerHoldsClosesTheScreenInsteadOfOpeningANeighbour() = runBlocking {
+        store(article(ARTICLE_B))
+
+        val model = screenModel(ARTICLE_A, itemIndex = 0, QueryFilters())
+
+        await("the screen was never told the article it was opened on is gone") {
+            model.state.value.articleIsGone
+        }
+        assertNull(
+            model.state.value.articlePosition,
+            "the screen was given a position in a list the article is not in"
         )
     }
 
@@ -369,6 +416,57 @@ class ItemScreenModelTest : KoinTest {
         return ids
     }
 
+    /**
+     * Waits for the model to work out where in the list the article the screen
+     * was opened on is now.
+     */
+    private suspend fun awaitPosition(model: ItemScreenModel): Int {
+        val deadline = System.currentTimeMillis() + FIVE_SECONDS
+
+        while (System.currentTimeMillis() < deadline) {
+            model.state.value.articlePosition?.let { return it }
+
+            if (model.state.value.articleIsGone) {
+                fail("the article the screen was opened on was reported gone")
+            }
+            delay(20)
+        }
+
+        fail("the screen never found the article it was opened on")
+    }
+
+    /**
+     * The list the reader's pager actually holds: the ids of the pages it
+     * loaded, in order, with null where a page is a placeholder — which is
+     * exactly what the screen reads off `LazyPagingItems.itemSnapshotList`.
+     */
+    private suspend fun presentedList(model: ItemScreenModel): List<Long?> {
+        val presenter = object :
+            PagingDataPresenter<ItemWithFeed>(mainContext = EmptyCoroutineContext) {
+
+            override suspend fun presentPagingDataEvent(event: PagingDataEvent<ItemWithFeed>) = Unit
+        }
+
+        val presented = Channel<Unit>(Channel.CONFLATED)
+        presenter.addOnPagesUpdatedListener { presented.trySend(Unit) }
+
+        val collection = CoroutineScope(Dispatchers.Default).launch {
+            model.itemState.collectLatest { presenter.collectFrom(it) }
+        }
+
+        try {
+            withTimeout(FIVE_SECONDS) {
+                while (presenter.size == 0) {
+                    presented.receive()
+                }
+            }
+
+            return presenter.snapshot().map { it?.item?.id }
+        } finally {
+            collection.cancelAndJoin()
+        }
+    }
+
     /** Waits for a write that is on its way, and says what was missing if it never lands. */
     private suspend fun await(missing: String, written: suspend () -> Boolean) {
         val deadline = System.currentTimeMillis() + FIVE_SECONDS
@@ -429,6 +527,9 @@ class ItemScreenModelTest : KoinTest {
 
         const val ARTICLE_A = 1_625_234_531_559_678L
         const val ARTICLE_B = 1_625_234_531_559_679L
+
+        /** More than one page of the pager, which is what makes the list a new one. */
+        const val NEWER_ARTICLES = 60
 
         const val A_MINUTE = 60_000L
         const val NOW = 1_757_160_000_000L

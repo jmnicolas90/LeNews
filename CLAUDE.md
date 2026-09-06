@@ -42,7 +42,7 @@ there. `CONTRIBUTING.md` holds the rule for copyright headers —
 in the comment syntax of their language, *added* under upstream's header and
 never substituted for it, and **not** on Markdown documentation, which says in
 its own prose who wrote it. `CONTRIBUTING.md` carries the list itself,
-file by file — sixty-four non-Markdown files carry the header today, and
+file by file — sixty-five non-Markdown files carry the header today, and
 `grep -rl "Copyright (C) 2026 Jean-Michel Nicolas"` is how the table is checked;
 `LICENSE` is byte-identical to upstream's. The same file lists the ten
 non-Markdown fork-created files that deliberately carry no header and why — JSON has no comments, the lint baseline is regenerated, and
@@ -485,9 +485,48 @@ not in the screen's own scope, which Voyager cancels on disposal: a write waitin
 behind a sync for Room's transaction executor would be cancelled before it
 committed, and nothing would write it afterwards. Anything only the screen cares
 about stays on the screen's scope. The kept set is seeded with the article the
-screen was opened on, and the page it opens on is found by that id rather than by
-the index the timeline passed, so a screen recreated after process death comes
-back to the article the reader was reading.
+screen was opened on.
+
+**The reader opens on the article that was tapped, and never on a neighbour.**
+The index the timeline passes is where the article was in the list the *timeline*
+was showing; the item screen does not position itself with it. Before the pager
+exists the model asks the store where the article is **now** —
+`ItemsQueryBuilder.buildItemPositionQuery(filters, itemId, keptArticleIds)`,
+counting the rows before it under the same table, conditions and order, run
+through `ItemDao.countArticlesBefore` — and that count is both the page the pager
+opens on and the key it loads around (`Pager(initialKey = position)`). The list
+order therefore ends in `Article.id`, which makes it total: the id is the
+`rowid`, so it is already the last column of every index and costs nothing, and
+without it two articles published in the same second would share a position.
+**An article the store no longer holds has no position at all** — the count comes
+out as the length of the list one way round and as nought the other, and nought
+reads exactly like "the first article" — so the model asks `itemExists` first and
+sets `ItemState.articleIsGone`, on which `ItemScreen` pops back to the list
+rather than opening a neighbour and marking it read. `initialPage`
+(`app/src/main/java/app/lenews/item/InitialPage.kt`) still prefers the id when
+the article is among the loaded pages, because the store can change between the
+count and the load. The one thing still read off the timeline's index is whether
+it is -1, which is how the single-article screen a notification opens says it has
+no list.
+
+**Paging failures are shown at whichever end failed, and a prepend does run.**
+`app/src/main/java/app/lenews/util/paging/PagedListState.kt` holds every one of
+these decisions as a pure function, tested on the JVM, and the screens read them
+and do nothing else: `pagedListState` (Loading / Error / Empty / Content),
+`nextPageFailed` and `previousPageFailed`, `timelineFirstRow` and
+`timelineRowCount` for where the timeline's rows start and stop, and
+`articlePageState(articleIsLoaded, append, prepend)` for one page of the reader's
+pager. Two things not to write again: **a failed prepend is not impossible** —
+Room builds the list again around the row the reader is on, so the pages it keeps
+start in the middle of the query and scrolling up prepends, and the item screen
+asks for one on purpose by opening at the tapped article — and **a page of the
+pager with no article is not nothing to draw**: while a load is running it is the
+loading indicator, and once one has failed it is the retry placeholder, or the
+reader swipes onto a blank screen with no way out but leaving. The timeline stops
+its rows at the last article that loaded when the next page has failed and starts
+them at the first when the page above has, with `PagingErrorRow` as the row
+beyond, because the placeholders in between will never fill and a retry past
+thousands of blank dp is a retry nobody finds.
 
 **There are two HTTP clients, and there is no unnamed one to ask for**
 (ticket 18). `HttpClients` in the `api` module holds both and is the only place

@@ -10,14 +10,72 @@ Nothing has been released yet. This is what the fork has changed so far.
 - **It is a FreshRSS client and nothing else.** Local RSS parsing, Nextcloud
   News, the Fever API and OPML import/export are gone. FreshRSS is the only
   service you can add an account for, and adding a feed asks the website what
-  feeds it publishes instead of parsing it on the phone. The account screen
-  still adds, lists and switches between several accounts, as Readrops's did:
-  one account is the scope LeNews is designed for, and collapsing the screen
-  into a login screen is a later change.
+  feeds it publishes instead of parsing it on the phone.
+- **One account, and the first screen is a login screen.** There is no account
+  list, no "add account" and no switching between accounts: the app holds one
+  FreshRSS server and one user of it. Signing in with a **different server or a
+  different user name empties the store** — the articles, the pending changes,
+  the feeds and the folders all belonged to the account you left — and the next
+  sync starts from scratch. Changing only the password keeps everything.
 - **The app is LeNews.** New name on screen, new application id (`app.lenews`),
   new launcher icon, version 0.1.0. Android treats it as a different app, so it
   installs alongside Readrops rather than upgrading it: expect to log in again
   and to sync from scratch.
+- **A Readrops database is never carried over.** The database was rebuilt from
+  nothing — one table of articles keyed by the identifier FreshRSS itself uses,
+  read and starred state on the article row, and a queue of what the server has
+  not been told yet. There is no upgrade path from any earlier version and none
+  is coming; this is a fresh install.
+- **Syncing writes everything at once or nothing at all.** One sync is one
+  database transaction: what it fetched, the read and starred state it learned,
+  what it deleted and how far it got are all written together, so a sync that
+  fails part way leaves the phone exactly as the last successful one did and the
+  next sync simply fetches the same thing again. **An article can no longer be
+  stored twice**, whatever the server sends and however often a sync is
+  repeated, and the whole of what FreshRSS holds is fetched rather than the first
+  couple of thousand articles.
+- **Articles are deleted automatically, and this is new.** The phone holds what
+  FreshRSS holds and nothing more: an article the server has dropped is dropped
+  here too. On top of that, **an article you have read is kept for thirty days
+  from the moment it became read** — not from when it was published — and then
+  removed, even if FreshRSS still has it. **Starred articles are never removed**
+  by either rule. Nothing is asked before a deletion and there is no setting for
+  the thirty days.
+- **A history list.** Every article you have read, most recently read first,
+  with the moment it became read shown in place of its publication date, reached
+  from the drawer beside All, New and Favorites. A feed or a folder narrows it
+  the way it narrows any other list. It is how you find the article you swiped
+  away this morning: three taps. It is local — FreshRSS does not record when you
+  read something — and it reaches back as far as the thirty days above.
+- **Articles are shown with JavaScript switched off**, and their HTML is cleaned
+  before it is rendered: scripts, frames, forms, event handlers and embedded
+  players are removed, and every remaining address is checked. Videos and audio
+  players are dropped with them; the original site is one tap away.
+- **Your FreshRSS credentials go to your FreshRSS server and nowhere else.**
+  Article images, feed icons and the "find the feeds of this site" search now
+  use a client that carries no credentials at all, so an image hosted anywhere
+  else can no longer be fetched with your token attached. Both clients identify
+  themselves as `LeNews/<version>`.
+- **HTTPS only, and this may stop an existing server from working.** The app
+  refuses cleartext connections outright, and the login screen refuses an
+  address that is not `https://` before it sends anything. A server reached over
+  `http://` cannot be used. Certificates are checked against the authorities
+  Android ships with, with one exception: for the host **`rss.lan`** — and no
+  other — a certificate authority you installed yourself is also accepted, which
+  is what makes a home server with its own certificate work.
+- **Failed page loads say so.** A timeline or an article list that could not
+  load shows the failure and a retry rather than "no article", and when only the
+  next page (or the page above) failed, the articles already there stay and the
+  retry sits right beside them instead of at the far end of a screenful of blank
+  rows. In the article reader, swiping onto a page whose article could not be
+  loaded now shows the failure and a retry too, instead of a blank page — and
+  opening an article always opens **that** article, even when a sync has just
+  put a hundred newer ones above it.
+- **Saving an image from an article works again.** It went to a folder the
+  system has refused to write to since Android 10, so nothing was saved and
+  nothing said so; it goes through the system's Downloads collection now, the
+  file name matches the file's actual format, and every download says whether it
+  worked. Sharing an image drawn inside the article itself no longer crashes.
 - **Android 12 or later.** The minimum was raised from Android 5, and the code
   that existed only to support older versions is gone.
 - **No Play Store, no F-Droid, no donation prompt, no crash reporting to

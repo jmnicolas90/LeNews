@@ -296,3 +296,69 @@ pager can still be renumbered under the reader for reasons other than their own
 decision — a sync inserting an article above the one they are on — and the
 screen follows it without complaint; that is the behaviour this fork inherited
 and no test was written for it.
+
+## From the global review (2026-09-06, second run)
+
+The second global review found that the item screen could still open on the
+wrong article, and that the fix belongs here because this ticket is where the
+kept-article set and `initialPage` were built. Accepted and fixed in the same
+round.
+
+**An unloaded target fell back to a different article.** The screen loaded fifty
+rows and looked for the tapped article among them. When a sync had put more than
+fifty newer articles above it — or when the process had been killed and the
+screen recreated after such a sync — the article was outside that window,
+`initialPage` fell back to the index the *timeline* had passed, and the page
+effect marked whatever sat at that index read. That is an article the reader
+never saw, lost from the unread list.
+
+What changed:
+
+- **The store is asked where the article is**, before the pager exists.
+  `ItemsQueryBuilder.buildItemPositionQuery(filters, itemId, keptArticleIds)`
+  counts the rows that come before it under the same table, the same conditions
+  and the same order as the list, and `ItemDao.countArticlesBefore` runs it. That
+  count is both the page the pager opens on and the key the pager loads around
+  (`Pager(initialKey = position)`), so the first page loaded is the one the
+  article is on rather than the first page of the list — which also means the
+  reader scrolling upwards from there is a *prepend*, the load type ticket 21
+  now gives a retry of its own.
+- **The list order ends in the article's id**, so it is total.
+  `pub_date DESC, Article.id DESC` and `read_at DESC, Article.id DESC`: two
+  articles published in the same second — one feed delivering a batch produces
+  them all the time — would otherwise share a position and the reader would open
+  whichever the plan happened to hand over. It costs nothing, because the id is
+  the table's `rowid` and so already the last column of every index.
+- **An article the store no longer holds closes the screen.** Retention drops
+  articles inside every sync, and a count against a row that is not there is not
+  a position at all — it comes out as the length of the list one way round and
+  as nought the other, and nought reads exactly like "the first article". So the
+  model checks `itemExists` first and, when the article is gone, sets
+  `ItemState.articleIsGone`; `ItemScreen` pops back to the list rather than
+  opening a neighbour and marking it read.
+- `initialPage`'s third argument is `articlePosition` now, not `itemIndex`. The
+  id still wins when the article is among the loaded pages, because the store
+  can change again between the count and the load. `ItemScreen` still takes an
+  `itemIndex` from the timeline, and the model still reads exactly one thing off
+  it: whether it is -1, which is how the single-article screen a notification
+  opens says it has no list.
+
+Tests: `db/src/androidTest/java/app/lenews/db/ArticlePositionTest.kt` (11 tests)
+walks the production list query under every order, the unread, starred, feed and
+history filters and the kept set, and asserts for **every** article that the
+store's count equals its index in that list — plus articles published at the same
+moment, an article with no publication date, and the deleted article whose answer
+must not be read as a position.
+`ItemScreenModelTest.afterTheProcessDiesTheReaderIsBackOnTheArticleTheyWereReading`
+now runs through the model's own pager with sixty newer articles inserted above
+the target, rather than through a query written in the test, and
+`anArticleTheStoreNoLongerHoldsClosesTheScreenInsteadOfOpeningANeighbour` covers
+the deleted target.
+
+Left out: the reader's pager still keeps its page index across process death
+through `rememberPagerState`, so a reader who had swiped several articles on
+comes back to the page number they were on rather than to that article by its
+id. The article the screen was *opened* on is now found correctly whatever
+happened to the list, which is what the finding was about; following the reader's
+own swipes across a restart is a different question and wants its own ticket.
+

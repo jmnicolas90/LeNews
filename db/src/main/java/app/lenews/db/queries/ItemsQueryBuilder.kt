@@ -112,11 +112,7 @@ object ItemsQueryBuilder {
         keptArticleIds: Set<Long> = emptySet()
     ): SupportSQLiteQuery =
         with(queryFilters) {
-            if (subFilter == SubFilter.FEED && feedId == 0) {
-                throw IllegalArgumentException("FeedId must be greater than 0 if subFilter is FEED")
-            } else if (subFilter == SubFilter.FOLDER && folderId == 0) {
-                throw IllegalArgumentException("FolderId must be greater than 0 if subFilter is FOLDER")
-            }
+            refuseASubFilterWithNothingToFilterOn(this@with)
 
             SupportSQLiteQueryBuilder.builder(tableToRead(this@with)).run {
                 columns(COLUMNS)
@@ -126,6 +122,60 @@ object ItemsQueryBuilder {
                 create()
             }
         }
+
+    /**
+     * How many articles of that same list come before the article [itemId] —
+     * which is that article's position in the list, counted from zero.
+     *
+     * The item screen needs it to open on the article the reader tapped. The
+     * position the timeline hands it is the position the article had in the
+     * list the timeline was showing, and by the time the screen builds its own
+     * list that can be a different list: a sync may have put any number of
+     * articles above it, and after the process was killed and the screen
+     * recreated it certainly may. Counting under the same conditions and the
+     * same order is the only answer that is right whatever happened meanwhile.
+     *
+     * It is the query [buildItemsQuery] builds — same table, same conditions,
+     * same order — with one condition added: the row sorts before the article.
+     * Anything else and the count would be a position in a list the reader is
+     * not looking at, so [keptArticleIds] has to be the set the list is built
+     * with, the article's own id included.
+     *
+     * **An article the store no longer holds has no position here, and the
+     * answer is not zero either**: nothing sorts against a row that is not
+     * there, so the comparison is made against a null and the count comes out
+     * as the length of the list or as nought depending on which way the list is
+     * ordered — and nought reads exactly like "the first article". Retention
+     * drops articles at every sync, so the caller asks whether the article is
+     * still there before it asks where.
+     */
+    fun buildItemPositionQuery(
+        queryFilters: QueryFilters,
+        itemId: Long,
+        keptArticleIds: Set<Long> = emptySet()
+    ): SupportSQLiteQuery =
+        with(queryFilters) {
+            refuseASubFilterWithNothingToFilterOn(this@with)
+
+            SupportSQLiteQueryBuilder.builder(tableToRead(this@with)).run {
+                columns(arrayOf("Count(*) As position"))
+                selection(
+                    buildWhereClause(this@with, keptArticleIds) +
+                            "And ${sortsBeforeClause(this@with, itemId)} ",
+                    null
+                )
+
+                create()
+            }
+        }
+
+    private fun refuseASubFilterWithNothingToFilterOn(queryFilters: QueryFilters) {
+        if (queryFilters.subFilter == SubFilter.FEED && queryFilters.feedId == 0) {
+            throw IllegalArgumentException("FeedId must be greater than 0 if subFilter is FEED")
+        } else if (queryFilters.subFilter == SubFilter.FOLDER && queryFilters.folderId == 0) {
+            throw IllegalArgumentException("FolderId must be greater than 0 if subFilter is FOLDER")
+        }
+    }
 
     private fun tableToRead(queryFilters: QueryFilters): String = when {
         queryFilters.subFilter == SubFilter.FOLDER -> JOIN_FOR_A_FOLDER
@@ -190,23 +240,76 @@ object ItemsQueryBuilder {
         }
     }
 
+    /**
+     * The order of the list, which always ends in the article's own id.
+     *
+     * The id is there to make the order **total**. Two articles published in the
+     * same second — which one feed delivering a batch produces all the time —
+     * would otherwise come out in whatever order the plan happened to give, and
+     * a position in the list would name a group of articles rather than one.
+     * The item screen counts the rows before an article to find the page to open
+     * on, and that count is only a page if there is exactly one article at every
+     * position. It costs nothing to read: the id is the table's `rowid`, so it
+     * is the last column of every index already, and the same index scan that
+     * serves the first column serves the tie.
+     */
     private fun buildOrderByClause(queryFilters: QueryFilters): String {
         // the history is the order in which articles became read, newest first,
         // and nothing else: it is what the list is for
         if (queryFilters.mainFilter == MainFilter.HISTORY) {
-            return "Article.read_at DESC"
+            return "Article.read_at DESC, Article.id DESC"
         }
 
-        return buildString {
-            when (queryFilters.orderField) {
-                OrderField.ID -> append("Article.id ")
-                else -> append("pub_date ")
-            }
+        val direction = if (queryFilters.orderType == OrderType.DESC) "DESC" else "ASC"
 
-            when (queryFilters.orderType) {
-                OrderType.DESC -> append("DESC")
-                else -> append("ASC")
-            }
+        return when (queryFilters.orderField) {
+            // the id is the order already; there is no tie to break
+            OrderField.ID -> "Article.id $direction"
+            else -> "pub_date $direction, Article.id $direction"
         }
     }
+
+    /**
+     * The rows that come before the article [itemId] in the order
+     * [buildOrderByClause] gives, which is what turns a count into a position.
+     *
+     * Written out rather than as one comparison of two pairs because the column
+     * the list is sorted on can be null — an article that arrived with no
+     * publication date, or, in the history, one the reader marked unread while
+     * it was open, whose moment of becoming read is gone. SQLite sorts nulls
+     * first ascending and last descending, and no comparison operator says that;
+     * `Is` is used for the tie because it is the equality that a null passes.
+     */
+    private fun sortsBeforeClause(queryFilters: QueryFilters, itemId: Long): String {
+        val descending = orderIsDescending(queryFilters)
+        val column = orderColumn(queryFilters)
+            // the list is ordered by the id itself: no null and no tie
+            ?: return if (descending) "Article.id > $itemId" else "Article.id < $itemId"
+
+        val ofTheArticle = "(Select sorted.$column From Article As sorted Where sorted.id = $itemId)"
+        val sameKey = "(Article.$column Is $ofTheArticle " +
+                "And Article.id ${if (descending) ">" else "<"} $itemId)"
+
+        return if (descending) {
+            "((Article.$column Is Not Null " +
+                    "And ($ofTheArticle Is Null Or Article.$column > $ofTheArticle)) " +
+                    "Or $sameKey)"
+        } else {
+            "((Article.$column Is Null And $ofTheArticle Is Not Null) " +
+                    "Or (Article.$column Is Not Null And $ofTheArticle Is Not Null " +
+                    "And Article.$column < $ofTheArticle) " +
+                    "Or $sameKey)"
+        }
+    }
+
+    /** The column the list is sorted on, or null when it is sorted on the id. */
+    private fun orderColumn(queryFilters: QueryFilters): String? = when {
+        queryFilters.mainFilter == MainFilter.HISTORY -> "read_at"
+        queryFilters.orderField == OrderField.ID -> null
+        else -> "pub_date"
+    }
+
+    private fun orderIsDescending(queryFilters: QueryFilters): Boolean =
+        queryFilters.mainFilter == MainFilter.HISTORY ||
+                queryFilters.orderType == OrderType.DESC
 }
