@@ -46,15 +46,21 @@ fun apiModule(userAgent: String) = module {
 
     factory { params -> GReaderDataSource(get(parameters = { params })) }
 
-    factory { (credentials: Credentials) ->
-        Retrofit.Builder()
-            .baseUrl(credentials.url)
-            // Resolved here, once, so this service keeps the client — and so
-            // the credentials — it was built with, whatever a later login does.
-            .client(get(named(AUTHENTICATED_CLIENT)))
-            .addConverterFactory(MoshiConverterFactory.create(get(named("greaderMoshi"))))
-            .build()
-            .create(GReaderService::class.java)
+    // The same data source built on the plain client, for the one call that has
+    // no token to send: ClientLogin. Asking for it by name is what keeps a token
+    // left over from an earlier login — possibly issued by another server — out
+    // of that request, whatever the account being logged in with still carries.
+    // See `GReaderLogin`.
+    factory(named(PLAIN_CLIENT)) { params ->
+        GReaderDataSource(get<GReaderService>(named(PLAIN_CLIENT)) { params })
+    }
+
+    factory<GReaderService> { (credentials: Credentials) ->
+        greaderService(credentials, get(named(AUTHENTICATED_CLIENT)), get(named("greaderMoshi")))
+    }
+
+    factory<GReaderService>(named(PLAIN_CLIENT)) { (credentials: Credentials) ->
+        greaderService(credentials, get(named(PLAIN_CLIENT)), get(named("greaderMoshi")))
     }
 
     single(named("greaderMoshi")) {
@@ -67,3 +73,20 @@ fun apiModule(userAgent: String) = module {
             .build()
     }
 }
+
+/**
+ * One FreshRSS service, on the client it is given. The client is resolved by the
+ * caller and captured here, so the service keeps the client — and so the
+ * credentials — it was built with, whatever a later login does.
+ */
+private fun greaderService(
+    credentials: Credentials,
+    client: OkHttpClient,
+    moshi: Moshi
+): GReaderService =
+    Retrofit.Builder()
+        .baseUrl(credentials.url)
+        .client(client)
+        .addConverterFactory(MoshiConverterFactory.create(moshi))
+        .build()
+        .create(GReaderService::class.java)

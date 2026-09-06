@@ -42,7 +42,7 @@ there. `CONTRIBUTING.md` holds the rule for copyright headers —
 in the comment syntax of their language, *added* under upstream's header and
 never substituted for it, and **not** on Markdown documentation, which says in
 its own prose who wrote it. `CONTRIBUTING.md` carries the list itself,
-file by file — thirty-two non-Markdown files carry the header today, and
+file by file — forty-five non-Markdown files carry the header today, and
 `grep -rl "Copyright (C) 2026 Jean-Michel Nicolas"` is how the table is checked;
 `LICENSE` is byte-identical to upstream's. The same file lists the ten
 non-Markdown fork-created files that deliberately carry no header and why — JSON has no comments, the lint baseline is regenerated, and
@@ -469,7 +469,12 @@ startup for ever. Two consequences to hold on to: **set the credentials before
 resolving a repository**, because Retrofit captures the client it is built with;
 and **logging in asks for a data source twice**, once on the plain client for
 `ClientLogin` and once on the authenticated one for everything after
-(`app/src/main/java/app/lenews/repositories/GReaderLogin.kt`). Both clients send
+(`app/src/main/java/app/lenews/repositories/GReaderLogin.kt`). Each is asked for
+**by name**, and a login **drops the token the account arrived with** before
+anything goes out: the credentials screen can edit the server URL and keeps the
+rest of the account, so a token issued by the previous server would otherwise be
+bound to the new one and sent there — which is what the review of ticket 18
+found. Both clients send
 `User-Agent: LeNews/<versionName>`; the string is built in the app module, where
 the version lives, and passed to `apiModule(userAgent)`.
 

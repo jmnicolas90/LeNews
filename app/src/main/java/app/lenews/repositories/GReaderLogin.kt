@@ -25,16 +25,29 @@ import app.lenews.db.entities.account.Account
 /**
  * Logs in, in the order the two clients force.
  *
- * ClientLogin is the one call with no token to send, so it goes out on a client
- * that has none — which is the plain client. What it answers is the token, and
- * from that moment every call needs a client that carries it. That is a
- * different client, because a client's credentials never change once it is
- * built, so the data source is asked for twice: once before the token is known
- * and once after. Asking once and reusing it would send every call after the
- * login on the client that had no token.
+ * ClientLogin is the one call with no token to send, so it goes out on the
+ * plain client — the client that has no interceptor which could add an
+ * authorization header at all. It is asked for by name rather than taken from
+ * whatever the authenticated client happens to be, because the account handed
+ * in here may still carry a token: the credentials screen can edit the server
+ * URL and keeps the rest of the account, so that token may have been issued by
+ * a different server from the one this login is aimed at. Sending it there
+ * would hand one server's token to another.
  *
- * [dataSourceFor] is how the caller builds a data source for the credentials of
- * the moment; the repository hands in Koin, a test hands in a fake.
+ * So the previous token is dropped before anything goes out, and the
+ * authenticated client is bound only once the destination has issued a token of
+ * its own. A login that fails therefore leaves the authenticated client
+ * unbound — there is no token to bind it with — rather than leaving the
+ * previous one in place.
+ *
+ * From the moment the token is known, every call needs a client that carries
+ * it. That is a different client, because a client's credentials never change
+ * once it is built, so the data source is asked for twice: once on the plain
+ * client and once on the authenticated one.
+ *
+ * [dataSourceOnThePlainClient] and [dataSourceOnTheAuthenticatedClient] are how
+ * the caller builds a data source for the credentials of the moment; the
+ * repository hands in Koin, a test hands in fakes.
  *
  * The account is filled in as it goes: [Account.token], [Account.writeToken]
  * and [Account.displayedName]. The caller is the one that stores it.
@@ -42,17 +55,23 @@ import app.lenews.db.entities.account.Account
 suspend fun logIn(
     account: Account,
     httpClients: HttpClients,
-    dataSourceFor: (Credentials) -> GReaderDataSource
+    dataSourceOnThePlainClient: (Credentials) -> GReaderDataSource,
+    dataSourceOnTheAuthenticatedClient: (Credentials) -> GReaderDataSource
 ) {
-    // The token is still null here, so this leaves the plain client in place.
-    httpClients.useCredentials(Credentials.toCredentials(account))
+    // Whatever this account carried belongs to whichever server issued it, and
+    // this login may well be aimed at another one. Dropped here, before any
+    // request is built, so that nothing downstream can send it.
+    account.token = null
+    account.writeToken = null
+    httpClients.forgetCredentials()
 
-    account.token = dataSourceFor(Credentials.toCredentials(account))
+    account.token = dataSourceOnThePlainClient(Credentials.toCredentials(account))
         .login(account.login!!, account.password!!)
 
-    // Now there is a token, and it is bound to this server and to no other.
+    // Now there is a token, issued by this server, and it is bound to this
+    // server and to no other.
     httpClients.useCredentials(Credentials.toCredentials(account))
-    val dataSource = dataSourceFor(Credentials.toCredentials(account))
+    val dataSource = dataSourceOnTheAuthenticatedClient(Credentials.toCredentials(account))
 
     account.writeToken = dataSource.getWriteToken()
     account.displayedName = dataSource.getUserInfo().userName

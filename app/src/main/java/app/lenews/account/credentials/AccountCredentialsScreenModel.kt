@@ -62,10 +62,9 @@ class AccountCredentialsScreenModel(
                 mutableState.update { it.copy(isLoginOnGoing = true) }
 
                 with(state.value) {
-                    val normalizedUrl = Utils.normalizeUrl(url)
-
-                    val newAccount = account.copy(
-                        url = normalizedUrl,
+                    val newAccount = accountToLogInWith(
+                        account = account,
+                        url = Utils.normalizeUrl(url),
                         name = name,
                         login = login,
                         password = password
@@ -138,6 +137,31 @@ class AccountCredentialsScreenModel(
             )
     }
 }
+
+/**
+ * The account this screen logs in with: the one it was opened on, with the
+ * fields as they stand on screen and **no token**.
+ *
+ * The token and the write token are dropped rather than carried over. This
+ * screen can edit the server URL, and a token belongs to the server that issued
+ * it: keeping it would take one server's token to another one. The login about
+ * to run asks the server named here for a token of its own, so there is nothing
+ * to preserve either.
+ */
+internal fun accountToLogInWith(
+    account: Account,
+    url: String,
+    name: String,
+    login: String,
+    password: String
+): Account = account.copy(
+    url = url,
+    name = name,
+    login = login,
+    password = password,
+    token = null,
+    writeToken = null
+)
 
 data class AccountCredentialsState(
     val url: String = "https://",

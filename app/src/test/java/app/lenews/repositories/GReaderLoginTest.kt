@@ -35,6 +35,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -59,7 +60,7 @@ class GReaderLoginTest {
 
     @Test
     fun theLoginIsSentWithNoTokenAndEverythingAfterItCarriesOne() = runTest {
-        logIn(account, httpClients, ::dataSourceFor)
+        logIn(account, httpClients, ::plainDataSourceFor, ::authenticatedDataSourceFor)
 
         assertEquals("theToken", account.token)
         assertEquals("theWriteToken", account.writeToken)
@@ -83,7 +84,7 @@ class GReaderLoginTest {
         httpClients.useCredentials(Credentials.toCredentials(account.copy(token = "anOldToken")))
         val before = httpClients.authenticated
 
-        logIn(account, httpClients, ::dataSourceFor)
+        logIn(account, httpClients, ::plainDataSourceFor, ::authenticatedDataSourceFor)
 
         assertNotSame(
             "the client that held the old token is still whole; a new one holds the new token",
@@ -92,7 +93,64 @@ class GReaderLoginTest {
         )
     }
 
-    private fun dataSourceFor(credentials: Credentials): GReaderDataSource {
+    /**
+     * A login that is aimed at another server than the one the account was last
+     * logged in to — which is what editing the URL on the credentials screen
+     * produces — must not send the token it arrived with. [logIn] drops it
+     * before anything goes out, and the fake refuses ClientLogin with a token,
+     * so this fails rather than leaking if that ever stops being true.
+     */
+    @Test
+    fun anAccountThatStillHoldsATokenDoesNotSendItToTheServerItIsLoggingInTo() = runTest {
+        val editedAccount = account.copy(
+            url = "https://another.server.example/",
+            token = "aTokenTheOtherServerIssued",
+            writeToken = "aWriteTokenTheOtherServerIssued"
+        )
+
+        logIn(editedAccount, httpClients, ::plainDataSourceFor, ::authenticatedDataSourceFor)
+
+        assertEquals(
+            "the token in hand is the one this server issued",
+            "theToken",
+            editedAccount.token
+        )
+        assertEquals("theWriteToken", editedAccount.writeToken)
+        assertSame(
+            "ClientLogin still goes out on the plain client",
+            httpClients.plain,
+            clientsUsed.first()
+        )
+    }
+
+    /**
+     * The credentials the calls after the login are made with are the ones this
+     * server issued, and a failed login binds nothing.
+     */
+    @Test
+    fun aFailedLoginLeavesTheAuthenticatedClientUnbound() = runTest {
+        httpClients.useCredentials(Credentials.toCredentials(account.copy(token = "anOldToken")))
+        val refusingAccount = account.copy(password = REFUSED_PASSWORD)
+
+        val failure = runCatching {
+            logIn(refusingAccount, httpClients, ::plainDataSourceFor, ::authenticatedDataSourceFor)
+        }.exceptionOrNull()
+
+        assertTrue("the fake server was supposed to refuse this login", failure != null)
+
+        assertSame(
+            "a login that failed left the previous token bound to a client",
+            httpClients.plain,
+            httpClients.authenticated
+        )
+    }
+
+    private fun plainDataSourceFor(credentials: Credentials): GReaderDataSource {
+        clientsUsed += httpClients.plain
+        return GReaderDataSource(FakeFreshRSS(credentials))
+    }
+
+    private fun authenticatedDataSourceFor(credentials: Credentials): GReaderDataSource {
         clientsUsed += httpClients.authenticated
         return GReaderDataSource(FakeFreshRSS(credentials))
     }
@@ -106,6 +164,7 @@ class GReaderLoginTest {
 
         override suspend fun login(login: String, password: String): ResponseBody {
             check(credentials.authorization == null) { "ClientLogin must not send a token" }
+            check(password != REFUSED_PASSWORD) { "this server refuses that password" }
             return "Auth=theToken\n".toResponseBody("text/plain".toMediaType())
         }
 
@@ -180,5 +239,11 @@ class GReaderLoginTest {
         override suspend fun deleteFolder(token: String, folderId: String) = notCalled()
 
         private fun notCalled(): Nothing = error("a login makes no such call")
+    }
+
+    private companion object {
+
+        /** The password the fake server refuses, so a login can be made to fail. */
+        const val REFUSED_PASSWORD = "the wrong password"
     }
 }

@@ -106,9 +106,14 @@ credentials replacing the instance, the same credentials keeping it, and
 `forgetCredentials`. In `app`: `GReaderLoginTest` drives the login against a fake
 `GReaderService` that refuses the token calls unless the credentials carry a
 token, and asserts that `ClientLogin` went out on the plain client and that the
-login replaced the client rather than changing it. The MockWebServer instrumented
-tests still log in and sync; `SyncTest` builds the host rule from the stub's own
-URL, so no host or port is hard-coded anywhere.
+login replaced the client rather than changing it. `SyncTest` builds the host
+rule from the stub's own URL, so no host or port is hard-coded anywhere.
+
+*Corrected by the review round below*: this section first claimed that "the
+MockWebServer instrumented tests still log in and sync". They did not. No
+instrumented test logged in at all, and the account fixture they synced with
+carried no token, so the sync went out on the plain client and would have stayed
+green with the authenticated client wired out of the app entirely.
 
 ### The gate
 
@@ -158,3 +163,73 @@ logged in; `local.properties` was not copied and no credential was read).
   here changed that; it is the same unreachable host.
 - **`HtmlParserTest` stopped using Koin** and builds `HttpClients(...).plain`
   directly, so no test defines an unnamed `OkHttpClient` either.
+
+### Review round (2026-09-06)
+
+An adversarial Codex review of this branch found two things, both accepted and
+both fixed here.
+
+**An old token could be bound to a new host.** The credentials screen copies the
+account it was opened on, with the URL as edited and everything else kept —
+including the token. `logIn` then handed that account straight to
+`useCredentials`, which bound the previous server's token to the *new* host, so
+the host rule let it out and `ClientLogin` itself went to the server the user had
+just typed in carrying a token issued by another one. A login that failed left
+that binding in place. Three changes:
+
+- `AccountCredentialsScreenModel` builds the account to log in with through
+  `accountToLogInWith(...)`, which drops `token` and `write_token`. A token
+  belongs to the server that issued it, this screen can edit the server, and the
+  login about to run gets a token of its own — there is nothing to carry over.
+- `logIn` no longer trusts what it is handed: it clears both tokens and calls
+  `forgetCredentials()` **before any request is built**, so a failed login leaves
+  the authenticated client unbound rather than bound to the previous token, and
+  binds it only once this server has issued a token.
+- `ClientLogin` now goes out on a data source built **explicitly on the plain
+  client**, asked for by name, rather than on whatever the authenticated client
+  happens to be at that moment. `apiModule` grew the bindings for it —
+  `GReaderService` and `GReaderDataSource` under `PLAIN_CLIENT` — and both
+  services are built by one private function, so the only difference between them
+  is which client they were given. `logIn` takes two data-source factories
+  instead of one, named for the client each builds on, and `GReaderRepository`
+  passes Koin's.
+
+The regression is `app/src/test/java/app/lenews/repositories/LoginOverTheWireTest.kt`:
+a real socket, the real Koin bindings, and a MockWebServer standing for the
+server whose URL was just typed in. It logs in with the account the credentials
+screen builds after an edit and with an account that still holds a token,
+asserts that `ClientLogin` carries no authorization header at all, that no
+request ever carries the previous server's token, that the calls after the login
+carry this server's, and that a refused login leaves `authenticated` the same
+instance as `plain`. Against the code as it was before this round, three of the
+new tests — two there and one in `GReaderLoginTest` — fail.
+
+**The instrumented sync tests never used the authenticated client.** The account
+fixture had no token, so `useCredentials` selected the plain client and the stub
+checked no credentials: the whole suite would have stayed green with Retrofit
+wired to the plain client for good. Now:
+
+- `FreshRSSStub` issues and demands a token. With `token` set it answers
+  `401 Unauthorized` to every call that does not carry exactly
+  `Authorization: GoogleLogin auth=<token>`, answers `ClientLogin`, the write
+  token and user info, and records the authorization header of every request so a
+  test can assert on it.
+- `SyncTest`'s account carries that token, and one new test names the rule:
+  every request a sync makes carries it.
+- `app/src/androidTest/java/app/lenews/sync/LoginAndSyncTest.kt` logs in and then
+  syncs through the app's own bindings — the repository Koin builds for the
+  account, then `Synchronizer`, which is what the sync worker runs. It asserts
+  that `ClientLogin` arrived with no authorization header, that the token came
+  back, that the sync stored the article, and that everything after the login
+  carried the token the login obtained.
+
+Checked, not assumed: with the `GReaderService` binding pointed at the plain
+client, `LoginAndSyncTest` and all 21 tests of `SyncTest` fail, where before this
+round they passed. Put back, all 22 pass.
+
+**Left out of this round.** Nothing was re-run against the real `ledev` account:
+what changed is which client each call is built on and which token an account
+carries into a login, and both are settled before a socket is opened — the
+MockWebServer tests, on the JVM and on the emulator, are where that is visible.
+The `Credentials` / `GReaderCredentials` pair still stands as it was, for the
+same reason as before.

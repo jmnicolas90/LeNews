@@ -1,6 +1,7 @@
 package app.lenews.repositories
 
 import androidx.room.withTransaction
+import app.lenews.api.PLAIN_CLIENT
 import app.lenews.api.services.DataSourceResult
 import app.lenews.api.services.greader.ArticleStateChange
 import app.lenews.api.services.greader.GReaderDataSource
@@ -15,6 +16,7 @@ import app.lenews.db.entities.account.Account
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.parameter.parametersOf
+import org.koin.core.qualifier.named
 
 open class GReaderRepository(
     database: Database,
@@ -23,15 +25,19 @@ open class GReaderRepository(
 ) : BaseRepository(database, account), KoinComponent {
 
     /**
-     * Deliberately not [dataSource]: the login needs one data source before the
-     * token is known and another after it, which is what [logIn] does. This one
-     * was built with whichever client was in place when the repository was
-     * resolved, and that is the wrong client for both halves.
+     * Deliberately not [dataSource]: the login needs one data source on the
+     * plain client before the token is known and another on the authenticated
+     * client after it, which is what [logIn] does. This one was built with
+     * whichever client was in place when the repository was resolved, and that
+     * is the wrong client for both halves.
      */
     override suspend fun login(account: Account) = logIn(
         account = account,
         httpClients = get(),
-        dataSourceFor = { credentials -> get { parametersOf(credentials) } }
+        dataSourceOnThePlainClient = { credentials ->
+            get(named(PLAIN_CLIENT)) { parametersOf(credentials) }
+        },
+        dataSourceOnTheAuthenticatedClient = { credentials -> get { parametersOf(credentials) } }
     )
 
     /**
