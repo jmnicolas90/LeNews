@@ -137,9 +137,14 @@ header in the same commit.**
   uses a separate debug account on the user's own FreshRSS at `https://rss.lan`
   (LAN and VPN only), whose credentials live in the gitignored
   `local.properties` — ticket 22 set that up, and the account is `ledev`.
-  Still open there: the Caddy root as a user CA on the phone, which cannot be
-  checked from this machine, and a second sample proving the feeds really
-  produce a few hundred articles a day. The
+  Ticket 14 synced a debug build against it **from the emulator**, three times,
+  after pushing the Caddy local-authority root into
+  `/data/misc/user/0/cacerts-added` there; the app's network security config
+  already trusts user CAs, so nothing in the app had to change. `local.properties`
+  lives in the main checkout only, so a worktree that needs the debug account has
+  to be given a copy of that gitignored file. Still open: the same root on the
+  **phone**, which cannot be checked from this machine, and a second sample
+  proving the feeds really produce a few hundred articles a day. The
   instrumented gate stage needs no network at all: it uses MockWebServer on the
   emulator. A real phone is often attached to this machine over adb and is out
   of bounds; G7 pins the serial so nothing can reach it.
@@ -348,14 +353,30 @@ out, and the indexes of §6 with `PRAGMA optimize` when the database is created.
 Room is at **version 1 with no migration**: the schema restarted, and a phone
 holding one of the six inherited versions has its database dropped and refilled
 by the next sync. Read the model before touching the schema, the sync or
-retention. **Still pending, so do not write code as if it were done**: the sync
-rewrite of §3 (ticket 14) — one transaction, batching, paging, the three id-list
-walks, the starred-content fetch; retention, §4 (15); the history list on screen,
-§5 and §8 (16); and which of the 14 inherited locales LeNews keeps, which is the
-one product call that clears most of the lint baseline. The sync as it stands is
-upstream's sequence with the least change that makes it compile and work against
-the new store: it upserts articles by id, writes state from the three id lists
-onto the article rows, and clears the whole pending-change queue at the end.
+retention.
+
+**The sync is §3 and §7, built (ticket 14).** `GReaderDataSource.synchronize()`
+uploads the pending changes first, in `edit-tag` batches of at most 998 ids, and
+each batch the server took clears only the half of each queued row that still
+holds the value that went up — so a decision made while a batch was in flight
+stays queued, and a batch the server refuses fails the sync before anything is
+pulled. Then it pulls, every call paged to the end of `continuation`: the
+contents (`n = 1000`, `ot = cursor`, and on the first sync the unread and the
+starred streams with no read article and no cap) and three `stream/items/ids`
+walks at `n = 10000` — all, unread, starred. **The three id lists are the only
+source of read and starred state**; the flags `stream/contents` puts on an
+article are content, not state, and nothing reads them. Starred ids the store
+has no content for are fetched from `stream/items/contents`, 998 a request.
+`GReaderRepository.synchronize()` then writes everything in **one Room
+transaction with no network call in it** — folders and feeds, the article
+upsert, read state, starred state, the seam where retention will go, the cursor,
+`PRAGMA optimize` — so a failure anywhere rolls back the articles, the state and
+the cursor together and the next sync repeats the same pull harmlessly. The
+inherited 2500 and 1000 caps are gone. **Still pending, so do not write code as
+if it were done**: retention, §4 (ticket 15) — `deleteWhatRetentionDrops` in
+`GReaderRepository` is the named seam and deletes nothing today; the history
+list on screen, §5 and §8 (16); and which of the 14 inherited locales LeNews
+keeps, which is the one product call that clears most of the lint baseline.
 
 **The retention rule** is agreed in principle and not implemented (ticket 15).
 It is two rules with one exception that covers both:

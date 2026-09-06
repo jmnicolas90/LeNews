@@ -23,7 +23,7 @@ import androidx.work.workDataOf
 import app.lenews.MainActivity
 import app.lenews.R
 import app.lenews.LeNewsApp
-import app.lenews.util.extensions.putSerializable
+import app.lenews.util.accounterror.GReaderError
 import kotlinx.coroutines.flow.first
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -47,11 +47,11 @@ class SyncWorker(
         if (infos.any { it.state == WorkInfo.State.RUNNING && it.id != id }) {
             return if (isManual) {
                 Result.failure(
-                    workDataOf(SYNC_FAILURE_KEY to true)
-                        .putSerializable(
-                            SYNC_FAILURE_EXCEPTION_KEY,
-                            Exception(applicationContext.getString(R.string.background_sync_already_running))
-                        )
+                    workDataOf(
+                        SYNC_FAILURE_KEY to true,
+                        SYNC_FAILURE_MESSAGE_KEY to
+                                applicationContext.getString(R.string.background_sync_already_running)
+                    )
                 )
             } else {
                 Result.retry()
@@ -77,13 +77,18 @@ class SyncWorker(
 
             return Result.success(workDataOf(END_SYNC_KEY to true))
         } catch (e: Exception) {
-            Log.e(TAG, "${e.printStackTrace()}")
+            Log.e(TAG, "Synchronization failed", e)
 
             notificationManager.cancel(SYNC_NOTIFICATION_ID)
             if (isManual) {
+                // the message travels in the output Data, which is what
+                // WorkManager actually delivers to whoever is watching the work
                 Result.failure(
-                    workDataOf(SYNC_FAILURE_KEY to true)
-                        .putSerializable(SYNC_FAILURE_EXCEPTION_KEY, Exception(e.cause))
+                    workDataOf(
+                        SYNC_FAILURE_KEY to true,
+                        SYNC_FAILURE_MESSAGE_KEY to
+                                GReaderError(applicationContext).genericMessage(e)
+                    )
                 )
             } else {
                 Result.failure()
@@ -189,7 +194,14 @@ class SyncWorker(
 
         const val END_SYNC_KEY = "END_SYNC"
         const val SYNC_FAILURE_KEY = "SYNC_FAILURE"
-        const val SYNC_FAILURE_EXCEPTION_KEY = "SYNC_FAILURE_EXCEPTION"
+
+        /**
+         * What went wrong, already turned into the sentence the screen shows.
+         * A String rather than an exception because `Data` carries only
+         * primitives, and the exception has to be read where it was caught
+         * anyway to be turned into something a reader can act on.
+         */
+        const val SYNC_FAILURE_MESSAGE_KEY = "SYNC_FAILURE_MESSAGE"
 
 
         /** Marks the intent a sync notification carries, so the app knows to open the timeline. */

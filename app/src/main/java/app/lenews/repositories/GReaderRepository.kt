@@ -1,7 +1,9 @@
 package app.lenews.repositories
 
+import androidx.room.withTransaction
 import app.lenews.api.services.Credentials
-import app.lenews.api.services.SyncType
+import app.lenews.api.services.DataSourceResult
+import app.lenews.api.services.greader.ArticleStateChange
 import app.lenews.api.services.greader.GReaderDataSource
 import app.lenews.api.services.greader.GReaderSyncData
 import app.lenews.api.utils.AuthInterceptor
@@ -14,7 +16,7 @@ import app.lenews.db.entities.account.Account
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 
-class GReaderRepository(
+open class GReaderRepository(
     database: Database,
     account: Account,
     private val dataSource: GReaderDataSource,
@@ -35,49 +37,117 @@ class GReaderRepository(
         account.displayedName = userInfo.userName
     }
 
+    /**
+     * One sync, as `docs/article-store.md` §3 describes it: take the clock, push
+     * what the phone decided, pull everything, then write it all in one
+     * transaction that holds no network call.
+     *
+     * A failure anywhere before the transaction leaves the store exactly as the
+     * previous sync left it; a failure inside it rolls back the articles, the
+     * state and the cursor together. Either way the next sync repeats the same
+     * pull with the same cursor, which the upsert makes harmless.
+     */
     override suspend fun synchronize(): SyncResult {
-        val pendingChanges = database.pendingChangeDao().selectAll()
+        // Step 0: the clock. The same instant stamps every read learned at this
+        // sync and becomes the cursor if it succeeds.
+        val syncStart = System.currentTimeMillis()
+        val writeToken = account.writeToken!!
 
-        val syncData = GReaderSyncData(
-            readIds = pendingChanges.filter { it.read == true }.map { it.articleId },
-            unreadIds = pendingChanges.filter { it.read == false }.map { it.articleId },
-            starredIds = pendingChanges.filter { it.starred == true }.map { it.articleId },
-            unstarredIds = pendingChanges.filter { it.starred == false }.map { it.articleId }
+        // Step 1: the snapshot of what the server has not been told
+        val queued = database.pendingChangeDao().selectAll()
+        val pendingChanges = GReaderSyncData(
+            readIds = queued.filter { it.read == true }.map { it.articleId },
+            unreadIds = queued.filter { it.read == false }.map { it.articleId },
+            starredIds = queued.filter { it.starred == true }.map { it.articleId },
+            unstarredIds = queued.filter { it.starred == false }.map { it.articleId }
         )
 
-        val syncType: SyncType
-        if (account.cursor != 0L) {
-            syncType = SyncType.CLASSIC_SYNC
-            syncData.cursor = account.cursor
-        } else {
-            syncType = SyncType.INITIAL_SYNC
+        // Steps 1 and 2: upload, then pull. Each batch the server took is
+        // cleared as it is taken, so a batch that fails leaves the rest queued.
+        val pulled = dataSource
+            .synchronize(account.cursor, pendingChanges, writeToken) { change, ids ->
+                clearUploaded(change, ids)
+            }
+
+        // Step 2, last: the starred articles the store has no content for
+        val fetched = pulled.items + dataSource.getItemsContents(
+            starredIdsTheStoreLacks(pulled),
+            writeToken
+        )
+
+        // Step 3: still nothing written.
+        // Step 4: one transaction, no network call inside it.
+        var newArticles: List<Item> = emptyList()
+        var newFeeds: List<Feed> = emptyList()
+        val newCursor = syncStart / MILLISECONDS_IN_A_SECOND
+
+        database.withTransaction {
+            insertFolders(pulled.folders)                       // 4a
+            newFeeds = insertFeeds(pulled.feeds)                // 4a
+            newArticles = insertItems(fetched)                  // 4b
+
+            afterArticlesAreStored()
+
+            val serverIds = pulled.serverIds.toHashSet()
+            applyReadState(pulled, serverIds, syncStart)        // 4c
+            applyStarredState(pulled, serverIds)                // 4d
+            deleteWhatRetentionDrops(serverIds, syncStart)      // 4e
+            database.accountDao().updateCursor(newCursor)       // 4f
+            database.optimize()                                 // 4g
         }
 
-        val newCursor = System.currentTimeMillis() / 1000L
+        account.cursor = newCursor
 
-        return dataSource.synchronize(syncType, syncData, account.writeToken!!).run {
-            insertFolders(folders)
-            val newFeeds = insertFeeds(feeds)
+        return SyncResult(
+            items = newArticles,
+            feeds = newFeeds
+        )
+    }
 
-            val fetched = items + starredItems
-            val newItems = insertItems(fetched)
+    /**
+     * Runs inside the sync transaction, after the articles have been stored and
+     * before the cursor is written. It does nothing, and exists so that the test
+     * which checks the transaction rolls back as a whole has somewhere to fail.
+     */
+    protected open suspend fun afterArticlesAreStored() = Unit
 
-            applyItemStates(
-                unreadIds = unreadIds,
-                readIds = readIdsTheServerHolds(syncType, fetched, readIds),
-                starredIds = starredIds
-            )
+    /**
+     * Clears the half of each queued row that a batch just uploaded, where the
+     * row still holds the value that went up, and drops the rows both halves of
+     * which have now been sent.
+     */
+    private suspend fun clearUploaded(change: ArticleStateChange, ids: List<Long>) {
+        val pendingChangeDao = database.pendingChangeDao()
 
-            account.cursor = newCursor
-            database.accountDao().updateCursor(newCursor)
-
-            database.pendingChangeDao().deleteAll()
-
-            SyncResult(
-                items = newItems,
-                feeds = newFeeds
-            )
+        when (change) {
+            ArticleStateChange.READ -> pendingChangeDao.clearUploadedRead(ids, true)
+            ArticleStateChange.UNREAD -> pendingChangeDao.clearUploadedRead(ids, false)
+            ArticleStateChange.STARRED -> pendingChangeDao.clearUploadedStarred(ids, true)
+            ArticleStateChange.UNSTARRED -> pendingChangeDao.clearUploadedStarred(ids, false)
         }
+
+        pendingChangeDao.deleteEmpty()
+    }
+
+    /**
+     * The starred ids that are neither in the store nor in the content this sync
+     * fetched: an article starred on the web that this phone never held, or one
+     * an earlier retention dropped. Without their content, *starred articles
+     * survive both rules* could not be honoured for them.
+     */
+    private suspend fun starredIdsTheStoreLacks(pulled: DataSourceResult): List<Long> {
+        val justFetched = pulled.items.mapTo(hashSetOf()) { it.id }
+        val candidates = pulled.starredIds.filterNot { it in justFetched }
+
+        if (candidates.isEmpty()) {
+            return emptyList()
+        }
+
+        val held = candidates.chunked(MAX_IDS_PER_STATEMENT)
+            .flatMap { database.itemDao().selectHeldIds(it) }
+            .toHashSet()
+
+        return candidates.filterNot { it in held }
     }
 
     override suspend fun insertNewFeeds(
@@ -162,56 +232,88 @@ class GReaderRepository(
     }
 
     /**
-     * The ids the server holds as read, which is what stamps a read learned at
-     * sync.
+     * Step 4c: read state, from the id lists, which are its only source.
      *
-     * A classic sync asks `stream/items/ids` for them and is given the list. An
-     * initial sync does not: it pulls the unread and the starred articles and
-     * the unread and starred id lists (§7), so the only thing the server says
-     * about a starred article it holds as read is the read category the article
-     * arrives with. Without that, such an article would come out of the initial
-     * sync unread and be back in the timeline the user already cleared on the
-     * web. It cannot be stored read at insert time either: the row would carry
-     * `read = 1` with no `read_at`, which invariant 2 forbids.
+     * An article the unread list names is unread; an article the server still
+     * holds and does not call unread is read, stamped with this sync's clock,
+     * which is the only date the server allows since no API output says when an
+     * article became read.
+     *
+     * Both directions are about the articles the server's full id list still
+     * names, and nothing else. The full list and the unread list come from two
+     * separate calls and can disagree — the server can drop an article between
+     * them — so the unread list is cut down to what the full list holds before
+     * anything is written. Without that, an article read on the phone and
+     * dropped by the server would be put back to unread and lose the date on
+     * which it became read, which nothing could give back.
+     *
+     * Only the articles whose state actually differs are named in a statement.
+     * The candidates for becoming read are the articles this store holds as
+     * unread, never the server's whole read list, which on a full account is
+     * tens of thousands of ids: the set difference is done here, in one pass
+     * over a hash set, and the statements that follow are short.
      */
-    private fun readIdsTheServerHolds(
-        syncType: SyncType,
-        fetched: List<Item>,
-        readIds: List<Long>
-    ): List<Long> = if (syncType == SyncType.INITIAL_SYNC) {
-        fetched.filter { it.isRead }.map { it.id }
-    } else {
-        readIds
+    private suspend fun applyReadState(
+        pulled: DataSourceResult,
+        serverIds: HashSet<Long>,
+        syncStart: Long
+    ) {
+        val itemDao = database.itemDao()
+        val stillUnreadOnTheServer = pulled.unreadIds.filter { it in serverIds }
+
+        stillUnreadOnTheServer
+            .chunked(MAX_IDS_PER_STATEMENT)
+            .forEach { itemDao.markUnreadFromSync(it) }
+
+        val unreadIds = stillUnreadOnTheServer.toHashSet()
+        val becameRead = itemDao.selectUnreadIds()
+            .filter { it in serverIds && it !in unreadIds }
+
+        becameRead.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.markReadFromSync(it, syncStart) }
     }
 
     /**
-     * Writes read and starred state from the three id lists the sync fetched,
-     * which are the only source of it: an article the unread list names is
-     * unread, one the reading list holds but the unread list does not is read,
-     * and the starred list says which articles are starred.
+     * Step 4d: starred state. An article this store holds and the starred list
+     * names is starred; an article the server still holds and no longer calls
+     * starred is unstarred. An article in neither list is left alone — the
+     * server has nothing to say about it, and retention decides whether it
+     * stays.
      *
-     * The lists are capped by [GReaderDataSource], well under SQLite's limit on
-     * the number of values one statement can bind, and they are chunked anyway
-     * so that raising the caps cannot break this. The one statement that cannot
-     * be chunked is the unstarring, which needs the whole starred list at once
-     * to know what is *not* in it.
+     * The two directions are not symmetrical, and the model says so: starring
+     * asks only that the store hold the article, which the statement itself
+     * enforces since it can only update rows that are there, while unstarring
+     * asks in addition that the full id list still name it — the server saying
+     * nothing about an article is not the server saying it is no longer
+     * starred.
      */
-    private suspend fun applyItemStates(
-        unreadIds: List<Long>,
-        readIds: List<Long>,
-        starredIds: List<Long>
-    ) {
-        val now = System.currentTimeMillis()
+    private suspend fun applyStarredState(pulled: DataSourceResult, serverIds: HashSet<Long>) {
         val itemDao = database.itemDao()
 
-        unreadIds.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.markUnread(it) }
-        readIds.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.markRead(it, now) }
+        pulled.starredIds.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.starFromSync(it) }
 
-        itemDao.unstarOutside(starredIds)
-        starredIds.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.star(it) }
+        val starredOnTheServer = pulled.starredIds.toHashSet()
+        val noLongerStarred = itemDao.selectStarredIds()
+            .filter { it in serverIds && it !in starredOnTheServer }
+
+        noLongerStarred.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.unstarFromSync(it) }
     }
 
+    /**
+     * Step 4e: where the retention delete of `docs/article-store.md` §4 goes —
+     * the mirror and the horizon, against the ids the server still holds and
+     * this sync's clock, run here and nowhere else so that a failed sync deletes
+     * nothing. Ticket 15 writes it; today nothing is deleted.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    private fun deleteWhatRetentionDrops(serverIds: Set<Long>, now: Long) = Unit
+
     private companion object {
+        /**
+         * How many ids one statement names. Well under what SQLite will bind,
+         * and the lists a sync works from can hold tens of thousands.
+         */
         const val MAX_IDS_PER_STATEMENT = 900
+
+        const val MILLISECONDS_IN_A_SECOND = 1000L
     }
 }

@@ -153,13 +153,55 @@ class ItemDaoTest {
         val itemDao = database.itemDao()
         itemDao.upsertArticles(listOf(article(title = "read on the web").apply { isRead = true }))
 
-        itemDao.markRead(listOf(ARTICLE_ID), READ_AT)
-        itemDao.star(listOf(ARTICLE_ID))
+        itemDao.markReadFromSync(listOf(ARTICLE_ID), READ_AT)
+        itemDao.starFromSync(listOf(ARTICLE_ID))
 
         with(itemDao.select(ARTICLE_ID)) {
             assertTrue(isRead)
             assertEquals(READ_AT, readAt, "read = 1 goes with a read_at, never without")
             assertTrue(isStarred)
+        }
+    }
+
+    /**
+     * §3, steps 4c and 4d: the phone's decision wins over the server's answer
+     * until it has been uploaded, so the state a sync learned skips any article
+     * with a pending value for the half it writes — and only that half.
+     */
+    @Test
+    fun theStateASyncLearnedSkipsAnArticleWithAPendingValue() = runTest {
+        val itemDao = database.itemDao()
+        itemDao.upsertArticles(listOf(article(title = "read on the phone")))
+
+        itemDao.markRead(ARTICLE_ID, READ_AT)
+        database.pendingChangeDao().queueRead(ARTICLE_ID, true)
+
+        // the server still calls it unread, and is not listened to
+        itemDao.markUnreadFromSync(listOf(ARTICLE_ID))
+        with(itemDao.select(ARTICLE_ID)) {
+            assertTrue(isRead, "a pending read decision was overwritten by the server")
+            assertEquals(READ_AT, readAt)
+        }
+
+        // the starred half has no pending value, so the server decides it
+        itemDao.starFromSync(listOf(ARTICLE_ID))
+        assertTrue(itemDao.select(ARTICLE_ID).isStarred)
+
+        database.pendingChangeDao().queueStarred(ARTICLE_ID, true)
+        itemDao.unstarFromSync(listOf(ARTICLE_ID))
+        assertTrue(
+            itemDao.select(ARTICLE_ID).isStarred,
+            "a pending starred decision was overwritten by the server"
+        )
+
+        // once the queue is empty the server decides both halves again
+        database.pendingChangeDao().deleteAll()
+        itemDao.markUnreadFromSync(listOf(ARTICLE_ID))
+        itemDao.unstarFromSync(listOf(ARTICLE_ID))
+        with(itemDao.select(ARTICLE_ID)) {
+            assertFalse(isRead)
+            assertNull(readAt)
+            assertFalse(isStarred)
         }
     }
 

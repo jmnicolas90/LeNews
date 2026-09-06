@@ -5,7 +5,7 @@ import app.lenews.api.apiModule
 import app.lenews.api.enqueueOK
 import app.lenews.api.enqueueOKStream
 import app.lenews.api.okResponseWithBody
-import app.lenews.api.services.SyncType
+import app.lenews.api.utils.exceptions.ParseException
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.Dispatcher
 import okhttp3.mockwebserver.MockResponse
@@ -22,8 +22,12 @@ import org.koin.test.KoinTestRule
 import org.koin.test.get
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.net.HttpURLConnection
 import java.net.URLEncoder
+import java.util.Collections
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GReaderDataSourceTest : KoinTest {
@@ -120,11 +124,7 @@ class GReaderDataSourceTest : KoinTest {
         mockServer.enqueueOKStream(stream)
 
         val items = freshRSSDataSource.getItems(
-            excludeTargets = listOf(
-                GReaderDataSource.GOOGLE_READ,
-                GReaderDataSource.GOOGLE_STARRED
-            ),
-            max = 100,
+            excludeTarget = GReaderDataSource.GOOGLE_READ,
             cursor = 21343321321321
         )
         assertTrue { items.size == 2 }
@@ -132,13 +132,11 @@ class GReaderDataSourceTest : KoinTest {
         val request = mockServer.takeRequest()
 
         with(request.requestUrl!!) {
-            assertEquals(
-                listOf(GReaderDataSource.GOOGLE_READ, GReaderDataSource.GOOGLE_STARRED),
-                queryParameterValues("xt")
-            )
-            assertEquals("100", queryParameter("n"))
+            assertEquals(GReaderDataSource.GOOGLE_READ, queryParameter("xt"))
+            // the page size the FreshRSS maintainer recommends for contents
+            assertEquals("1000", queryParameter("n"))
             assertEquals("21343321321321", queryParameter("ot"))
-
+            assertNull(queryParameter("c"), "the first page asks for no continuation")
         }
     }
 
@@ -147,32 +145,194 @@ class GReaderDataSourceTest : KoinTest {
         val stream = TestUtils.loadResource("services/greader/adapters/items.json")
         mockServer.enqueueOKStream(stream)
 
-        val items = freshRSSDataSource.getStarredItems(100)
+        val items = freshRSSDataSource.getStarredItems()
         assertTrue { items.size == 2 }
 
         val request = mockServer.takeRequest()
 
-        assertEquals("100", request.requestUrl!!.queryParameter("n"))
+        assertEquals("1000", request.requestUrl!!.queryParameter("n"))
     }
 
     @Test
     fun getItemsIdsTest() = runTest {
-        val stream = TestUtils.loadResource("services/greader/adapters/items_starred_ids.json")
-        mockServer.enqueueOKStream(stream)
+        mockServer.enqueueOKStream(
+            TestUtils.loadResource("services/greader/adapters/items_starred_ids.json")
+        )
 
         val ids = freshRSSDataSource.getItemsIds(
             excludeTarget = GReaderDataSource.GOOGLE_READ,
-            includeTarget = GReaderDataSource.GOOGLE_READING_LIST,
-            max = 100
+            includeTarget = GReaderDataSource.GOOGLE_READING_LIST
         )
-        assertTrue { ids.size == 5 }
+        assertEquals(5, ids.size)
 
         val request = mockServer.takeRequest()
         with(request.requestUrl!!) {
             assertEquals(GReaderDataSource.GOOGLE_READ, queryParameter("xt"))
             assertEquals(GReaderDataSource.GOOGLE_READING_LIST, queryParameter("s"))
-            assertEquals("100", queryParameter("n"))
+            // the page size the FreshRSS maintainer recommends for id lists
+            assertEquals("10000", queryParameter("n"))
         }
+    }
+
+    /**
+     * The walk stops when the server sends no continuation, and every page but
+     * the first sends back the token the page before it carried.
+     */
+    @Test
+    fun idsAreReadToTheEndOfTheContinuation() = runTest {
+        mockServer.enqueueJson(
+            """{ "itemRefs": [ { "id": "1" }, { "id": "2" } ], "continuation": "2" }"""
+        )
+        mockServer.enqueueJson("""{ "itemRefs": [ { "id": "3" } ] }""")
+
+        val ids = freshRSSDataSource.getItemsIds(null, GReaderDataSource.GOOGLE_READING_LIST)
+
+        assertEquals(listOf(1L, 2L, 3L), ids)
+        assertNull(mockServer.takeRequest().requestUrl!!.queryParameter("c"))
+        assertEquals("2", mockServer.takeRequest().requestUrl!!.queryParameter("c"))
+        assertEquals(2, mockServer.requestCount)
+    }
+
+    @Test
+    fun contentsAreReadToTheEndOfTheContinuation() = runTest {
+        mockServer.enqueueJson(
+            """{ "items": [ ${itemJson(1)} ], "continuation": "1" }"""
+        )
+        mockServer.enqueueJson("""{ "items": [ ${itemJson(2)} ] }""")
+
+        val items = freshRSSDataSource.getItems(excludeTarget = null, cursor = null)
+
+        assertEquals(listOf(1L, 2L), items.map { it.id })
+        assertNull(mockServer.takeRequest().requestUrl!!.queryParameter("c"))
+        assertEquals("1", mockServer.takeRequest().requestUrl!!.queryParameter("c"))
+    }
+
+    /**
+     * A page that brings nothing back and still asks for another one is not the
+     * end of the walk and is not a page either: what came back is part of an
+     * answer, and a real FreshRSS never sends it — the empty page that follows a
+     * full last one carries no continuation. Returning the rows already
+     * accumulated would hand the caller a partial list it would treat as whole.
+     */
+    @Test
+    fun anEmptyIdPageThatStillAsksForAnotherFailsTheWalk() = runTest {
+        mockServer.enqueueJson(
+            """{ "itemRefs": [ { "id": "1" } ], "continuation": "1" }"""
+        )
+        mockServer.enqueueJson("""{ "itemRefs": [ ], "continuation": "2" }""")
+
+        assertFailsWith<ParseException> {
+            freshRSSDataSource.getItemsIds(null, GReaderDataSource.GOOGLE_READING_LIST)
+        }
+    }
+
+    /**
+     * A continuation identical to the one just sent walks the same page for
+     * ever, so it is a broken answer rather than an end.
+     */
+    @Test
+    fun anIdPageRepeatingTheContinuationItWasSentFailsTheWalk() = runTest {
+        mockServer.enqueueJson(
+            """{ "itemRefs": [ { "id": "1" } ], "continuation": "1" }"""
+        )
+        mockServer.enqueueJson(
+            """{ "itemRefs": [ { "id": "2" } ], "continuation": "1" }"""
+        )
+
+        assertFailsWith<ParseException> {
+            freshRSSDataSource.getItemsIds(null, GReaderDataSource.GOOGLE_READING_LIST)
+        }
+    }
+
+    /** The same two broken answers, for the contents. */
+    @Test
+    fun anEmptyContentsPageThatStillAsksForAnotherFailsTheWalk() = runTest {
+        mockServer.enqueueJson(
+            """{ "items": [ ${itemJson(1)} ], "continuation": "1" }"""
+        )
+        mockServer.enqueueJson("""{ "items": [ ], "continuation": "2" }""")
+
+        assertFailsWith<ParseException> {
+            freshRSSDataSource.getItems(excludeTarget = null, cursor = null)
+        }
+    }
+
+    @Test
+    fun contentsRepeatingTheContinuationTheyWereSentFailTheWalk() = runTest {
+        mockServer.enqueueJson(
+            """{ "items": [ ${itemJson(1)} ], "continuation": "1" }"""
+        )
+        mockServer.enqueueJson(
+            """{ "items": [ ${itemJson(2)} ], "continuation": "1" }"""
+        )
+
+        assertFailsWith<ParseException> {
+            freshRSSDataSource.getItems(excludeTarget = null, cursor = null)
+        }
+    }
+
+    /**
+     * FreshRSS applies the ids of one `edit-tag` call in statements of at most
+     * 998 and truncates a request body at 1 MiB without saying so, so a batch
+     * is at most 998 ids and the caller is told which ones went up.
+     */
+    @Test
+    fun stateUploadsAreSplitInBatchesOfAtMost998() = runTest {
+        val ids = (1L..2000L).toList()
+        repeat(3) { mockServer.enqueueOK() }
+
+        val accepted = mutableListOf<Pair<ArticleStateChange, List<Long>>>()
+        freshRSSDataSource.uploadPendingChanges(
+            GReaderSyncData(readIds = ids),
+            "writeToken"
+        ) { change, batch -> accepted += change to batch }
+
+        assertEquals(3, mockServer.requestCount)
+        assertEquals(listOf(998, 998, 4), accepted.map { it.second.size })
+        assertEquals(ids, accepted.flatMap { it.second })
+        assertTrue { accepted.all { it.first == ArticleStateChange.READ } }
+
+        val firstBatch = mockServer.takeRequest().body.readUtf8()
+        assertEquals(998, firstBatch.split("i=").size - 1)
+        assertTrue { firstBatch.contains("T=writeToken") }
+    }
+
+    /** One request per state, and only for the states that have something to say. */
+    @Test
+    fun eachStateGoesUpInItsOwnRequest() = runTest {
+        repeat(2) { mockServer.enqueueOK() }
+
+        val accepted = mutableListOf<ArticleStateChange>()
+        freshRSSDataSource.uploadPendingChanges(
+            GReaderSyncData(readIds = listOf(1L), unstarredIds = listOf(2L)),
+            "writeToken"
+        ) { change, _ -> accepted += change }
+
+        assertEquals(
+            listOf(ArticleStateChange.READ, ArticleStateChange.UNSTARRED),
+            accepted
+        )
+
+        with(mockServer.takeRequest().body.readUtf8()) {
+            assertTrue(contains("a=user%2F-%2Fstate%2Fcom.google%2Fread"), this)
+            assertTrue(contains("i=1"), this)
+        }
+        with(mockServer.takeRequest().body.readUtf8()) {
+            assertTrue(contains("r=user%2F-%2Fstate%2Fcom.google%2Fstarred"), this)
+            assertTrue(contains("i=2"), this)
+        }
+    }
+
+    /** The content of named articles goes up in batches of at most 998 too. */
+    @Test
+    fun contentOfNamedArticlesIsAskedForInBatches() = runTest {
+        repeat(2) { mockServer.enqueueJson("""{ "items": [] }""") }
+
+        freshRSSDataSource.getItemsContents((1L..1000L).toList(), "writeToken")
+
+        assertEquals(2, mockServer.requestCount)
+        assertEquals(998, mockServer.takeRequest().body.readUtf8().split("i=").size - 1)
+        assertEquals(2, mockServer.takeRequest().body.readUtf8().split("i=").size - 1)
     }
 
     @Test
@@ -304,118 +464,163 @@ class GReaderDataSourceTest : KoinTest {
         }
     }
 
+    /**
+     * §7: the first sync asks for the unread articles and the starred articles,
+     * for no read article at all, and for the same three id lists as any other
+     * sync.
+     */
     @Test
-    fun initialSyncTest() = runTest {
-        mockServer.dispatcher = object : Dispatcher() {
+    fun theInitialSyncPullsUnreadAndStarredContentAndTheThreeIdLists() = runTest {
+        val paths = Collections.synchronizedList(mutableListOf<String>())
+        mockServer.dispatcher = recordingDispatcher(paths)
 
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                with(request.path!!) {
-                    return when {
-                        contains("tag/list") -> {
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("services/greader/adapters/folders.json"))
-                        }
-
-                        contains("subscription/list") -> {
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("services/greader/adapters/feeds.json"))
-                        }
-
-                        // items
-                        contains("contents/user/-/state/com.google/reading-list") -> {
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("services/greader/adapters/items.json"))
-                        }
-
-                        // starred items
-                        contains("contents/user/-/state/com.google/starred") -> {
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("services/greader/adapters/items.json"))
-                        }
-
-                        // unread ids & starred ids
-                        contains("stream/items/ids") -> {
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("services/greader/adapters/items_starred_ids.json"))
-                        }
-
-                        else -> MockResponse().setResponseCode(404)
-                    }
-                }
-            }
-        }
-
-        val result =
-            freshRSSDataSource.synchronize(SyncType.INITIAL_SYNC, GReaderSyncData(), "writeToken")
+        val result = freshRSSDataSource.synchronize(
+            cursor = GReaderDataSource.NO_CURSOR,
+            pendingChanges = GReaderSyncData(),
+            writeToken = "writeToken"
+        ) { _, _ -> }
 
         with(result) {
             assertEquals(1, folders.size)
             assertEquals(1, feeds.size)
-            assertEquals(2, items.size)
-            assertEquals(2, starredItems.size)
+            // two from the reading list and the same two from the starred stream
+            assertEquals(4, items.size)
+            assertEquals(5, serverIds.size)
             assertEquals(5, unreadIds.size)
             assertEquals(5, starredIds.size)
         }
+
+        val readingList = paths.first { it.contains("contents/user/-/state/com.google/reading-list") }
+        assertTrue(readingList.contains("xt="), "the initial sync asked for read articles: $readingList")
+        assertTrue(!readingList.contains("ot="), "the initial sync sent a cursor: $readingList")
+        assertTrue(paths.any { it.contains("contents/user/-/state/com.google/starred") })
     }
 
+    /** A later sync uploads first, then asks the reading list for what changed. */
     @Test
-    fun classicSync() = runTest {
-        var setItemState = 0
+    fun aLaterSyncUploadsThenPullsFromTheCursor() = runTest {
+        val paths = Collections.synchronizedList(mutableListOf<String>())
+        mockServer.dispatcher = recordingDispatcher(paths)
+
         val ids = listOf(1L, 2L, 3L, 4L)
-        val cursor = 10L
-
-        mockServer.dispatcher = object : Dispatcher() {
-
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                with(request.path!!) {
-                    // printing request path before anything prevents a request being ignored and the test fail, I don't really know why
-                    println("request: ${request.path}")
-                    return when {
-                        contains("0/edit-tag") -> {
-                            setItemState++
-                            MockResponse().setResponseCode(200)
-                        }
-
-                        contains("tag/list") -> {
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("services/greader/adapters/folders.json"))
-                        }
-
-                        contains("subscription/list") -> {
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("services/greader/adapters/feeds.json"))
-                        }
-
-                        // items
-                        contains("contents/user/-/state/com.google/reading-list") -> {
-                            assertTrue { request.path!!.contains("ot=$cursor") }
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("services/greader/adapters/items.json"))
-                        }
-
-                        // unread & read ids
-                        contains("stream/items/ids") -> {
-                            MockResponse.okResponseWithBody(TestUtils.loadResource("services/greader/adapters/items_starred_ids.json"))
-                        }
-
-                        else -> MockResponse().setResponseCode(404)
-                    }
-                }
-            }
-        }
+        val accepted = mutableListOf<ArticleStateChange>()
 
         val result = freshRSSDataSource.synchronize(
-            syncType = SyncType.CLASSIC_SYNC,
-            syncData = GReaderSyncData(
-                cursor = 10L,
+            cursor = 10L,
+            pendingChanges = GReaderSyncData(
                 readIds = ids,
                 unreadIds = ids,
                 starredIds = ids,
                 unstarredIds = ids
             ),
             writeToken = "writeToken"
+        ) { change, _ -> accepted += change }
+
+        assertEquals(
+            listOf(
+                ArticleStateChange.READ,
+                ArticleStateChange.UNREAD,
+                ArticleStateChange.STARRED,
+                ArticleStateChange.UNSTARRED
+            ),
+            accepted
         )
+        assertEquals(4, paths.count { it.contains("edit-tag") })
 
         with(result) {
-            assertEquals(4, setItemState)
             assertEquals(1, folders.size)
             assertEquals(1, feeds.size)
+            // the starred stream is not walked once there is a cursor
             assertEquals(2, items.size)
+            assertEquals(5, serverIds.size)
             assertEquals(5, unreadIds.size)
-            assertEquals(5, readIds.size)
             assertEquals(5, starredIds.size)
         }
+
+        val readingList = paths.first { it.contains("contents/user/-/state/com.google/reading-list") }
+        assertTrue(readingList.contains("ot=10"), readingList)
+        assertTrue(!readingList.contains("xt="), "a later sync must fetch read articles too")
+        assertTrue(paths.none { it.contains("contents/user/-/state/com.google/starred") })
+    }
+
+    /**
+     * A batch the server refuses fails the sync before anything is pulled, so
+     * the caller's queue is intact and its store untouched.
+     */
+    @Test
+    fun aRefusedBatchStopsTheSyncBeforeAnythingIsPulled() = runTest {
+        val paths = Collections.synchronizedList(mutableListOf<String>())
+        mockServer.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                paths += request.path!!
+                return MockResponse().setResponseCode(HttpURLConnection.HTTP_INTERNAL_ERROR)
+            }
+        }
+
+        val accepted = mutableListOf<ArticleStateChange>()
+        assertFailsWith<Exception> {
+            freshRSSDataSource.synchronize(
+                cursor = 10L,
+                pendingChanges = GReaderSyncData(readIds = listOf(1L)),
+                writeToken = "writeToken"
+            ) { change, _ -> accepted += change }
+        }
+
+        assertEquals(listOf("edit-tag"), paths.map { if (it.contains("edit-tag")) "edit-tag" else it })
+        assertTrue(accepted.isEmpty(), "a refused batch must not be reported as accepted")
+    }
+
+    private fun recordingDispatcher(paths: MutableList<String>) = object : Dispatcher() {
+
+        override fun dispatch(request: RecordedRequest): MockResponse {
+            val path = request.path!!
+            paths += path
+
+            return when {
+                path.contains("edit-tag") -> MockResponse().setResponseCode(200)
+
+                path.contains("tag/list") -> MockResponse.okResponseWithBody(
+                    TestUtils.loadResource("services/greader/adapters/folders.json")
+                )
+
+                path.contains("subscription/list") -> MockResponse.okResponseWithBody(
+                    TestUtils.loadResource("services/greader/adapters/feeds.json")
+                )
+
+                path.contains("stream/contents") -> MockResponse.okResponseWithBody(
+                    TestUtils.loadResource("services/greader/adapters/items.json")
+                )
+
+                path.contains("stream/items/ids") -> MockResponse()
+                    .setResponseCode(HttpURLConnection.HTTP_OK)
+                    .setBody(FIVE_IDS)
+
+                else -> MockResponse().setResponseCode(HttpURLConnection.HTTP_NOT_FOUND)
+            }
+        }
+    }
+
+    private fun MockWebServer.enqueueJson(body: String) {
+        enqueue(MockResponse().setResponseCode(HttpURLConnection.HTTP_OK).setBody(body))
+    }
+
+    private fun itemJson(id: Long): String = """
+        {
+          "id": "tag:google.com,2005:reader/item/${java.lang.Long.toUnsignedString(id, 16).padStart(16, '0')}",
+          "published": 1625234040,
+          "title": "article $id",
+          "summary": { "content": "content of $id" },
+          "categories": [ "user/-/state/com.google/reading-list" ],
+          "origin": { "streamId": "feed/2" }
+        }
+    """.trimIndent()
+
+    private companion object {
+
+        /** Five ids and no continuation, which is one whole id list. */
+        val FIVE_IDS = """
+            { "itemRefs": [ { "id": "1" }, { "id": "2" }, { "id": "3" },
+                            { "id": "4" }, { "id": "5" } ] }
+        """.trimIndent()
     }
 }

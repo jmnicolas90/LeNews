@@ -26,7 +26,9 @@ Where the three problems this fork exists to fix stand today:
 - **Storing an article twice is no longer possible.** The article's identity is
   the number FreshRSS gives it, and that number is the primary key, so an
   article FreshRSS sends again — which it does on every sync — updates the row
-  it already has.
+  it already has. A sync is safe to repeat: it writes everything in one
+  database transaction, so one that fails part-way changes nothing at all and
+  the next one starts from the same place.
 - **The timeline no longer slows down as articles accumulate**, but the store
   still grows without bound. Reading a page of any timeline, and the drawer's
   unread counts, take about the same time on a hundred thousand articles as on

@@ -12,14 +12,29 @@ import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.JsonReader
 import com.squareup.moshi.JsonWriter
 
-class GReaderItemsAdapter : JsonAdapter<List<Item>>() {
+/**
+ * One page of `stream/contents`, or the whole answer of
+ * `stream/items/contents`, which carries no continuation.
+ *
+ * [continuation] is what the next request sends back as `c`. FreshRSS emits it
+ * only when the page it just sent was full, so its absence is the end of the
+ * walk. It is opaque to this client: a decimal article id today, and never read
+ * as anything but a token to hand back.
+ */
+data class GReaderItemsPage(
+    val items: List<Item> = emptyList(),
+    val continuation: String? = null
+)
 
-    override fun toJson(writer: JsonWriter, value: List<Item>?) {
+class GReaderItemsAdapter : JsonAdapter<GReaderItemsPage>() {
+
+    override fun toJson(writer: JsonWriter, value: GReaderItemsPage?) {
         // no need of this
     }
 
-    override fun fromJson(reader: JsonReader): List<Item> = with(reader) {
+    override fun fromJson(reader: JsonReader): GReaderItemsPage = with(reader) {
         val items = mutableListOf<Item>()
+        var continuation: String? = null
 
         return try {
             beginObject()
@@ -27,12 +42,13 @@ class GReaderItemsAdapter : JsonAdapter<List<Item>>() {
             while (hasNext()) {
                 when (nextName()) {
                     "items" -> parseItems(reader, items)
+                    "continuation" -> continuation = nextString()
                     else -> skipValue()
                 }
             }
 
             endObject()
-            items
+            GReaderItemsPage(items, continuation)
         } catch (e: Exception) {
             throw ParseException("GReader items parsing failure", e)
         }
