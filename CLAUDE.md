@@ -45,9 +45,11 @@ there. `CONTRIBUTING.md` holds the rule for copyright headers —
 in the comment syntax of their language, *added* under upstream's header and
 never substituted for it, and **not** on Markdown documentation, which says in
 its own prose who wrote it. In this tree that means five `scripts/*.sh`,
-`.github/workflows/ci.yml`, the two fork-drawn launcher drawables and
-`app/src/test/java/app/lenews/util/accounterror/GReaderErrorTest.kt` carry the
-header, `LICENSE` is byte-identical to upstream's, and nothing else does.
+`.github/workflows/ci.yml`, the two fork-drawn launcher drawables,
+`app/src/test/java/app/lenews/util/accounterror/GReaderErrorTest.kt` and
+`db/src/androidTest/java/app/lenews/db/benchmark/TimelineSlownessBenchmarkTest.kt`
+carry the header, `LICENSE` is byte-identical to upstream's, and nothing else
+does.
 `CONTRIBUTING.md` lists the six non-Markdown fork-created files that
 deliberately carry no header and why — JSON has no comments, the lint baseline is regenerated, and
 `util/components/LoadingScreen.kt` is upstream's own code moved into a file of
