@@ -139,7 +139,10 @@ header in the same commit.**
   synced against, by any ticket, for any reason. Testing against a real server
   uses a separate debug account on the user's own FreshRSS at `https://rss.lan`
   (LAN and VPN only), whose credentials live in the gitignored
-  `local.properties` — ticket 22 sets that up and is still open. The
+  `local.properties` — ticket 22 set that up, and the account is `ledev`.
+  Still open there: the Caddy root as a user CA on the phone, which cannot be
+  checked from this machine, and a second sample proving the feeds really
+  produce a few hundred articles a day. The
   instrumented gate stage needs no network at all: it uses MockWebServer on the
   emulator. A real phone is often attached to this machine over adb and is out
   of bounds; G7 pins the serial so nothing can reach it.
@@ -264,9 +267,10 @@ Notes that save time:
   would look for `platforms;android-35` and the AVD in one SDK while Gradle
   built against another, and G0 would pass or fail about a directory nothing
   uses. That is the whole reason this lookup lives in one file. On this machine
-  there is no `local.properties`, so both fall through to `ANDROID_HOME`
-  (`/home/skynet/dev/android/sdk`); write a `local.properties` with a `sdk.dir`
-  and it wins, for the script exactly as for Gradle.
+  `local.properties` exists — ticket 22 wrote the debug account into it — but
+  carries no `sdk.dir`, so both still fall through to `ANDROID_HOME`
+  (`/home/skynet/dev/android/sdk`); add a `sdk.dir` to it and it wins, for the
+  script exactly as for Gradle.
 
 ## Working conventions
 
@@ -404,11 +408,12 @@ Temurin 21 at `/home/skynet/dev/jdk/jdk-21.0.12+8` (`$JAVA_HOME`), matching the
 `java-version` in CI. The host is Fedora with a French locale, so Gradle, git
 and the emulator may answer in French.
 
-`local.properties` is gitignored and holds this machine's answers: `sdk.dir`,
-and the three keys the debug build reads to autofill the login screen —
+`local.properties` is gitignored and holds this machine's answers. Today that is
+the three keys the debug build reads to autofill the login screen —
 `debug.freshrss.url`, `debug.freshrss.login`, `debug.freshrss.password`
 (`app/build.gradle.kts` turns them into string resources for the debug build
-type only; a release build gets empty values). Never paste those credentials
+type only; a release build gets empty values) — and deliberately no `sdk.dir`,
+so the SDK lookup above stays on `ANDROID_HOME`. Never paste those credentials
 anywhere else.
 
 The 02-09-2026 code review of the upstream code is at the repo root
