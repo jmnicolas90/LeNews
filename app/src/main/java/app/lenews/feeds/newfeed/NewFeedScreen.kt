@@ -36,7 +36,6 @@ import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import app.lenews.R
-import app.lenews.account.selection.adaptiveIconPainterResource
 import app.lenews.util.components.AndroidScreen
 import app.lenews.util.components.DropdownBox
 import app.lenews.util.components.DropdownBoxValue
@@ -118,32 +117,6 @@ class NewFeedScreen(val url: String? = null) : AndroidScreen() {
                     }),
                     isError = state.isURLError,
                     supportingText = { Text(state.urlError?.errorText().orEmpty()) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                ShortSpacer()
-
-                TextHorizontalDivider(text = stringResource(R.string.account))
-
-                ShortSpacer()
-
-                DropdownBox(
-                    expanded = state.isAccountDropdownExpanded,
-                    text = state.selectedAccount?.name.orEmpty(),
-                    label = stringResource(R.string.choose_account),
-                    painter = if (state.selectedAccount != null) {
-                        adaptiveIconPainterResource(state.selectedAccount!!.type!!.iconRes)
-                    } else null,
-                    values = state.accounts.map {
-                        DropdownBoxValue(
-                            id = it.id,
-                            text = it.name.orEmpty(),
-                            painter = adaptiveIconPainterResource(it.type!!.iconRes)
-                        )
-                    },
-                    onExpandedChange = { screenModel.updateAccountDropDownExpandStatus(it) },
-                    onValueClick = { id -> screenModel.updateSelectedAccount(state.accounts.first { it.id == id }) },
-                    onDismiss = { screenModel.updateAccountDropDownExpandStatus(false) },
                     modifier = Modifier.fillMaxWidth()
                 )
 

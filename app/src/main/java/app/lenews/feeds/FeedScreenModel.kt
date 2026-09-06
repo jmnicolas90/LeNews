@@ -58,11 +58,7 @@ class FeedScreenModel(
                     )
                 }
 
-                getFoldersWithFeeds.get(
-                    account.id,
-                    MainFilter.ALL,
-                    account.config.useSeparateState
-                )
+                getFoldersWithFeeds.get(MainFilter.ALL)
             }
                 .catch { throwable ->
                     _feedState.update {
@@ -105,7 +101,7 @@ class FeedScreenModel(
                     )
                 }
 
-                database.folderDao().selectFolders(account.id)
+                database.folderDao().selectFolders()
             }
                 .collect { folders ->
                     _updateFeedDialogState.update {
@@ -198,7 +194,7 @@ class FeedScreenModel(
             try {
                 repository?.deleteFeed(feed)
             } catch (e: Exception) {
-                _feedState.update { it.copy(error = accountError?.deleteFeedMessage(e)) }
+                _feedState.update { it.copy(error = accountError.deleteFeedMessage(e)) }
             }
         }
     }
@@ -208,7 +204,7 @@ class FeedScreenModel(
             try {
                 repository?.deleteFolder(folder)
             } catch (e: Exception) {
-                _feedState.update { it.copy(error = accountError?.deleteFolderMessage(e)) }
+                _feedState.update { it.copy(error = accountError.deleteFolderMessage(e)) }
             }
         }
     }
@@ -297,7 +293,7 @@ class FeedScreenModel(
                         } catch (e: Exception) {
                             _updateFeedDialogState.update {
                                 it.copy(
-                                    error = accountError?.updateFeedMessage(e),
+                                    error = accountError.updateFeedMessage(e),
                                     isLoading = false
                                 )
                             }
@@ -348,15 +344,15 @@ class FeedScreenModel(
                     val folder = (_feedState.value.dialog as DialogState.UpdateFolder).folder
                     repository?.updateFolder(folder.copy(name = name))
                 } else {
-                    repository?.addFolder(Folder(name = name, accountId = currentAccount!!.id))
+                    repository?.addFolder(Folder(name = name))
                 }
             } catch (e: Exception) {
                 _folderState.update {
                     it.copy(
                         error = if (updateFolder) {
-                            accountError?.updateFolderMessage(e)
+                            accountError.updateFolderMessage(e)
                         } else {
-                            accountError?.newFolderMessage(e)
+                            accountError.newFolderMessage(e)
                         },
                         isLoading = false
                     )

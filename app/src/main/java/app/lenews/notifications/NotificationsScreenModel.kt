@@ -27,14 +27,14 @@ class NotificationsScreenModel(
 
     init {
         screenModelScope.launch(dispatcher) {
-            database.accountDao().selectAccountNotificationsState(account.id)
+            database.accountDao().selectAccountNotificationsState()
                 .collect { isNotificationsEnabled ->
                     mutableState.update { it.copy(areAccountNotificationsEnabled = isNotificationsEnabled) }
                 }
         }
 
         screenModelScope.launch(dispatcher) {
-            database.feedDao().selectFeedsWithFolderName(account.id)
+            database.feedDao().selectFeedsWithFolderName()
                 .collect { feedsWithFolder ->
                     mutableState.update {
                         it.copy(
@@ -54,7 +54,7 @@ class NotificationsScreenModel(
 
     fun setAccountNotificationsState(enabled: Boolean) {
         screenModelScope.launch(dispatcher) {
-            database.accountDao().updateNotificationState(account.id, enabled)
+            database.accountDao().updateNotificationState(enabled)
         }
     }
 
@@ -66,7 +66,7 @@ class NotificationsScreenModel(
 
     fun setAllFeedsNotificationsState(enabled: Boolean) {
         screenModelScope.launch(dispatcher) {
-            database.feedDao().updateAllFeedsNotificationState(account.id, enabled)
+            database.feedDao().updateAllFeedsNotificationState(enabled)
         }
     }
 

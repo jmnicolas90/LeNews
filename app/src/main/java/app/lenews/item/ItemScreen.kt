@@ -33,7 +33,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.core.parameter.parametersOf
 
 class ItemScreen(
-    private val itemId: Int,
+    private val itemId: Long,
     private val itemIndex: Int,
     private val queryFilters: QueryFilters
 ) : AndroidScreen() {

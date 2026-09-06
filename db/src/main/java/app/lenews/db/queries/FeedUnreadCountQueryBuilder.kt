@@ -7,29 +7,35 @@ import org.intellij.lang.annotations.Language
 
 object FeedUnreadCountQueryBuilder {
 
-    fun build(
-        accountId: Int,
-        mainFilter: MainFilter,
-        useSeparateState: Boolean
-    ): SupportSQLiteQuery {
+    /**
+     * The index the count has to walk, named rather than left to the planner.
+     *
+     * With no statistics SQLite picks it by itself and the count of a hundred
+     * thousand articles takes about a millisecond. After `PRAGMA optimize` it
+     * changes its mind: it prefers `index_Article_feed_id_pub_date`, because
+     * that one hands back the rows already grouped and saves the temporary
+     * b-tree — and then walks all hundred thousand rows instead of the few
+     * thousand unread ones, which measured 68 ms against 1.1 ms. Naming the
+     * index keeps the plan the same whether the planner has statistics or not.
+     *
+     * The name is Room's, built from the table and the columns of the index
+     * declared on `Item`. If that index is renamed or dropped, SQLite refuses
+     * the query outright rather than running it slowly.
+     */
+    const val UNREAD_INDEX = "index_Article_read_pub_date"
+
+    fun build(mainFilter: MainFilter): SupportSQLiteQuery {
         val filter = when (mainFilter) {
-            MainFilter.STARS -> if (!useSeparateState) "And Item.starred = 1" else "And ItemState.starred = 1"
-            MainFilter.NEW -> """And DateTime(Round(Item.pub_date / 1000), 'unixepoch') 
-                Between DateTime(DateTime("now"), "-24 hour") And DateTime("now") """.trimMargin()
+            MainFilter.STARS -> "And starred = 1 "
+            MainFilter.NEW -> "And $WITHIN_LAST_24_HOURS "
             else -> ""
         }
 
         @Language("SQL")
-        val query = if (!useSeparateState) {
-            SimpleSQLiteQuery(
-                """Select feed_id, count(*) AS item_count From Item Inner Join Feed On Feed.id = Item.feed_id 
-            Where read = 0 And account_id = $accountId $filter Group By feed_id""".trimIndent()
-            )
-        } else {
-            SimpleSQLiteQuery(
-                """Select feed_id, count(*) AS item_count From ItemState Inner Join Item On ItemState.remote_id = Item.remote_id 
-            Where ItemState.read = 0 And account_id = $accountId $filter Group By feed_id""".trimIndent())
-        }
+        val query = SimpleSQLiteQuery(
+            "Select feed_id, count(*) AS item_count From Article Indexed By $UNREAD_INDEX " +
+                    "Where read = 0 $filter Group By feed_id"
+        )
 
         return query
     }

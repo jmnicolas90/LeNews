@@ -10,7 +10,6 @@ import app.lenews.testutil.TestUtils
 import app.lenews.testutil.okResponseWithBody
 import app.lenews.db.Database
 import app.lenews.db.entities.account.Account
-import app.lenews.db.entities.account.AccountType
 import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.Dispatcher
@@ -38,7 +37,6 @@ class SynchronizerTest : KoinTest {
 
     private val account = Account(
         name = "Account",
-        type = AccountType.FRESHRSS,
         url = mockServer.url("/remote").toString(),
         writeToken = "writeToken"
     )
@@ -50,29 +48,19 @@ class SynchronizerTest : KoinTest {
     }
 
     /**
-     * One synchronization, and the store ends up with four rows for one
-     * article.
+     * One synchronization, and the store ends up with one row for one article.
      *
      * `greader/items.json` holds the same article twice — the same
      * `tag:google.com,2005:reader/item/0005c62466ee28fe` id — and the dispatcher
      * answers both the reading-list contents call and the starred contents call
-     * with that same fixture, so the sync is handed the article four times.
-     * `GReaderRepository.insertItems` inserts every one of them
-     * (`GReaderRepository.kt:174-180`): there is no unique constraint on
-     * `Item.remote_id` and no upsert, so four rows is what comes out.
-     *
-     * **Four rows is the defect, not the specification.** It is the map's
-     * "Duplicates" pain point, and `CONTEXT.md` says a duplicate is "two local
-     * rows for one article. A defect, never a state." The number is asserted
-     * here so the test stays green and keeps the rest of the synchronization
-     * covered, and the name says what the assertion documents rather than
-     * pretending it is the rule. Ticket 12 decides the identity rule and the
-     * uniqueness constraint, ticket 14 makes the sync idempotent; when 14 lands,
-     * this test asserts one row and loses the suffix.
+     * with that same fixture, so the sync is handed the article four times. The
+     * id is the article's primary key, so four deliveries are one row: the
+     * duplicate the map called a pain point is what the schema now makes
+     * impossible.
      */
     @Test
-    fun syncStoresFourRowsForOneArticle_knownDuplicateDefectUntilTicket14() = runTest {
-        account.id = database.accountDao().insert(account).toInt()
+    fun syncStoresOneRowForOneArticle() = runTest {
+        database.accountDao().upsert(account)
 
         mockServer.dispatcher = object : Dispatcher() {
 
@@ -112,16 +100,14 @@ class SynchronizerTest : KoinTest {
         val notificationBuilder = Builder(context, LeNewsApp.SYNC_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_sync)
 
-        synchronizer.synchronizeAccounts(notificationBuilder, account.id)
+        synchronizer.synchronize(notificationBuilder)
 
-        val feeds = database.feedDao().selectFeeds(account.id)
+        val feeds = database.feedDao().selectFeeds()
         assertEquals(1, feeds.size)
 
-        // four rows, all of them the same article: two copies in the fixture,
-        // fetched twice (reading list and starred). See the comment above —
-        // this asserts the defect, on purpose, until ticket 14.
+        // one row, whatever the number of times the article was delivered
         val items = database.itemDao().selectItems(feeds.first().id)
-        assertEquals(4, items.size)
-        assertEquals(1, items.map { it.remoteId }.distinct().size)
+        assertEquals(1, items.size)
+        assertEquals(1625234531559678L, items.first().id)
     }
 }

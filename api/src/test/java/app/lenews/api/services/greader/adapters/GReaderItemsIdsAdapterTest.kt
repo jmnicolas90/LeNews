@@ -9,9 +9,9 @@ import org.junit.Test
 class GReaderItemsIdsAdapterTest {
 
     private val adapter = Moshi.Builder()
-            .add(Types.newParameterizedType(List::class.java, String::class.java), GReaderItemsIdsAdapter())
+            .add(Types.newParameterizedType(List::class.java, Long::class.javaObjectType), GReaderItemsIdsAdapter())
             .build()
-            .adapter<List<String>>(Types.newParameterizedType(List::class.java, String::class.java))
+            .adapter<List<Long>>(Types.newParameterizedType(List::class.java, Long::class.javaObjectType))
 
     @Test
     fun validIdsTest() {
@@ -19,12 +19,14 @@ class GReaderItemsIdsAdapterTest {
 
         val ids = adapter.fromJson(Buffer().readFrom(stream))!!
 
+        // the decimal form this endpoint sends, parsed to the same numbers the
+        // long form of stream/contents would give
         assertEquals(ids, listOf(
-                "tag:google.com,2005:reader/item/0005b2c17277b383",
-                "tag:google.com,2005:reader/item/0005b2c12d328ae4",
-                "tag:google.com,2005:reader/item/0005b2c0781d0737",
-                "tag:google.com,2005:reader/item/0005b2bf3852c293",
-                "tag:google.com,2005:reader/item/0005b2bebeed9f7f"
+                1603918802432899L,
+                1603917640272612L,
+                1603914602186551L,
+                1603909236998803L,
+                1603907200327551L
         ))
     }
 }

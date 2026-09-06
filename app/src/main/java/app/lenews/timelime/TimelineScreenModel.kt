@@ -6,8 +6,6 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import androidx.paging.map
-import androidx.work.workDataOf
 import cafe.adriel.voyager.core.model.screenModelScope
 import app.lenews.R
 import app.lenews.home.TabScreenModel
@@ -90,8 +88,8 @@ class TimelineScreenModel(
                 filters,
                 getTimelinePreferences()
             ) { account, filters, timelinePreferences ->
-                Triple(account, filters.copy(accountId = account.id), timelinePreferences)
-            }.collectLatest { (account, filters, timelinePreferences) ->
+                Triple(account, filters, timelinePreferences)
+            }.collectLatest { (_, filters, timelinePreferences) ->
                 _timelineState.update {
                     it.copy(
                         preferences = timelinePreferences,
@@ -113,9 +111,7 @@ class TimelineScreenModel(
                 preferences.hideReadFeeds.flow
                     .flatMapLatest { hideReadFeeds ->
                         getFoldersWithFeeds.get(
-                            accountId = account.id,
                             mainFilter = filters.mainFilter,
-                            useSeparateState = account.config.useSeparateState,
                             hideReadFeeds = hideReadFeeds
                         )
                     }
@@ -131,7 +127,7 @@ class TimelineScreenModel(
 
         screenModelScope.launch(dispatcher) {
             accountEvent.flatMapLatest {
-                getFoldersWithFeeds.getNewItemsUnreadCount(it.id, it.config.useSeparateState)
+                getFoldersWithFeeds.getNewItemsUnreadCount()
             }.collectLatest { count ->
                 _timelineState.update {
                     it.copy(unreadNewItemsCount = count)
@@ -178,10 +174,7 @@ class TimelineScreenModel(
     }
 
     private fun buildPager(empty: Boolean = false) {
-        val query = ItemsQueryBuilder.buildItemsQuery(
-            queryFilters = _timelineState.value.filters,
-            separateState = currentAccount!!.config.useSeparateState
-        )
+        val query = ItemsQueryBuilder.buildItemsQuery(_timelineState.value.filters)
 
         val pager = Pager(
             config = PagingConfig(
@@ -194,13 +187,6 @@ class TimelineScreenModel(
             },
         )
             .flow
-            .map { pagingData ->
-                pagingData.map { itemWithFeed ->
-                    itemWithFeed.item.tags = database.tagDao().selectAllByItem(itemWithFeed.item.id)
-
-                    itemWithFeed
-                }
-            }
             .cachedIn(screenModelScope)
 
         _timelineState.update {
@@ -227,8 +213,6 @@ class TimelineScreenModel(
         buildPager(empty = true)
 
         screenModelScope.launch(dispatcher) {
-            val workData = workDataOf(SyncWorker.ACCOUNT_ID_KEY to currentAccount!!.id)
-
             _timelineState.update {
                 it.copy(
                     isRefreshing = true,
@@ -236,7 +220,7 @@ class TimelineScreenModel(
                 )
             }
 
-            SyncWorker.startNow(context, workData) { workInfo ->
+            SyncWorker.startNow(context) { workInfo ->
                 when {
                     workInfo.outputData.getBoolean(SyncWorker.END_SYNC_KEY, false) -> {
                         _timelineState.update {
@@ -257,7 +241,7 @@ class TimelineScreenModel(
 
                         _timelineState.update {
                             it.copy(
-                                syncError = accountError?.genericMessage(error!!),
+                                syncError = accountError.genericMessage(error!!),
                                 isRefreshing = false,
                                 hideReadAllFAB = false
                             )
@@ -439,9 +423,8 @@ class TimelineScreenModel(
         }
     }
 
-    suspend fun selectItemWithFeed(itemId: Int): ItemWithFeed? {
-        val query =
-            ItemSelectionQueryBuilder.buildQuery(itemId, currentAccount!!.config.useSeparateState)
+    suspend fun selectItemWithFeed(itemId: Long): ItemWithFeed? {
+        val query = ItemSelectionQueryBuilder.buildQuery(itemId)
         return database.itemDao().selectItemById(query).firstOrNull()
     }
 

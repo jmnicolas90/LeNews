@@ -5,7 +5,6 @@ import app.lenews.db.Database
 import app.lenews.db.entities.Feed
 import app.lenews.db.entities.Folder
 import app.lenews.db.entities.Item
-import app.lenews.db.entities.ItemState
 import app.lenews.db.entities.account.Account
 
 typealias ErrorResult = HashMap<Feed, Exception>
@@ -34,6 +33,12 @@ interface Repository {
     suspend fun insertNewFeeds(newFeeds: List<Feed>, onUpdate: (Feed) -> Unit): ErrorResult
 }
 
+/**
+ * Every route by which an article becomes read writes two things in one
+ * transaction: the state on the article row, dated, and the decision in
+ * `PendingChange` so the next sync tells the server. Marking unread clears the
+ * date, which takes the article out of the history.
+ */
 abstract class BaseRepository(
     val database: Database,
     val account: Account,
@@ -53,183 +58,92 @@ abstract class BaseRepository(
     open suspend fun deleteFolder(folder: Folder) = database.folderDao().delete(folder)
 
     open suspend fun setItemReadState(item: Item) {
-        database.withTransaction {
-            when {
-                account.config.useSeparateState -> {
-                    database.itemStateChangeDao().upsertItemReadStateChange(item, account.id, true)
-                    database.itemStateDao().upsertItemReadState(
-                        ItemState(
-                            id = 0,
-                            read = item.isRead,
-                            starred = item.isStarred,
-                            remoteId = item.remoteId!!,
-                            accountId = account.id
-                        )
-                    )
-                }
+        val now = System.currentTimeMillis()
 
-                else -> {
-                    database.itemStateChangeDao().upsertItemReadStateChange(item, account.id, false)
-                    database.itemDao().updateReadState(item.id, item.isRead)
-                }
+        database.withTransaction {
+            if (item.isRead) {
+                database.itemDao().markRead(item.id, now)
+            } else {
+                database.itemDao().markUnread(item.id)
             }
+
+            database.pendingChangeDao().queueRead(item.id, item.isRead)
         }
     }
 
     open suspend fun setItemStarState(item: Item) {
         database.withTransaction {
-            when {
-                account.config.useSeparateState -> {
-                    database.itemStateChangeDao().upsertItemStarStateChange(item, account.id, true)
-                    database.itemStateDao().upsertItemStarState(
-                        ItemState(
-                            id = 0,
-                            read = item.isRead,
-                            starred = item.isStarred,
-                            remoteId = item.remoteId!!,
-                            accountId = account.id
-                        )
-                    )
-                }
-
-                else -> {
-                    database.itemStateChangeDao().upsertItemStarStateChange(item, account.id, false)
-                    database.itemDao().updateStarState(item.id, item.isStarred)
-                }
-            }
+            database.itemDao().setStarred(item.id, item.isStarred)
+            database.pendingChangeDao().queueStarred(item.id, item.isStarred)
         }
     }
 
     open suspend fun setItemsRead(items: List<Item>) {
-        require(items.all { it.isRead == false }) {
-            "Do not add an item state change for an item which is already read"
+        require(items.none { it.isRead }) {
+            "Do not queue a read change for an article which is already read"
         }
 
-        val accountId = account.id
+        if (items.isEmpty()) {
+            return
+        }
+
         val ids = items.map { it.id }
+        val now = System.currentTimeMillis()
 
         database.withTransaction {
-            when {
-                account.config.useSeparateState -> {
-                    items.forEach {
-                        database.itemStateChangeDao().upsertItemReadStateChange(it, accountId, true)
-                    }
-
-                    database.itemStateDao().setItemsRead(
-                        ids = items.map { it.remoteId!! },
-                        itemStates = items.map {
-                            ItemState(
-                                read = true,
-                                remoteId = it.remoteId!!,
-                                accountId = accountId
-                            )
-                        },
-                        accountId = accountId
-                    )
-                }
-
-                else -> {
-                    items.forEach {
-                        database.itemStateChangeDao()
-                            .upsertItemReadStateChange(it, accountId, false)
-                    }
-                    database.itemDao().setAllItemsRead(ids)
-                }
-            }
+            database.pendingChangeDao().queueReadForArticles(ids)
+            database.itemDao().markRead(ids, now)
         }
     }
 
     open suspend fun setAllItemsRead() {
-        val accountId = account.id
+        val now = System.currentTimeMillis()
 
         database.withTransaction {
-            when {
-                account.config.useSeparateState -> {
-                    database.itemStateChangeDao().upsertAllItemsReadStateChanges(accountId)
-                    database.itemStateDao().setAllItemsRead(accountId)
-                }
-
-                else -> {
-                    database.itemStateChangeDao().upsertAllItemsReadStateChanges(accountId)
-                    database.itemDao().setAllItemsRead(accountId)
-                }
-            }
+            // queued first, while the articles about to change are still unread
+            database.pendingChangeDao().queueReadForAllUnread()
+            database.itemDao().markAllRead(now)
         }
     }
 
     open suspend fun setAllStarredItemsRead() {
-        val accountId = account.id
+        val now = System.currentTimeMillis()
 
         database.withTransaction {
-            when {
-                account.config.useSeparateState -> {
-                    database.itemStateChangeDao().upsertStarredItemReadStateChanges(accountId)
-                    database.itemStateDao().setAllStarredItemsRead(accountId)
-                }
-
-                else -> {
-                    database.itemStateChangeDao().upsertStarredItemReadStateChanges(accountId)
-                    database.itemDao().setAllStarredItemsRead(accountId)
-                }
-            }
+            database.pendingChangeDao().queueReadForUnreadStarred()
+            database.itemDao().markAllStarredRead(now)
         }
     }
 
     open suspend fun setAllNewItemsRead() {
-        val accountId = account.id
+        val now = System.currentTimeMillis()
+        val since = now - DAY_MILLIS
 
         database.withTransaction {
-            when {
-                account.config.useSeparateState -> {
-                    database.itemStateChangeDao().upsertNewItemReadStateChanges(accountId)
-                    database.itemStateDao().setAllNewItemsRead(accountId)
-                }
-
-                else -> {
-                    database.itemStateChangeDao().upsertNewItemReadStateChanges(accountId)
-                    database.itemDao().setAllNewItemsRead(accountId)
-                }
-            }
+            database.pendingChangeDao().queueReadForUnreadSince(since)
+            database.itemDao().markAllReadSince(since, now)
         }
     }
 
     open suspend fun setAllItemsReadByFeed(feedId: Int) {
-        val accountId = account.id
+        val now = System.currentTimeMillis()
 
         database.withTransaction {
-            when {
-                account.config.useSeparateState -> {
-                    database.itemStateChangeDao()
-                        .upsertItemReadStateChangesByFeed(feedId, accountId)
-                    database.itemStateDao().setAllItemsReadByFeed(feedId, accountId)
-                }
-
-                else -> {
-                    database.itemStateChangeDao()
-                        .upsertItemReadStateChangesByFeed(feedId, accountId)
-                    database.itemDao().setAllItemsReadByFeed(feedId, accountId)
-                }
-            }
+            database.pendingChangeDao().queueReadForUnreadInFeed(feedId)
+            database.itemDao().markAllReadByFeed(feedId, now)
         }
     }
 
     open suspend fun setAllItemsReadByFolder(folderId: Int) {
-        val accountId = account.id
+        val now = System.currentTimeMillis()
 
         database.withTransaction {
-            when {
-                account.config.useSeparateState -> {
-                    database.itemStateChangeDao()
-                        .upsertItemReadStateChangesByFolder(folderId, accountId)
-                    database.itemStateDao().setAllItemsReadByFolder(folderId, accountId)
-                }
-
-                else -> {
-                    database.itemStateChangeDao()
-                        .upsertItemReadStateChangesByFolder(folderId, accountId)
-                    database.itemDao().setAllItemsReadByFolder(folderId, accountId)
-                }
-            }
+            database.pendingChangeDao().queueReadForUnreadInFolder(folderId)
+            database.itemDao().markAllReadByFolder(folderId, now)
         }
+    }
+
+    companion object {
+        private const val DAY_MILLIS = 24L * 60 * 60 * 1000
     }
 }

@@ -37,7 +37,6 @@
     <string name="get_feeds_colors">Recupera i colori dei flussi</string>
     <string name="delete">Elimina</string>
     <string name="local">Locale</string>
-    <string name="new_account">Nuovo account</string>
     <string name="login_failed">Accesso non riuscito. Per favore controlla le tue credenziali</string>
     <string name="filter_oldest">Dal più vecchio al più recente</string>
     <string name="filter_newest">Dal più recente al più vecchio</string>
@@ -47,15 +46,11 @@
     <string name="error_occured">Si è verificato un errore</string>
     <string name="feed_doesnt_exist">Il flusso %1$s non esiste sul server</string>
     <string name="feed_deleted">Il flusso %1$s è stato eliminato</string>
-    <string name="delete_account_question">Eliminare l\'account\?</string>
-    <string name="delete_account">Elimina l\'account</string>
     <string name="delete_folder">Eliminare la cartella\?</string>
     <string name="edit_folder">Modifica la cartella</string>
     <string name="feeds">Flussi</string>
     <string name="account">Account</string>
-    <string name="choose_account">Scegli un account</string>
     <string name="no_feed">Nessuno flusso</string>
-    <string name="add_account">Aggiungi un account</string>
     <string name="password_helper">Questa è la tua password FreshRSS API (Configurazione &gt; Profilo)</string>
     <string name="password">Password</string>
     <string name="login">Nome utente</string>

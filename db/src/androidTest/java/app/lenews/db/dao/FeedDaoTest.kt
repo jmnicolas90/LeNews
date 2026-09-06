@@ -7,8 +7,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.lenews.db.Database
 import app.lenews.db.entities.Feed
 import app.lenews.db.entities.Folder
-import app.lenews.db.entities.account.Account
-import app.lenews.db.entities.account.AccountType
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
 import kotlinx.coroutines.test.runTest
@@ -21,23 +19,17 @@ import org.junit.runner.RunWith
 class FeedDaoTest {
 
     private lateinit var database: Database
-    private lateinit var account: Account
 
     @Before
     fun before() = runTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, Database::class.java).build()
 
-        account = Account(type = AccountType.FRESHRSS).apply {
-            id = database.accountDao().insert(this).toInt()
-        }
-
         repeat(2) { time ->
             database.folderDao().insert(
                 Folder(
                     name = "Folder $time",
-                    remoteId = "folder_$time",
-                    accountId = account.id
+                    remoteId = "folder_$time"
                 )
             )
         }
@@ -47,8 +39,7 @@ class FeedDaoTest {
                 Feed(
                     name = "Feed $time",
                     remoteId = "feed_$time",
-                    remoteFolderId = "folder_${if (time % 2 == 0) 0 else 1}",
-                    accountId = account.id
+                    remoteFolderId = "folder_${if (time % 2 == 0) 0 else 1}"
                 )
             )
         }
@@ -66,37 +57,33 @@ class FeedDaoTest {
             Feed(
                 name = "New Feed 0",
                 remoteId = "feed_0",
-                remoteFolderId = null,
-                accountId = account.id
+                remoteFolderId = null
             ),
 
             // deleted feed
             /*Feed(
                 name = "Feed 1",
                 remoteId = "feed_1",
-                remoteFolderId = "folder_1",
-                accountId = account.id
+                remoteFolderId = "folder_1"
             ),*/
 
             // updated feed (folder change)
             Feed(
                 name = "Feed 2",
                 remoteId = "feed_2",
-                remoteFolderId = "folder_1",
-                accountId = account.id
+                remoteFolderId = "folder_1"
             ),
 
             // inserted feed
             Feed(
                 name = "Feed 3",
                 remoteId = "feed_3",
-                remoteFolderId = "folder_0",
-                accountId = account.id
+                remoteFolderId = "folder_0"
             ),
         )
 
-        database.feedDao().upsertFeeds(newFeeds, account)
-        val allFeeds = database.feedDao().selectFeeds(account.id)
+        database.feedDao().upsertFeeds(newFeeds)
+        val allFeeds = database.feedDao().selectFeeds()
 
         assertTrue(allFeeds.any { it.name == "New Feed 0" && it.folderId == null })
         assertTrue(allFeeds.any { it.remoteId == "feed_2" && it.folderId == 2 })

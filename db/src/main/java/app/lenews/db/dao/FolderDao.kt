@@ -8,7 +8,6 @@ import androidx.sqlite.db.SupportSQLiteQuery
 import app.lenews.db.entities.Feed
 import app.lenews.db.entities.Folder
 import app.lenews.db.entities.Item
-import app.lenews.db.entities.account.Account
 import app.lenews.db.pojo.FolderWithFeed
 import kotlinx.coroutines.flow.Flow
 
@@ -19,44 +18,43 @@ interface FolderDao : BaseDao<Folder> {
     @RawQuery(observedEntities = [Folder::class, Feed::class, Item::class])
     fun selectFoldersAndFeeds(query: SupportSQLiteQuery): Flow<List<FolderWithFeed>>
 
-    @Query("Select * From Folder Where account_id = :accountId")
-    fun selectFolders(accountId: Int): Flow<List<Folder>>
+    @Query("Select * From Folder")
+    fun selectFolders(): Flow<List<Folder>>
 
     @Query("Select * from Folder Where id = :folderId")
     fun select(folderId: Int): Folder
 
-    @Query("Select * From Folder Where name = :name And account_id = :accountId")
-    suspend fun selectFolderByName(name: String, accountId: Int): Folder?
+    @Query("Select * From Folder Where name = :name")
+    suspend fun selectFolderByName(name: String): Folder?
 
-    @Query("Select remoteId From Folder Where account_id = :accountId")
-    suspend fun selectFolderRemoteIds(accountId: Int): List<String>
+    @Query("Select remote_id From Folder")
+    suspend fun selectFolderRemoteIds(): List<String>
 
-    @Query("Update Folder set name = :name Where remoteId = :remoteId And account_id = :accountId")
-    suspend fun updateFolderName(name: String, remoteId: String, accountId: Int)
+    @Query("Update Folder set name = :name Where remote_id = :remoteId")
+    suspend fun updateFolderName(name: String, remoteId: String)
 
-    @Query("Delete From Folder Where remoteId in (:ids) And account_id = :accountId")
-    suspend fun deleteByIds(ids: List<String>, accountId: Int)
+    @Query("Delete From Folder Where remote_id in (:ids)")
+    suspend fun deleteByIds(ids: List<String>)
 
     /**
      * Insert, update and delete folders
      *
      * @param folders folders to insert or update
-     * @param account owner of the feeds
      * @return the list of the inserted folders ids
      */
     @Transaction
-    suspend fun upsertFolders(folders: List<Folder>, account: Account): List<Long> {
-        val localFolderIds = selectFolderRemoteIds(account.id)
+    suspend fun upsertFolders(folders: List<Folder>): List<Long> {
+        val localFolderIds = selectFolderRemoteIds()
 
         val foldersToInsert = folders.filter { folder -> localFolderIds.none { localFolderId -> folder.remoteId == localFolderId  } }
         val foldersToDelete = localFolderIds.filter { localFolderId -> folders.none { folder -> localFolderId == folder.remoteId } }
 
         // folders to update
         folders.filter { folder -> localFolderIds.any { localFolderId -> folder.remoteId == localFolderId} }
-            .forEach { updateFolderName(it.name!!, it.remoteId!!, account.id) }
+            .forEach { updateFolderName(it.name!!, it.remoteId!!) }
 
         if (foldersToDelete.isNotEmpty()) {
-            deleteByIds(foldersToDelete, account.id)
+            deleteByIds(foldersToDelete)
         }
 
         return insert(foldersToInsert)

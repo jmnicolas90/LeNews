@@ -27,7 +27,6 @@ import app.lenews.util.theme.LeNewsTheme
 import app.lenews.util.theme.spacing
 import app.lenews.db.entities.Folder
 import app.lenews.db.entities.OpenIn
-import app.lenews.db.entities.Tag
 import app.lenews.db.pojo.ItemWithFeed
 import java.time.LocalDateTime
 
@@ -207,17 +206,6 @@ val itemWithFeed = ItemWithFeed(
             .replace("\n", "")
             .trimMargin(),
         imageLink = "",
-        tags = listOf(
-            Tag(name = "Tag 1"),
-            Tag(name = "Tag 2"),
-            Tag(name = "Tag 3"),
-            Tag(name = "Tag 4"),
-            Tag(name = "Tag 5"),
-            Tag(name = "Tag 6"),
-            Tag(name = "Tag 7"),
-            Tag(name = "Tag 8"),
-            Tag(name = "Tag 9")
-        )
     ),
     feedName = "feed name",
     color = 0,

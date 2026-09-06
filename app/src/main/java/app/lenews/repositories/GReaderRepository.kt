@@ -10,9 +10,6 @@ import app.lenews.db.Database
 import app.lenews.db.entities.Feed
 import app.lenews.db.entities.Folder
 import app.lenews.db.entities.Item
-import app.lenews.db.entities.ItemState
-import app.lenews.db.entities.Tag
-import app.lenews.db.entities.TagJoin
 import app.lenews.db.entities.account.Account
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -39,46 +36,37 @@ class GReaderRepository(
     }
 
     override suspend fun synchronize(): SyncResult {
-        val itemStateChanges = database.itemStateChangeDao()
-            .selectItemStateChanges(account.id)
+        val pendingChanges = database.pendingChangeDao().selectAll()
 
         val syncData = GReaderSyncData(
-            readIds = itemStateChanges.filter { it.readChange && it.read }
-                .map { it.remoteId },
-            unreadIds = itemStateChanges.filter { it.readChange && !it.read }
-                .map { it.remoteId },
-            starredIds = itemStateChanges.filter { it.starChange && it.starred }
-                .map { it.remoteId },
-            unstarredIds = itemStateChanges.filter { it.starChange && !it.starred }
-                .map { it.remoteId }
+            readIds = pendingChanges.filter { it.read == true }.map { it.articleId },
+            unreadIds = pendingChanges.filter { it.read == false }.map { it.articleId },
+            starredIds = pendingChanges.filter { it.starred == true }.map { it.articleId },
+            unstarredIds = pendingChanges.filter { it.starred == false }.map { it.articleId }
         )
 
         val syncType: SyncType
-        if (account.lastModified != 0L) {
+        if (account.cursor != 0L) {
             syncType = SyncType.CLASSIC_SYNC
-            syncData.lastModified = account.lastModified
+            syncData.cursor = account.cursor
         } else {
             syncType = SyncType.INITIAL_SYNC
         }
 
-        val newLastModified = System.currentTimeMillis() / 1000L
+        val newCursor = System.currentTimeMillis() / 1000L
 
         return dataSource.synchronize(syncType, syncData, account.writeToken!!).run {
             insertFolders(folders)
             val newFeeds = insertFeeds(feeds)
-            val tags = insertTags(tags)
 
-            val newItems = insertItems(items, false)
-            insertItems(starredItems, true)
+            val newItems = insertItems(items + starredItems)
 
-            insertItemsTags(newItems, tags)
+            applyItemStates(unreadIds, readIds, starredIds)
 
-            insertItemsIds(unreadIds, readIds, starredIds.toMutableList())
+            account.cursor = newCursor
+            database.accountDao().updateCursor(newCursor)
 
-            account.lastModified = newLastModified
-            database.accountDao().updateLastModified(newLastModified, account.id)
-
-            database.itemStateChangeDao().resetStateChanges(account.id)
+            database.pendingChangeDao().deleteAll()
 
             SyncResult(
                 items = newItems,
@@ -128,127 +116,65 @@ class GReaderRepository(
         super.deleteFolder(folder)
     }
 
-    private suspend fun insertFeeds(feeds: List<Feed>): List<Feed> {
-        feeds.forEach { it.accountId = account.id }
-        return database.feedDao().upsertFeeds(feeds, account)
-    }
+    private suspend fun insertFeeds(feeds: List<Feed>): List<Feed> =
+        database.feedDao().upsertFeeds(feeds)
 
     private suspend fun insertFolders(folders: List<Folder>) {
-        folders.forEach { it.accountId = account.id }
-        database.folderDao().upsertFolders(folders, account)
+        database.folderDao().upsertFolders(folders)
     }
 
-    private suspend fun insertTags(tags: List<Tag>): List<Tag> {
-        return database.tagDao().upsertTags(tags.map { it.copy(accountId = account.id) }, account)
-    }
-
-    private suspend fun insertItems(items: List<Item>, starredItems: Boolean): List<Item> {
-        val newItems = arrayListOf<Item>()
-        val itemsFeedsIds = mutableMapOf<String?, Int>()
+    /**
+     * Stores what the content calls brought back. An id the store already holds
+     * has its content overwritten and its state left alone, so a re-delivery —
+     * which FreshRSS does on every sync — is an update and never a second row.
+     *
+     * @return the articles that were new to the store, which are what the new
+     * articles notification reports.
+     */
+    private suspend fun insertItems(items: List<Item>): List<Item> {
+        val feedIdsByRemoteId = mutableMapOf<String?, Int>()
 
         for (item in items) {
-            val feedId: Int
-            if (itemsFeedsIds.containsKey(item.feedRemoteId)) {
-                feedId = itemsFeedsIds.getValue(item.feedRemoteId)
-            } else {
-                feedId =
-                    database.feedDao().selectRemoteFeedLocalId(item.feedRemoteId!!, account.id)
-                itemsFeedsIds[item.feedRemoteId] = feedId
+            item.feedId = feedIdsByRemoteId.getOrPut(item.feedRemoteId) {
+                database.feedDao().selectRemoteFeedLocalId(item.feedRemoteId!!)
             }
-
-            item.feedId = feedId
 
             if (item.text != null) {
                 item.readTime = Utils.readTimeFromString(item.text!!)
             }
-
-            // workaround to avoid inserting starred items coming from the main item call
-            // as the API exclusion filter doesn't seem to work
-            if (!starredItems) {
-                if (!item.isStarred) {
-                    newItems.add(item)
-                }
-            } else {
-                newItems.add(item)
-            }
         }
 
-        if (newItems.isNotEmpty()) {
-            newItems.sortWith(Item::compareTo)
-            database.itemDao().insert(newItems)
-                .zip(newItems)
-                .forEach { (id, item) -> item.id = id.toInt() }
-        }
-
-        return newItems
+        return database.itemDao().upsertArticles(items.sortedWith(Item::compareTo))
     }
 
-    private suspend fun insertItemsTags(newItems: List<Item>, allTags: List<Tag>) {
-        newItems.associate { it to it.tags }
-            .flatMap { (item, tags) ->
-                tags
-                    .filter { tag -> allTags.any { tag.remoteId == it.remoteId } }
-                    .map { tag ->
-                        TagJoin(
-                            itemId = item.id,
-                            tagId = allTags.first { tag.remoteId == it.remoteId }.id,
-                        )
-                    }
-            }
-            .run {
-                database.tagJoinDao().insert(this)
-            }
-    }
-
-    private suspend fun insertItemsIds(
-        unreadIds: List<String>,
-        readIds: List<String>,
-        starredIds: MutableList<String> // TODO is it performance wise?
+    /**
+     * Writes read and starred state from the three id lists the sync fetched,
+     * which are the only source of it: an article the unread list names is
+     * unread, one the reading list holds but the unread list does not is read,
+     * and the starred list says which articles are starred.
+     *
+     * The lists are capped by [GReaderDataSource], well under SQLite's limit on
+     * the number of values one statement can bind, and they are chunked anyway
+     * so that raising the caps cannot break this. The one statement that cannot
+     * be chunked is the unstarring, which needs the whole starred list at once
+     * to know what is *not* in it.
+     */
+    private suspend fun applyItemStates(
+        unreadIds: List<Long>,
+        readIds: List<Long>,
+        starredIds: List<Long>
     ) {
-        database.itemStateDao().deleteItemStates(account.id)
+        val now = System.currentTimeMillis()
+        val itemDao = database.itemDao()
 
-        database.itemStateDao().insert(unreadIds.map { id ->
-            val starred = starredIds.any { starredId -> starredId == id }
+        unreadIds.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.markUnread(it) }
+        readIds.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.markRead(it, now) }
 
-            if (starred) {
-                starredIds.remove(id)
-            }
+        itemDao.unstarOutside(starredIds)
+        starredIds.chunked(MAX_IDS_PER_STATEMENT).forEach { itemDao.star(it) }
+    }
 
-            ItemState(
-                id = 0,
-                read = false,
-                starred = starred,
-                remoteId = id,
-                accountId = account.id
-            )
-        })
-
-        database.itemStateDao().insert(readIds.map { id ->
-            val starred = starredIds.any { starredId -> starredId == id }
-            if (starred) {
-                starredIds.remove(id)
-            }
-
-            ItemState(
-                id = 0,
-                read = true,
-                starred = starred,
-                remoteId = id,
-                accountId = account.id
-            )
-        })
-
-        // insert starred items ids which are read
-        if (starredIds.isNotEmpty()) {
-            database.itemStateDao().insert(starredIds.map { id ->
-                ItemState(
-                    0,
-                    read = true,
-                    starred = true,
-                    remoteId = id,
-                    accountId = account.id
-                )
-            })
-        }
+    private companion object {
+        const val MAX_IDS_PER_STATEMENT = 900
     }
 }

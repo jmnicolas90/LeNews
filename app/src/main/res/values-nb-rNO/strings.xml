@@ -12,10 +12,7 @@
     <string name="opml_export">OPML-eksport</string>
     <string name="opml_import">OPML-import</string>
     <string name="delete">Slett</string>
-    <string name="new_account">Ny konto</string>
     <string name="folder_already_exists">Mappen finnes allerede</string>
-    <string name="delete_account_question">Slett konto\?</string>
-    <string name="delete_account">Slett konto</string>
     <string name="delete_folder">Slett mappe\?</string>
     <string name="edit_folder">Rediger mappe</string>
     <string name="feeds">Informasjonskanaler</string>
@@ -51,7 +48,6 @@
     <string name="wrong_url">Dette er ikke en gyldig nettadresse</string>
     <string name="login">Innlogging</string>
     <string name="password_helper">Dette er ditt FreshRSS-API-passord (Oppsett → Profil)</string>
-    <string name="add_account">Legg til konto</string>
     <string name="no_feed">Ingen informasjonskanal</string>
     <string name="filter_newest">Nyeste til eldst</string>
     <string name="filter_oldest">Eldste til nyeste</string>
@@ -65,7 +61,6 @@
     <string name="error_occured">En feil inntraff</string>
     <string name="feed_insertion_successfull">Informasjonskanalen %1$s ble oppdatert</string>
     <string name="feed_insertion_network_failed">Nettverksfeil ved tilgang til informasjonskanalen %1$s</string>
-    <string name="choose_account">Velg en konto</string>
     <string name="feed_insertion_parse_failed">Klarte ikke å fortolke informasjonskanalen %1$s</string>
     <string name="feed_deleted">Informasjonskanalen %1$s har blitt slettet</string>
     <string name="feed_insertion_wrong_format">Feilaktig format for informasjonskanalen %1$s</string>

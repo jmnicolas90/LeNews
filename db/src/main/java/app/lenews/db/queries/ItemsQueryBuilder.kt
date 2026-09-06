@@ -11,109 +11,78 @@ import app.lenews.db.filters.SubFilter
 object ItemsQueryBuilder {
 
     private val COLUMNS = arrayOf(
-        "Item.id",
-        "Item.remote_id",
+        "Article.id",
         "title",
         "author",
         "clean_description",
-        "Item.description",
+        "Article.description",
         "content",
         "image_link",
         "pub_date",
         "link",
+        "read_time",
+        "Article.feed_id",
+        "read AS is_read",
+        "read",
+        "starred AS is_starred",
+        "starred",
         "Feed.name",
         "color",
         "icon_url",
-        "read_time",
         "Feed.id as feedId",
-        "Feed.account_id",
         "Feed.open_in",
         "Feed.open_in_ask",
         "Folder.id as folder_id",
         "Folder.name as folder_name"
     )
 
-    private val SEPARATE_STATE_COLUMNS = arrayOf(
-        "case When ItemState.remote_id is NULL Or ItemState.read = 1 Then 1 else 0 End is_read",
-        "case When ItemState.remote_id is NULL Or ItemState.read = 1 Then 1 else 0 End read",
-        "case When ItemState.starred = 1 Then 1 else 0 End is_starred",
-        "case When ItemState.starred = 1 Then 1 else 0 End starred"
-    )
-
-    private val OTHER_COLUMNS = arrayOf("read AS is_read", "read", "starred AS is_starred", "starred")
-
-    private val SELECT_ALL_JOIN = """Item INNER JOIN Feed on Item.feed_id = Feed.id
-            LEFT JOIN Folder on Feed.folder_id = Folder.id """.trimIndent()
-
-    private const val SEPARATE_STATE_JOIN =
-        "LEFT JOIN ItemState On Item.remote_id = ItemState.remote_id"
-
-    fun buildItemsQuery(queryFilters: QueryFilters, separateState: Boolean): SupportSQLiteQuery =
-        buildQuery(queryFilters, separateState)
+    /**
+     * `CROSS JOIN` is how SQLite is told not to reorder the loops, so the
+     * article table is always the outer one and the index that serves the
+     * ordering is the only sensible plan. Ticket 11 measured what happens
+     * otherwise: driving from `Feed` makes every page sort the whole store in a
+     * temporary b-tree, 90 ms a page on a year of articles, and adding the index
+     * alone changed nothing because the planner kept the join order it had.
+     */
+    private const val JOIN = "Article CROSS JOIN Feed On Article.feed_id = Feed.id " +
+            "LEFT JOIN Folder On Feed.folder_id = Folder.id"
 
     fun buildItemsQuery(queryFilters: QueryFilters): SupportSQLiteQuery =
-        buildQuery(queryFilters, false)
-
-    private fun buildQuery(queryFilters: QueryFilters, separateState: Boolean): SupportSQLiteQuery =
         with(queryFilters) {
-            require(accountId != 0) { "AccountId must be greater than 0" }
-
             if (subFilter == SubFilter.FEED && feedId == 0) {
                 throw IllegalArgumentException("FeedId must be greater than 0 if subFilter is FEED")
             } else if (subFilter == SubFilter.FOLDER && folderId == 0) {
                 throw IllegalArgumentException("FolderId must be greater than 0 if subFilter is FOLDER")
             }
 
-            val columns = if (separateState) {
-                COLUMNS.plus(SEPARATE_STATE_COLUMNS)
-            } else {
-                COLUMNS.plus(OTHER_COLUMNS)
-            }
-
-            val selectAllJoin = if (separateState) {
-                SELECT_ALL_JOIN + SEPARATE_STATE_JOIN
-            } else {
-                SELECT_ALL_JOIN
-            }
-
-            SupportSQLiteQueryBuilder.builder(selectAllJoin).run {
-                columns(columns)
-                selection(buildWhereClause(this@with, separateState), null)
+            SupportSQLiteQueryBuilder.builder(JOIN).run {
+                columns(COLUMNS)
+                selection(buildWhereClause(this@with), null)
                 orderBy(buildOrderByClause(orderField, orderType))
 
                 create()
             }
         }
 
-    private fun buildWhereClause(queryFilters: QueryFilters, separateState: Boolean): String =
+    private fun buildWhereClause(queryFilters: QueryFilters): String =
         buildString {
-            append("Feed.account_id = ${queryFilters.accountId} ")
+            // SupportSQLiteQueryBuilder writes no WHERE at all for an empty
+            // selection, so a clause that is always true keeps the shape simple
+            append("1 = 1 ")
 
             if (!queryFilters.showReadItems) {
-                if (separateState) {
-                    append("And ItemState.read = 0 ")
-                } else {
-                    append("And Item.read = 0 ")
-                }
+                append("And Article.read = 0 ")
             }
 
             when (queryFilters.mainFilter) {
-                MainFilter.STARS -> {
-                    if (separateState) {
-                        append("And ItemState.starred = 1 ")
-                    } else {
-                        append("And starred = 1 ")
-                    }
-                }
-
-                MainFilter.NEW -> append("""And DateTime(Round(pub_date / 1000), 'unixepoch') 
-                    Between DateTime(DateTime("now"), "-24 hour") And DateTime("now")""".trimMargin())
+                MainFilter.STARS -> append("And Article.starred = 1 ")
+                MainFilter.NEW -> append("And $WITHIN_LAST_24_HOURS ")
                 else -> {}
             }
 
             when (queryFilters.subFilter) {
-                SubFilter.FEED -> append("And feed_id = ${queryFilters.feedId} ")
-                SubFilter.FOLDER -> append("And folder_id = ${queryFilters.folderId} ")
+                SubFilter.FEED -> append("And Article.feed_id = ${queryFilters.feedId} ")
+                SubFilter.FOLDER -> append("And Feed.folder_id = ${queryFilters.folderId} ")
                 else -> {}
             }
 
@@ -123,7 +92,7 @@ object ItemsQueryBuilder {
     private fun buildOrderByClause(orderField: OrderField, orderType: OrderType): String {
         return buildString {
             when (orderField) {
-                OrderField.ID -> append("Item.id ")
+                OrderField.ID -> append("Article.id ")
                 else -> append("pub_date ")
             }
 
@@ -134,4 +103,3 @@ object ItemsQueryBuilder {
         }
     }
 }
-

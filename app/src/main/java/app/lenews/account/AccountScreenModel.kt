@@ -8,12 +8,10 @@ import app.lenews.util.components.TextFieldError
 import app.lenews.util.components.dialog.TextFieldDialogState
 import app.lenews.db.Database
 import app.lenews.db.entities.account.Account
-import app.lenews.db.entities.account.AccountType
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -22,9 +20,6 @@ class AccountScreenModel(
     context: Context,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : TabScreenModel(database, context) {
-
-    private val _closeHome = MutableStateFlow(false)
-    val closeHome = _closeHome.asStateFlow()
 
     private val _accountState = MutableStateFlow(AccountState())
     val accountState = _accountState.asStateFlow()
@@ -39,14 +34,6 @@ class AccountScreenModel(
                 }
             }
         }
-
-        screenModelScope.launch(dispatcher) {
-            database.accountDao().selectAllAccounts()
-                .map { it.filter { account -> !account.isCurrentAccount } }
-                .collect { accounts ->
-                    _accountState.update { it.copy(accounts = accounts) }
-                }
-        }
     }
 
     fun openDialog(dialog: DialogState) {
@@ -59,27 +46,6 @@ class AccountScreenModel(
 
     fun closeDialog() {
         _accountState.update { it.copy(dialog = null) }
-    }
-
-    fun deleteAccount() {
-        screenModelScope.launch(dispatcher) {
-            database.accountDao()
-                .delete(currentAccount!!)
-
-            if (_accountState.value.accounts.isNotEmpty()) {
-                database.accountDao().updateCurrentAccount(_accountState.value.accounts.first().id)
-            } else {
-                _closeHome.update { true }
-            }
-        }
-    }
-
-    fun resetCloseHome() = _closeHome.update { false }
-
-    fun updateCurrentAccount(account: Account) {
-        screenModelScope.launch(dispatcher) {
-            database.accountDao().updateCurrentAccount(account.id)
-        }
     }
 
     fun setAccountRenameStateName(name: String) = _accountState.update {
@@ -98,7 +64,7 @@ class AccountScreenModel(
         }
 
         screenModelScope.launch(dispatcher) {
-            database.accountDao().renameAccount(value.account.id, value.renameAccountState.value)
+            database.accountDao().renameAccount(value.renameAccountState.value)
             closeDialog()
         }
     }
@@ -106,14 +72,11 @@ class AccountScreenModel(
 
 @Stable
 data class AccountState(
-    val account: Account = Account(name = "account", type = AccountType.FRESHRSS),
+    val account: Account = Account(name = "account"),
     val dialog: DialogState? = null,
-    val accounts: List<Account> = emptyList(),
     val renameAccountState: TextFieldDialogState = TextFieldDialogState()
 )
 
 sealed interface DialogState {
-    data object DeleteAccount : DialogState
-    data object NewAccount : DialogState
     data class RenameAccount(val name: String) : DialogState
 }

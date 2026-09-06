@@ -30,8 +30,8 @@ import cafe.adriel.voyager.core.annotation.ExperimentalVoyagerApi
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
 import cafe.adriel.voyager.transitions.SlideTransition
-import app.lenews.account.selection.AccountSelectionScreen
-import app.lenews.account.selection.AccountSelectionScreenModel
+import app.lenews.account.credentials.AccountCredentialsScreen
+import app.lenews.account.credentials.AccountCredentialsScreenMode
 import app.lenews.home.HomeScreen
 import app.lenews.repositories.BaseRepository
 import app.lenews.sync.SyncWorker
@@ -39,6 +39,7 @@ import app.lenews.timelime.TimelineTab
 import app.lenews.util.Preferences
 import app.lenews.util.theme.LeNewsTheme
 import app.lenews.db.Database
+import app.lenews.db.entities.account.Account
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -62,8 +63,8 @@ class MainActivity : ComponentActivity(), KoinComponent {
         // Disable waiting for timeline tab list to be populated before removing splash screen
         //splashScreen.setKeepOnScreenCondition { !ready }
 
-        val screenModel = get<AccountSelectionScreenModel>()
-        val accountExists = screenModel.accountExists()
+        val database = get<Database>()
+        val accountExists = runBlocking { database.accountDao().selectAccountCount() > 0 }
 
         val preferences = get<Preferences>()
 
@@ -100,7 +101,14 @@ class MainActivity : ComponentActivity(), KoinComponent {
                     )
 
                     Navigator(
-                        screen = if (accountExists) HomeScreen else AccountSelectionScreen(),
+                        screen = if (accountExists) {
+                            HomeScreen
+                        } else {
+                            AccountCredentialsScreen(
+                                account = Account(name = getString(R.string.freshrss)),
+                                mode = AccountCredentialsScreenMode.NEW_CREDENTIALS
+                            )
+                        },
                         disposeBehavior = NavigatorDisposeBehavior(
                             // prevent screenModels being recreated when opening a screen from a tab
                             disposeNestedNavigators = false,
@@ -143,18 +151,14 @@ class MainActivity : ComponentActivity(), KoinComponent {
 
     private suspend fun handleIntent(intent: Intent) = withContext(Dispatchers.IO) {
         when {
-            intent.hasExtra(SyncWorker.ACCOUNT_ID_KEY) -> {
-                val accountId = intent.getIntExtra(SyncWorker.ACCOUNT_ID_KEY, -1)
-                val database = get<Database>().also {
-                    it.accountDao()
-                        .updateCurrentAccount(accountId)
-                }
+            intent.getBooleanExtra(SyncWorker.FROM_SYNC_KEY, false) -> {
+                val database = get<Database>()
 
                 HomeScreen.openTab(TimelineTab)
 
                 if (intent.hasExtra(SyncWorker.ITEM_ID_KEY)) {
-                    val itemId = intent.getIntExtra(SyncWorker.ITEM_ID_KEY, -1)
-                    val account = database.accountDao().select(accountId)
+                    val itemId = intent.getLongExtra(SyncWorker.ITEM_ID_KEY, -1L)
+                    val account = database.accountDao().select() ?: return@withContext
                     val item = database.itemDao().select(itemId)
                         .apply { isRead = true }
 

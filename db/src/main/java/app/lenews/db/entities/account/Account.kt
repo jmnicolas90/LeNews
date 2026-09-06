@@ -6,15 +6,22 @@ import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import java.io.Serializable
 
+/**
+ * The one FreshRSS account this app talks to. The table holds a single row,
+ * whose primary key is always [ACCOUNT_ID]: there is one account, so nothing
+ * else carries an account id and there is no "current account" to pick.
+ *
+ * The login and the password are not columns: they live in the encrypted
+ * preferences, under [LOGIN_KEY] and [PASSWORD_KEY].
+ */
 @Entity
 data class Account(
-    @PrimaryKey(autoGenerate = true) var id: Int = 0,
+    @PrimaryKey var id: Int = ACCOUNT_ID,
     var url: String? = null,
     @ColumnInfo(name = "name") var name: String? = null,
     @ColumnInfo(name = "displayed_name") var displayedName: String? = null,
-    @ColumnInfo(name = "type") var type: AccountType? = null,
-    @ColumnInfo(name = "last_modified") var lastModified: Long = 0,
-    @ColumnInfo(name = "current_account") var isCurrentAccount: Boolean = false,
+    /** The moment of the last successful sync, in Unix seconds. Zero means none yet. */
+    @ColumnInfo(name = "cursor") var cursor: Long = 0,
     var token: String? = null,
     @ColumnInfo(name = "write_token") var writeToken: String? = null,
     @ColumnInfo(name = "notifications_enabled") var isNotificationsEnabled: Boolean = false,
@@ -23,13 +30,13 @@ data class Account(
 ) : Serializable {
 
     val config: AccountConfig
-        get() = type!!.config
+        get() = AccountConfig.FRESHRSS
 
-    fun `is`(accountType: AccountType) = this.type == accountType
+    companion object {
+        /** The primary key of the one account row. */
+        const val ACCOUNT_ID = 1
 
-    val loginKey
-        get() = type!!.name + "_login_" + id
-
-    val passwordKey
-        get() = type!!.name + "_password_" + id
+        const val LOGIN_KEY = "freshrss_login"
+        const val PASSWORD_KEY = "freshrss_password"
+    }
 }

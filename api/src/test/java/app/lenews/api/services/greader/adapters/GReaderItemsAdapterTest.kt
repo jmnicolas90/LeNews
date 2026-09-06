@@ -24,7 +24,8 @@ class GReaderItemsAdapterTest {
         val items = adapter.fromJson(Buffer().readFrom(stream))!!
 
         with(items.first()) {
-            assertEquals(remoteId, "tag:google.com,2005:reader/item/0005c62466ee28fe")
+            // the long form the server sent, as the number the store keys on
+            assertEquals(1625234531559678L, id)
             assertEquals(title, "GNOME’s Default Theme is Getting a Revamp")
             assertNotNull(content)
             assertEquals(link, "http://feedproxy.google.com/~r/d0od/~3/4Zk-fncSuek/adwaita-borderless-theme-in-development-gnome-41")
@@ -32,9 +33,6 @@ class GReaderItemsAdapterTest {
             assertEquals(pubDate, DateUtils.fromEpochSeconds(1625234040))
             assertEquals(isRead, false)
             assertEquals(isStarred, false)
-
-            assertEquals(1, tags.size)
-            assertEquals("Libre", tags.first().name)
         }
 
         with(items[1]) {

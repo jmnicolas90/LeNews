@@ -28,12 +28,11 @@ import app.lenews.R
 import app.lenews.LeNewsApp
 import app.lenews.more.preferences.components.BasePreference
 import app.lenews.more.preferences.components.PreferenceHeader
-import app.lenews.sync.SyncWorker.Companion.ACCOUNT_ID_KEY
+import app.lenews.sync.SyncWorker.Companion.FROM_SYNC_KEY
 import app.lenews.sync.SyncWorker.Companion.ITEM_ID_KEY
 import app.lenews.sync.SyncWorker.Companion.SYNC_RESULT_NOTIFICATION_ID
 import app.lenews.util.components.AndroidScreen
 import app.lenews.db.Database
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -76,11 +75,10 @@ class DebugScreen : AndroidScreen(), KoinComponent {
                         coroutineScope.launch {
                             val database = get<Database>()
 
-                            val item = database.itemDao().selectFirst()
-                            val account = database.accountDao().selectCurrentAccount().first()
+                            val item = database.itemDao().selectFirst() ?: return@launch
 
                             val intent = Intent(context, MainActivity::class.java).apply {
-                                putExtra(ACCOUNT_ID_KEY, account!!.id)
+                                putExtra(FROM_SYNC_KEY, true)
                                 putExtra(ITEM_ID_KEY, item.id)
                             }
 

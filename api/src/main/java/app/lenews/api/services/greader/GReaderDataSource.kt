@@ -42,11 +42,7 @@ class GReaderDataSource(private val service: GReaderService) {
         if (syncType == SyncType.INITIAL_SYNC) {
             DataSourceResult().apply {
                 awaitAll(
-                    async {
-                        val folderTags = getFolders()
-                        folders = folderTags.folders
-                        tags = folderTags.tags
-                    },
+                    async { folders = getFolders().folders },
                     async { feeds = getFeeds() },
                     async {
                         items = getItems(listOf(GOOGLE_READ, GOOGLE_STARRED), MAX_ITEMS, null)
@@ -64,13 +60,9 @@ class GReaderDataSource(private val service: GReaderService) {
                 )
 
                 awaitAll(
-                    async {
-                        val folderTags = getFolders()
-                        folders = folderTags.folders
-                        tags = folderTags.tags
-                    },
+                    async { folders = getFolders().folders },
                     async { feeds = getFeeds() },
-                    async { items = getItems(null, MAX_ITEMS, syncData.lastModified) },
+                    async { items = getItems(null, MAX_ITEMS, syncData.cursor) },
                     async { unreadIds = getItemsIds(GOOGLE_READ, GOOGLE_READING_LIST, MAX_ITEMS) },
                     async {
                         readIds = getItemsIds(GOOGLE_UNREAD, GOOGLE_READING_LIST, MAX_ITEMS)
@@ -86,29 +78,34 @@ class GReaderDataSource(private val service: GReaderService) {
 
     suspend fun getFeeds() = service.getFeeds()
 
-    suspend fun getItems(excludeTargets: List<String>?, max: Int, lastModified: Long?): List<Item> {
-        return service.getItems(excludeTargets, max, lastModified)
+    suspend fun getItems(excludeTargets: List<String>?, max: Int, cursor: Long?): List<Item> {
+        return service.getItems(excludeTargets, max, cursor)
     }
 
     suspend fun getStarredItems(max: Int) = service.getStarredItems(max)
 
-    suspend fun getItemsIds(excludeTarget: String?, includeTarget: String, max: Int): List<String> {
+    suspend fun getItemsIds(excludeTarget: String?, includeTarget: String, max: Int): List<Long> {
         return service.getItemsIds(excludeTarget, includeTarget, max)
     }
 
-    private suspend fun setItemsReadState(read: Boolean, itemIds: List<String>, token: String) {
+    /** Every write endpoint takes the decimal form of the article id. */
+    private suspend fun setItemsReadState(read: Boolean, itemIds: List<Long>, token: String) {
+        val ids = itemIds.map { ArticleIds.toDecimal(it) }
+
         return if (read) {
-            service.setItemsState(token, GOOGLE_READ, null, itemIds)
+            service.setItemsState(token, GOOGLE_READ, null, ids)
         } else {
-            service.setItemsState(token, null, GOOGLE_READ, itemIds)
+            service.setItemsState(token, null, GOOGLE_READ, ids)
         }
     }
 
-    private suspend fun setItemStarState(starred: Boolean, itemIds: List<String>, token: String) {
+    private suspend fun setItemStarState(starred: Boolean, itemIds: List<Long>, token: String) {
+        val ids = itemIds.map { ArticleIds.toDecimal(it) }
+
         return if (starred) {
-            service.setItemsState(token, GOOGLE_STARRED, null, itemIds)
+            service.setItemsState(token, GOOGLE_STARRED, null, ids)
         } else {
-            service.setItemsState(token, null, GOOGLE_STARRED, itemIds)
+            service.setItemsState(token, null, GOOGLE_STARRED, ids)
         }
     }
 

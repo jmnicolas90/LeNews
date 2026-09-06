@@ -13,6 +13,7 @@ import app.lenews.api.utils.HtmlParser
 import app.lenews.R
 import app.lenews.repositories.BaseRepository
 import app.lenews.util.accounterror.AccountError
+import app.lenews.util.accounterror.GReaderError
 import app.lenews.util.components.TextFieldError
 import app.lenews.util.extensions.isConnected
 import app.lenews.db.Database
@@ -37,56 +38,34 @@ class NewFeedScreenModel(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : StateScreenModel<State>(State(url = url.orEmpty())), KoinComponent {
 
-    private val selectedAccountState = MutableStateFlow(state.value.selectedAccount)
-
-    private lateinit var accountError: AccountError
+    private val accountError: AccountError = GReaderError(context)
 
     init {
         screenModelScope.launch(dispatcher) {
-            database.accountDao()
-                .selectAllAccounts()
-                .map { it.filter { account -> account.config.canCreateFeed } }
-                .collect { accounts ->
-                    val selectedAccount = accounts.find { it.isCurrentAccount }
-                        ?: accounts.first()
+            val account = database.accountDao().select() ?: return@launch
 
-                    accountError = AccountError.from(selectedAccount, context)
-                    selectedAccountState.update { selectedAccount }
+            mutableState.update { it.copy(account = account) }
 
-                    mutableState.update { newFeedState ->
-                        newFeedState.copy(
-                            accounts = accounts,
-                            selectedAccount = selectedAccount
-                        )
-                    }
-                }
-        }
+            val folders = if (account.config.addNoFolder) {
+                database.folderDao().selectFolders().first() +
+                        Folder(name = context.resources.getString(R.string.no_folder))
+            } else {
+                database.folderDao().selectFolders().first()
+            }.sortedWith(
+                compareByDescending<Folder> { it.name?.startsWith("_") }
+                    .then(Folder::compareTo)
+            )
 
-        screenModelScope.launch(dispatcher) {
-            selectedAccountState.collect { selectedAccount ->
-                if (selectedAccount != null) {
-                    val folders = if (selectedAccount.config.addNoFolder) {
-                        database.folderDao().selectFolders(selectedAccount.id).first() +
-                                Folder(name = context.resources.getString(R.string.no_folder))
-                    } else {
-                        database.folderDao().selectFolders(selectedAccount.id).first()
-                    }.sortedWith(
-                        compareByDescending<Folder> { it.name?.startsWith("_") }
-                            .then(Folder::compareTo)
-                    )
+            val newParsingResults = mutableState.value.parsingResults.map {
+                it.copy(folder = folders.firstOrNull())
+            }
 
-                    val newParsingResults = mutableState.value.parsingResults.map {
-                        it.copy(folder = folders.firstOrNull())
-                    }
-
-                    mutableState.update {
-                        it.copy(
-                            folders = folders,
-                            selectedFolder = folders.firstOrNull(),
-                            parsingResults = newParsingResults
-                        )
-                    }
-                }
+            mutableState.update {
+                it.copy(
+                    folders = folders,
+                    selectedFolder = folders.firstOrNull(),
+                    parsingResults = newParsingResults
+                )
             }
         }
     }
@@ -213,20 +192,18 @@ class NewFeedScreenModel(
     }
 
     private suspend fun insertFeeds(feeds: List<Feed>) {
-        val selectedAccount = mutableState.value.selectedAccount
+        val account = mutableState.value.account ?: return
 
-        if (selectedAccount != null) {
-            get<SharedPreferences>().apply {
-                selectedAccount.login = getString(selectedAccount.loginKey, null)
-                selectedAccount.password = getString(selectedAccount.passwordKey, null)
-            }
-
-            get<AuthInterceptor>().apply {
-                credentials = Credentials.toCredentials(selectedAccount)
-            }
+        get<SharedPreferences>().apply {
+            account.login = getString(Account.LOGIN_KEY, null)
+            account.password = getString(Account.PASSWORD_KEY, null)
         }
 
-        val repository = get<BaseRepository> { parametersOf(selectedAccount) }
+        get<AuthInterceptor>().apply {
+            credentials = Credentials.toCredentials(account)
+        }
+
+        val repository = get<BaseRepository> { parametersOf(account) }
 
         val errors = repository.insertNewFeeds(
             newFeeds = feeds,
@@ -266,20 +243,6 @@ class NewFeedScreenModel(
     }
 
     fun updateUrl(url: String) = mutableState.update { it.copy(url = url, urlError = null) }
-
-    fun updateAccountDropDownExpandStatus(isExpanded: Boolean) =
-        mutableState.update { it.copy(isAccountDropdownExpanded = isExpanded) }
-
-    fun updateSelectedAccount(account: Account) {
-        mutableState.update {
-            it.copy(
-                selectedAccount = account,
-                isAccountDropdownExpanded = false
-            )
-        }
-
-        selectedAccountState.update { account }
-    }
 
     fun updateFolderDropdownExpandStatus(isExpanded: Boolean) =
         mutableState.update { it.copy(isFoldersDropdownExpanded = isExpanded) }
@@ -337,11 +300,9 @@ class NewFeedScreenModel(
 
 data class State(
     private val url: String = "",
-    val selectedAccount: Account? = null,
+    val account: Account? = null,
     val selectedFolder: Folder? = null,
-    val accounts: List<Account> = listOf(),
     val folders: List<Folder> = listOf(),
-    val isAccountDropdownExpanded: Boolean = false,
     val isFoldersDropdownExpanded: Boolean = false,
     val urlError: TextFieldError? = null,
     val error: String? = null,

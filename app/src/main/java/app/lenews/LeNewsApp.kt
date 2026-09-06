@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationManagerCompat
-import androidx.preference.PreferenceManager
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -16,7 +15,6 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import app.lenews.api.apiModule
 import app.lenews.util.CrashActivity
-import app.lenews.util.Migrations
 import app.lenews.db.dbModule
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
@@ -54,15 +52,6 @@ open class LeNewsApp : Application(), KoinComponent, SingletonImageLoader.Factor
         }
 
         createNotificationChannels(this)
-
-        runBlocking {
-            Migrations.upgrade(
-                appPreferences = get(),
-                encryptedPreferences = get(),
-                oldPreferences = PreferenceManager.getDefaultSharedPreferences(this@LeNewsApp),
-                database = get(),
-            )
-        }
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader {

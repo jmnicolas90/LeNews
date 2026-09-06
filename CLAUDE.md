@@ -7,13 +7,10 @@ is the UI and the sync worker. One account, one service, and a lot of
 articles — a few hundred a day is the shape it is built for, so anything that
 gets slower as articles accumulate, stores an article twice, or loses the way
 back to an article that was swiped away is the most serious class of bug in
-this repo. "One account" is the **intended scope, not what the tree does
-today**: upstream's multi-account screens are all still here — `AccountTab` has
-an add-account button and an "Other accounts" switcher, and
-`AccountCredentialsScreenModel.login()` inserts a second row — because the
-account is threaded through the schema. Ticket 13 collapses it, after ticket 12
-decides the article store. Do not write code that assumes one account until
-then, and do not write a document that says there is one.
+this repo. **One account is what the tree does** since ticket 13: the `Account`
+table holds one row whose primary key is always `1`, nothing else carries an
+`account_id`, the first screen is a FreshRSS login screen, and there is no way
+to add, switch or delete an account.
 
 **Hard fork** of `readrops/Readrops` at commit `9ebbe038` (2025-07-20, its
 `develop` branch: v2.1.1 plus an unfinished tag feature), GPL-3.0. Upstream is
@@ -249,7 +246,10 @@ Notes that save time:
   built: **411 entries — 347 errors and 64 warnings**, and every error is
   translation debt (199 `MissingTranslation`, 135 `ExtraTranslation`, 47
   `UnusedResources`, 10 `MissingDefaultResource`, 3 `ImpliedQuantity`), waiting
-  on the locales product call nobody has made. `api` and `db` have no errors
+  on the locales product call nobody has made. Since ticket 13 deleted the
+  strings the multi-account screens used, **9 of those entries no longer match
+  anything** and lint says so on every run; that is findings cleared, not a
+  problem, and the file was left alone rather than regenerated. `api` and `db` have no errors
   and no baseline, so their warnings still print. **A baseline is a list of
   findings to clear, not a rule switched off**: a new error of any of those
   kinds still fails the gate. Known noise: `lintVitalRelease`, which
@@ -314,23 +314,14 @@ every claim a permalink into FreshRSS source. The facts a session trips over:
   by primary key and stable across content updates. It comes back **hex** from
   `stream/contents` (as `tag:google.com,2005:reader/item/<16 hex digits>`) and
   **decimal** from `stream/items/ids`; both forms are accepted on write.
-  **What the code stores today is the long form.** `GReaderItemsAdapter` keeps
-  the `id` string `stream/contents` sent, and `GReaderItemsIdsAdapter` converts
-  the decimal that `stream/items/ids` sent back into that same
-  `tag:google.com,2005:reader/item/<hex>` shape, so both paths put that string
-  into `Item.remote_id` — and `ItemState`, which is where read and starred
-  state actually lives (see below), joins on `remote_id` verbatim, as a string.
-  `docs/research/freshrss-greader-api.md` (ticket 09) recommends the **decimal
-  integer** as the safer key: it is what the server parses every input down to,
-  and it is a number rather than a 48-character string repeated in two tables.
-  Switching is not a one-line change — it touches the schema, both adapters and
-  every stored row at once — so it belongs to ticket 12's article-store model,
-  and until that lands the long form is what the tree uses. The rule in the
-  meantime: **mixing the two forms breaks the read-state join.** An
-  `Item.remote_id` in one form and an `ItemState.remote_id` in the other never
-  match, and the article silently shows up with no read and no starred state.
-  Fixtures, tests and any partial change must therefore keep one form
-  throughout.
+  **The store keeps that integer, in decimal, as the article's primary key**
+  since ticket 13: there is no `remote_id` column any more. `ArticleIds` in the
+  `api` module is the one place the forms are converted — `fromLongForm` for
+  `stream/contents`, `fromDecimal` for `stream/items/ids`, `toDecimal` on the
+  way out — and both adapters go through it, so the two paths cannot disagree.
+  Fixtures and tests must give the two endpoints the same number in their own
+  form: the long form `…/0005c62466ee28fe` and the decimal `1625234531559678`
+  are the same article.
 - **Re-delivery is normal, not a failure.** `ot` is inclusive and is compared
   to discovery time or last-modified time, not to the publication date
   (`id >= ot·10⁶` OR `lastModified >= ot`), so the boundary article comes back
@@ -341,25 +332,30 @@ every claim a permalink into FreshRSS source. The facts a session trips over:
   article became read, so History is local only and a read observed at sync is
   stamped with the sync time. That is a settled consequence, not a limitation
   to work around.
-- **Read state does not live in `Item.read` today.** The only remaining account
-  type, `FRESHRSS`, has `useSeparateState = true` in
-  `db/.../entities/account/AccountConfig.kt`, so read and starred state is read
-  through the `ItemState` table (joined on `remote_id`) and local changes are
-  queued in `ItemStateChange` for the next upload. Every query builder in `db`
-  branches on that boolean. Do not assume `Item.read` means anything.
+- **Read and starred state are columns of the article row** since ticket 13:
+  `read`, `starred` and `read_at` on the table `Article`, with a `PendingChange`
+  table holding what the server has not been told. `ItemState`,
+  `ItemStateChange`, `Tag`, `TagJoin` and `AccountConfig.useSeparateState` are
+  gone, and so is every branch on it. Every route by which an article becomes
+  read writes the state, the date and the pending change in one transaction; see
+  `BaseRepository`.
 
-**The article store is decided, not implemented.** `docs/article-store.md`
-(ticket 12) is the model tickets 13 to 16 build: the FreshRSS id as the
-article's primary key, read and starred state as columns on the article with a
-`PendingChange` table for what the server has not been told, one sync
-transaction, one retention delete, `read_at` as the history, tags dropped, and
-the index list with its time budget. Read it before touching the schema, the
-sync or retention; until ticket 13 lands the tree still has the old shape
-described above. **Pending, so do not write code as if it were decided**: the
-collapse itself (ticket 13); the sync rewrite (14); retention (15); what the
-history list looks like on screen (16); and which of the 14 inherited locales
-LeNews keeps, which is the one product call that clears most of the lint
-baseline.
+**The article store is `docs/article-store.md` (ticket 12), and its schema is
+built (ticket 13).** The tree has the entities of §1 — `Account` as one row,
+`Folder`, `Feed`, `Article` keyed by the FreshRSS id with `read`, `starred` and
+`read_at` on it, and `PendingChange` — the identity rule of §2 on the way in and
+out, and the indexes of §6 with `PRAGMA optimize` when the database is created.
+Room is at **version 1 with no migration**: the schema restarted, and a phone
+holding one of the six inherited versions has its database dropped and refilled
+by the next sync. Read the model before touching the schema, the sync or
+retention. **Still pending, so do not write code as if it were done**: the sync
+rewrite of §3 (ticket 14) — one transaction, batching, paging, the three id-list
+walks, the starred-content fetch; retention, §4 (15); the history list on screen,
+§5 and §8 (16); and which of the 14 inherited locales LeNews keeps, which is the
+one product call that clears most of the lint baseline. The sync as it stands is
+upstream's sequence with the least change that makes it compile and work against
+the new store: it upserts articles by id, writes state from the three id lists
+onto the article rows, and clears the whole pending-change queue at the end.
 
 **The retention rule** is agreed in principle and not implemented (ticket 15).
 It is two rules with one exception that covers both:

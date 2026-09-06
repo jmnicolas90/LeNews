@@ -104,26 +104,6 @@ fun SimpleTitle(
             style = MaterialTheme.typography.labelMedium,
             color = onBackgroundColor
         )
-
-        if (itemWithFeed.item.tags.isNotEmpty()) {
-            MediumSpacer()
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(
-                    MaterialTheme.spacing.shortSpacing,
-                    Alignment.CenterHorizontally
-                ),
-                verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.shortSpacing)
-            ) {
-                for (tag in itemWithFeed.item.tags) {
-                    TagSurface(
-                        name = tag.name,
-                        backgroundColor = accentColor
-                    )
-
-                }
-            }
-        }
     }
 }
 

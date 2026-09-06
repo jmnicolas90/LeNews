@@ -4,8 +4,6 @@ import android.content.Context
 import app.lenews.api.utils.exceptions.HttpException
 import app.lenews.api.utils.exceptions.ParseException
 import app.lenews.R
-import app.lenews.db.entities.account.Account
-import app.lenews.db.entities.account.AccountType
 import java.io.IOException
 import java.net.UnknownHostException
 
@@ -55,15 +53,4 @@ abstract class AccountError(protected val context: Context) {
             else -> context.resources.getString(R.string.http_error, exception.code)
         }
     }
-
-    companion object {
-
-        fun from(account: Account, context: Context): AccountError = when (account.type) {
-            AccountType.FRESHRSS -> GReaderError(context)
-            else -> DefaultAccountError(context)
-        }
-
-        class DefaultAccountError(context: Context) : AccountError(context)
-    }
 }
-

@@ -2,83 +2,152 @@ package app.lenews.db.dao
 
 import androidx.paging.PagingSource
 import androidx.room.Dao
+import androidx.room.Insert
 import androidx.room.MapColumn
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RawQuery
+import androidx.room.Transaction
+import androidx.room.Update
 import androidx.sqlite.db.SupportSQLiteQuery
 import app.lenews.db.entities.Feed
 import app.lenews.db.entities.Folder
 import app.lenews.db.entities.Item
-import app.lenews.db.entities.ItemState
+import app.lenews.db.pojo.ArticleContent
 import app.lenews.db.pojo.ItemWithFeed
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ItemDao : BaseDao<Item> {
-    @Query("Select Count(id) From Item")
+
+    @Query("Select Count(id) From Article")
     suspend fun count(): Int
 
-    @Query("Select * From Item Where id = :itemId")
-    suspend fun select(itemId: Int): Item
+    @Query("Select * From Article Where id = :itemId")
+    suspend fun select(itemId: Long): Item
 
-    @Query("Select * From Item Limit 1")
-    suspend fun selectFirst(): Item
+    @Query("Select * From Article Limit 1")
+    suspend fun selectFirst(): Item?
 
-    @Query("Select * From Item Where feed_id = :feedId")
+    @Query("Select * From Article Where feed_id = :feedId")
     suspend fun selectItems(feedId: Int): List<Item>
 
-    @RawQuery(observedEntities = [Item::class, Feed::class, Folder::class, ItemState::class])
+    @Query("Select Case When Exists(Select 1 From Article Where id = :itemId) Then 1 Else 0 End")
+    suspend fun itemExists(itemId: Long): Boolean
+
+    @RawQuery(observedEntities = [Item::class, Feed::class, Folder::class])
     fun selectAll(query: SupportSQLiteQuery): PagingSource<Int, ItemWithFeed>
 
-    @RawQuery(observedEntities = [Item::class, ItemState::class])
+    @RawQuery(observedEntities = [Item::class])
     fun selectItemById(query: SupportSQLiteQuery): Flow<ItemWithFeed>
 
-    @Query("Update Item Set read = :read Where id = :itemId")
-    suspend fun updateReadState(itemId: Int, read: Boolean)
+    //region storing what a sync brought back
 
-    @Query("Update Item Set starred = :starred Where id = :itemId")
-    suspend fun updateStarState(itemId: Int, starred: Boolean)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertNewArticles(articles: List<Item>): List<Long>
 
-    @Query("Update Item set read = :read, starred = :starred Where remote_id = :remoteId")
-    suspend fun updateReadAndStarState(remoteId: String, read: Boolean, starred: Boolean)
+    @Update(entity = Item::class)
+    suspend fun updateContent(content: List<ArticleContent>)
 
-    @Query("Update Item set read = 1 Where feed_id IN (Select id From Feed Where account_id = :accountId)")
-    suspend fun setAllItemsRead(accountId: Int)
+    /**
+     * Stores the articles a sync brought back: a new id is inserted unread and
+     * unstarred, an id already held has its content columns overwritten and
+     * every other column left alone, so read, starred, `read_at` and the pending
+     * change survive a re-delivery. Within one call the last occurrence of an id
+     * wins.
+     *
+     * @return the articles that were new, in the order they were given.
+     */
+    @Transaction
+    suspend fun upsertArticles(articles: List<Item>): List<Item> {
+        if (articles.isEmpty()) {
+            return emptyList()
+        }
 
-    @Query("Update Item set read = 1 Where id IN (:ids)")
-    suspend fun setAllItemsRead(ids: List<Int>)
+        val lastOfEachId = LinkedHashMap<Long, Item>(articles.size)
+        articles.forEach { lastOfEachId[it.id] = it }
+        val unique = lastOfEachId.values.toList()
 
-    @Query("Update Item set read = 1 Where starred = 1 And feed_id IN (Select id From Feed Where account_id = :accountId)")
-    suspend fun setAllStarredItemsRead(accountId: Int)
+        // insert returns the new row id, or -1 for a row the store already held
+        val rowIds = insertNewArticles(unique)
 
-    @Query("Update Item set read = 1 Where DateTime(Round(pub_date / 1000), 'unixepoch') " +
-            "Between DateTime(DateTime(\"now\"), \"-24 hour\") And DateTime(\"now\") " +
-            "And feed_id IN (Select id From Feed Where account_id = :accountId)")
-    suspend fun setAllNewItemsRead(accountId: Int)
+        val inserted = mutableListOf<Item>()
+        val alreadyHeld = mutableListOf<ArticleContent>()
+        unique.forEachIndexed { index, article ->
+            if (rowIds[index] == -1L) {
+                alreadyHeld += ArticleContent.of(article)
+            } else {
+                inserted += article
+            }
+        }
 
-    @Query("Update Item set read = 1 Where feed_id IN " +
-            "(Select id From Feed Where id = :feedId And account_id = :accountId)")
-    suspend fun setAllItemsReadByFeed(feedId: Int, accountId: Int)
+        if (alreadyHeld.isNotEmpty()) {
+            updateContent(alreadyHeld)
+        }
 
-    @Query("Update Item set read = 1 Where feed_id IN (Select Feed.id From Feed Inner Join Folder " +
-            "On Feed.folder_id = Folder.id Where Folder.id = :folderId And Folder.account_id = :accountId)")
-    suspend fun setAllItemsReadByFolder(folderId: Int, accountId: Int)
+        return inserted
+    }
 
-    @Query("""Select count(*) From Item Inner Join Feed On Item.feed_id = Feed.id Where read = 0 
-        And account_id = :accountId And DateTime(Round(Item.pub_date / 1000), 'unixepoch') 
-        Between DateTime(DateTime("now"), "-24 hour") And DateTime("now")""")
-    fun selectUnreadNewItemsCount(accountId: Int): Flow<Int>
+    //endregion
 
-    @Query("""Select count(*) From ItemState Inner Join Item On Item.remote_id = ItemState.remote_id 
-        Where ItemState.read = 0 and account_id = :accountId And DateTime(Round(Item.pub_date / 1000), 'unixepoch') 
-        Between DateTime(DateTime("now"), "-24 hour") And DateTime("now")""")
-    fun selectUnreadNewItemsCountByItemState(accountId: Int): Flow<Int>
+    //region becoming read, and starring
 
-    @RawQuery(observedEntities = [Item::class, ItemState::class])
+    @Query("Update Article Set read = 1, read_at = :now Where id = :itemId And read = 0")
+    suspend fun markRead(itemId: Long, now: Long)
+
+    @Query("Update Article Set read = 0, read_at = Null Where id = :itemId")
+    suspend fun markUnread(itemId: Long)
+
+    @Query("Update Article Set starred = :starred Where id = :itemId")
+    suspend fun setStarred(itemId: Long, starred: Boolean)
+
+    @Query("Update Article Set read = 1, read_at = :now Where read = 0 And id In (:itemIds)")
+    suspend fun markRead(itemIds: List<Long>, now: Long)
+
+    @Query("Update Article Set read = 0, read_at = Null Where read = 1 And id In (:itemIds)")
+    suspend fun markUnread(itemIds: List<Long>)
+
+    @Query("Update Article Set starred = 1 Where starred = 0 And id In (:itemIds)")
+    suspend fun star(itemIds: List<Long>)
+
+    /**
+     * Unstars every article the starred list left out. SQLite accepts an empty
+     * list here, which is what an account with no starred article gives.
+     */
+    @Query("Update Article Set starred = 0 Where starred = 1 And id Not In (:starredIds)")
+    suspend fun unstarOutside(starredIds: List<Long>)
+
+    @Query("Update Article Set read = 1, read_at = :now Where read = 0")
+    suspend fun markAllRead(now: Long)
+
+    @Query("Update Article Set read = 1, read_at = :now Where read = 0 And feed_id = :feedId")
+    suspend fun markAllReadByFeed(feedId: Int, now: Long)
+
+    @Query(
+        """Update Article Set read = 1, read_at = :now Where read = 0
+        And feed_id In (Select id From Feed Where folder_id = :folderId)"""
+    )
+    suspend fun markAllReadByFolder(folderId: Int, now: Long)
+
+    @Query("Update Article Set read = 1, read_at = :now Where read = 0 And starred = 1")
+    suspend fun markAllStarredRead(now: Long)
+
+    @Query("Update Article Set read = 1, read_at = :now Where read = 0 And pub_date >= :since")
+    suspend fun markAllReadSince(since: Long, now: Long)
+
+    //endregion
+
+    //region the drawer's counts
+
+    @Query(
+        """Select count(*) From Article
+        Where read = 0 And pub_date >= (strftime('%s', 'now', '-1 day') * 1000)"""
+    )
+    fun selectUnreadNewItemsCount(): Flow<Int>
+
+    @RawQuery(observedEntities = [Item::class])
     fun selectFeedUnreadItemsCount(query: SupportSQLiteQuery):
             Flow<Map<@MapColumn(columnName = "feed_id") Int, @MapColumn(columnName = "item_count") Int>>
 
-    @Query("""Select case When Exists(Select 1 From Item Inner Join Feed on Item.feed_id = Feed.id
-        Where Item.remote_id = :remoteId And account_id = :accountId) Then 1 else 0 end""")
-    suspend fun itemExists(remoteId: String, accountId: Int): Boolean
+    //endregion
 }

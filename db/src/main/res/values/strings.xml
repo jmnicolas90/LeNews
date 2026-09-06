@@ -1,5 +1,3 @@
 <resources>
     <string name="app_name" translatable="false">lenewsdb</string>
-
-    <string name="freshrss" translatable="false">FreshRSS</string>
 </resources>

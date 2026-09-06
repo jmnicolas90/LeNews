@@ -53,10 +53,10 @@ import cafe.adriel.voyager.koin.koinScreenModel
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import app.lenews.R
-import app.lenews.account.selection.adaptiveIconPainterResource
 import app.lenews.home.HomeScreen
-import app.lenews.util.accounterror.AccountError
+import app.lenews.util.accounterror.GReaderError
 import app.lenews.util.components.AndroidScreen
+import app.lenews.util.components.adaptiveIconPainterResource
 import app.lenews.util.theme.LargeSpacer
 import app.lenews.util.theme.MediumSpacer
 import app.lenews.util.theme.ShortSpacer
@@ -102,7 +102,7 @@ class AccountCredentialsScreen(
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val keyboardController = LocalSoftwareKeyboardController.current
-        val accountError = AccountError.from(account, LocalContext.current)
+        val accountError = GReaderError(LocalContext.current)
 
         val screenModel =
             koinScreenModel<AccountCredentialsScreenModel>(parameters = { parametersOf(account, mode) })
@@ -125,17 +125,21 @@ class AccountCredentialsScreen(
                             text = if (mode == AccountCredentialsScreenMode.EDIT_CREDENTIALS)
                                 stringResource(id = R.string.credentials)
                             else
-                                stringResource(id = R.string.new_account)
+                                stringResource(id = R.string.freshrss)
                         )
                     },
                     navigationIcon = {
-                        IconButton(
-                            onClick = { navigator.pop() }
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Default.ArrowBack,
-                                contentDescription = null
-                            )
+                        // logging in for the first time is the root of the
+                        // navigator, so there is nothing to go back to
+                        if (mode == AccountCredentialsScreenMode.EDIT_CREDENTIALS) {
+                            IconButton(
+                                onClick = { navigator.pop() }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Default.ArrowBack,
+                                    contentDescription = null
+                                )
+                            }
                         }
                     }
                 )
@@ -155,7 +159,7 @@ class AccountCredentialsScreen(
                         .verticalScroll(rememberScrollState())
                 ) {
                     Image(
-                        painter = adaptiveIconPainterResource(id = account.type!!.iconRes),
+                        painter = adaptiveIconPainterResource(id = R.drawable.ic_freshrss),
                         contentDescription = null,
                         modifier = Modifier.size(48.dp)
                     )
@@ -163,7 +167,7 @@ class AccountCredentialsScreen(
                     ShortSpacer()
 
                     Text(
-                        text = stringResource(id = account.type!!.nameRes),
+                        text = stringResource(id = R.string.freshrss),
                         style = MaterialTheme.typography.headlineMedium
                     )
 

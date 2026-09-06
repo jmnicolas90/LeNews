@@ -72,7 +72,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 
 object TimelineTab : Tab {
 
-    private val openItemChannel = Channel<Int>()
+    private val openItemChannel = Channel<Long>()
 
     override val options: TabOptions
         @Composable
@@ -392,7 +392,7 @@ object TimelineTab : Tab {
         }
     }
 
-    suspend fun openItem(itemId: Int) {
+    suspend fun openItem(itemId: Long) {
         openItemChannel.send(itemId)
     }
 }

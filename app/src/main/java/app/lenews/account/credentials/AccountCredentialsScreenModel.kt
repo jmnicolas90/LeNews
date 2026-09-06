@@ -32,14 +32,14 @@ class AccountCredentialsScreenModel(
         if (mode == AccountCredentialsScreenMode.EDIT_CREDENTIALS) {
             mutableState.update {
                 it.copy(
-                    name = account.name!!,
-                    url = account.url!!,
-                    login = account.login!!,
-                    password = account.password!!
+                    name = account.name.orEmpty(),
+                    url = account.url.orEmpty(),
+                    login = account.login.orEmpty(),
+                    password = account.password.orEmpty()
                 )
             }
         } else {
-            mutableState.update { it.copy(name = account.name!!) }
+            mutableState.update { it.copy(name = account.name.orEmpty()) }
         }
     }
 
@@ -68,9 +68,7 @@ class AccountCredentialsScreenModel(
                         url = normalizedUrl,
                         name = name,
                         login = login,
-                        password = password,
-                        type = account.type,
-                        isCurrentAccount = true
+                        password = password
                     )
 
                     try {
@@ -87,16 +85,14 @@ class AccountCredentialsScreenModel(
                         return@launch
                     }
 
-                    if (mode == AccountCredentialsScreenMode.NEW_CREDENTIALS) {
-                        newAccount.id = database.accountDao().insert(newAccount).toInt()
+                    // one account, one row: logging in writes it, and logging
+                    // in again replaces it
+                    database.accountDao().upsert(newAccount)
 
-                        get<SharedPreferences>().edit()
-                            .putString(newAccount.loginKey, newAccount.login)
-                            .putString(newAccount.passwordKey, newAccount.password)
-                            .apply()
-                    } else {
-                        database.accountDao().update(newAccount)
-                    }
+                    get<SharedPreferences>().edit()
+                        .putString(Account.LOGIN_KEY, newAccount.login)
+                        .putString(Account.PASSWORD_KEY, newAccount.password)
+                        .apply()
 
                     mutableState.update { it.copy(exitScreen = true) }
                 }

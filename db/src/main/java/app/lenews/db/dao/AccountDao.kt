@@ -2,50 +2,43 @@ package app.lenews.db.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import app.lenews.db.entities.account.Account
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * The one account row. Every query is keyed on [Account.ACCOUNT_ID], which is
+ * spelled out because a Room query string cannot hold a constant.
+ */
 @Dao
 interface AccountDao : BaseDao<Account> {
 
-    override suspend fun insert(entity: Account): Long {
-        val id = insertAccount(entity)
-        updateCurrentAccount(id.toInt())
-        return id
-    }
+    /** Writes the account, replacing the row if there already is one. */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(account: Account)
 
-    @Insert
-    suspend fun insertAccount(entity: Account): Long
+    @Query("Select * From Account Where id = 1")
+    suspend fun select(): Account?
 
-    @Query("Select * From Account Where id = :accountId")
-    suspend fun select(accountId: Int): Account
-
-    @Query("Select * From Account")
-    fun selectAllAccounts(): Flow<List<Account>>
+    @Query("Select * From Account Where id = 1")
+    fun selectAccount(): Flow<Account?>
 
     @Query("Select Count(*) From Account")
     suspend fun selectAccountCount(): Int
 
-    @Query("Select * From Account Where current_account = 1")
-    fun selectCurrentAccount(): Flow<Account?>
-
     @Query("Delete From Account")
     suspend fun deleteAllAccounts()
 
-    @Query("Update Account set last_modified = :lastModified Where id = :accountId")
-    suspend fun updateLastModified(lastModified: Long, accountId: Int)
+    @Query("Update Account set cursor = :cursor Where id = 1")
+    suspend fun updateCursor(cursor: Long)
 
-    @Query("Update Account set notifications_enabled = :enabled Where id = :accountId")
-    suspend fun updateNotificationState(accountId: Int, enabled: Boolean)
+    @Query("Update Account set notifications_enabled = :enabled Where id = 1")
+    suspend fun updateNotificationState(enabled: Boolean)
 
-    @Query("Select notifications_enabled From Account Where id = :accountId")
-    fun selectAccountNotificationsState(accountId: Int): Flow<Boolean>
+    @Query("Select notifications_enabled From Account Where id = 1")
+    fun selectAccountNotificationsState(): Flow<Boolean>
 
-    @Query("""Update Account set current_account = Case When id = :accountId Then 1 
-        When id Is Not :accountId Then 0 End""")
-    suspend fun updateCurrentAccount(accountId: Int)
-
-    @Query("Update Account set name = :name Where id = :accountId")
-    suspend fun renameAccount(accountId: Int, name: String)
+    @Query("Update Account set name = :name Where id = 1")
+    suspend fun renameAccount(name: String)
 }

@@ -13,7 +13,6 @@ import app.lenews.api.services.Credentials
 import app.lenews.account.AccountScreenModel
 import app.lenews.account.credentials.AccountCredentialsScreenMode
 import app.lenews.account.credentials.AccountCredentialsScreenModel
-import app.lenews.account.selection.AccountSelectionScreenModel
 import app.lenews.feeds.FeedScreenModel
 import app.lenews.feeds.color.FeedColorScreenModel
 import app.lenews.feeds.newfeed.NewFeedScreenModel
@@ -46,11 +45,9 @@ val appModule = module {
 
     factory { (url: String?) -> NewFeedScreenModel(get(), androidContext(), url) }
 
-    factory { AccountSelectionScreenModel(get()) }
-
     factory { AccountScreenModel(get(), androidContext()) }
 
-    factory { (itemId: Int, itemIndex: Int, queryFilters: QueryFilters) ->
+    factory { (itemId: Long, itemIndex: Int, queryFilters: QueryFilters) ->
         ItemScreenModel(
             itemId = itemId,
             itemIndex = itemIndex,

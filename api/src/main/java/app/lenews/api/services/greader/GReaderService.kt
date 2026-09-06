@@ -1,7 +1,7 @@
 package app.lenews.api.services.greader
 
 import app.lenews.api.services.greader.adapters.FreshRSSUserInfo
-import app.lenews.api.services.greader.adapters.GReaderFoldersTags
+import app.lenews.api.services.greader.adapters.GReaderFolders
 import app.lenews.db.entities.Feed
 import app.lenews.db.entities.Item
 import okhttp3.RequestBody
@@ -28,13 +28,13 @@ interface GReaderService {
     suspend fun getFeeds(): List<Feed>
 
     @GET("reader/api/0/tag/list?output=json")
-    suspend fun getFolders(): GReaderFoldersTags
+    suspend fun getFolders(): GReaderFolders
 
     @GET("reader/api/0/stream/contents/user/-/state/com.google/reading-list")
     suspend fun getItems(
         @Query("xt") excludeTarget: List<String>?,
         @Query("n") max: Int,
-        @Query("ot") lastModified: Long?
+        @Query("ot") cursor: Long?
     ): List<Item>
 
     @GET("reader/api/0/stream/contents/user/-/state/com.google/starred")
@@ -45,7 +45,7 @@ interface GReaderService {
         @Query("xt") excludeTarget: String?,
         @Query("s") includeTarget: String?,
         @Query("n") max: Int
-    ): List<String>
+    ): List<Long>
 
     @FormUrlEncoded
     @POST("reader/api/0/edit-tag")
