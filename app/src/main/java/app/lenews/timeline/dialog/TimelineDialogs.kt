@@ -1,12 +1,12 @@
-package app.lenews.timelime.dialog
+package app.lenews.timeline.dialog
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import app.lenews.R
-import app.lenews.timelime.DialogState
-import app.lenews.timelime.TimelineScreenModel
-import app.lenews.timelime.TimelineState
+import app.lenews.timeline.DialogState
+import app.lenews.timeline.TimelineScreenModel
+import app.lenews.timeline.TimelineState
 import app.lenews.util.components.dialog.TwoChoicesDialog
 import app.lenews.db.entities.OpenIn
 import app.lenews.db.filters.OrderField

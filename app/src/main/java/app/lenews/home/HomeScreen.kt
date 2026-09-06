@@ -32,7 +32,7 @@ import cafe.adriel.voyager.navigator.tab.CurrentTab
 import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabNavigator
 import app.lenews.feeds.FeedTab
-import app.lenews.timelime.TimelineTab
+import app.lenews.timeline.TimelineTab
 import app.lenews.util.components.AndroidScreen
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow

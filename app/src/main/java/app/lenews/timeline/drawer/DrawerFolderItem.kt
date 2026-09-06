@@ -1,4 +1,4 @@
-package app.lenews.timelime.drawer
+package app.lenews.timeline.drawer
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing

@@ -1,4 +1,4 @@
-package app.lenews.timelime
+package app.lenews.timeline
 
 import android.content.Context
 import androidx.compose.runtime.Stable
@@ -11,8 +11,8 @@ import app.lenews.R
 import app.lenews.home.TabScreenModel
 import app.lenews.repositories.GetFoldersWithFeeds
 import app.lenews.sync.SyncWorker
-import app.lenews.timelime.components.SwipeAction
-import app.lenews.timelime.components.TimelineItemSize
+import app.lenews.timeline.components.SwipeAction
+import app.lenews.timeline.components.TimelineItemSize
 import app.lenews.util.PAGING_INITIAL_SIZE
 import app.lenews.util.PAGING_PAGE_SIZE
 import app.lenews.util.PAGING_PREFETCH_DISTANCE

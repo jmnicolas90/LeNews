@@ -1,4 +1,4 @@
-package app.lenews.timelime
+package app.lenews.timeline
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -49,11 +49,11 @@ import cafe.adriel.voyager.navigator.tab.TabOptions
 import app.lenews.MainActivity
 import app.lenews.R
 import app.lenews.item.ItemScreen
-import app.lenews.timelime.components.TimelineAppBar
-import app.lenews.timelime.components.TimelineItem
-import app.lenews.timelime.components.TimelineItemSize
-import app.lenews.timelime.dialog.TimelineDialogs
-import app.lenews.timelime.drawer.TimelineDrawer
+import app.lenews.timeline.components.TimelineAppBar
+import app.lenews.timeline.components.TimelineItem
+import app.lenews.timeline.components.TimelineItemSize
+import app.lenews.timeline.dialog.TimelineDialogs
+import app.lenews.timeline.drawer.TimelineDrawer
 import app.lenews.util.components.LoadingScreen
 import app.lenews.util.components.PagingErrorPlaceholder
 import app.lenews.util.components.PagingErrorRow

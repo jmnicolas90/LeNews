@@ -1,4 +1,4 @@
-package app.lenews.timelime.drawer
+package app.lenews.timeline.drawer
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.lenews.R
-import app.lenews.timelime.TimelineState
+import app.lenews.timeline.TimelineState
 import app.lenews.util.components.FeedIcon
 import app.lenews.util.extensions.isTabletUi
 import app.lenews.util.theme.spacing

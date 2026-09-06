@@ -24,7 +24,7 @@ import app.lenews.repositories.GReaderRepository
 import app.lenews.repositories.GetFoldersWithFeeds
 import app.lenews.sync.SyncAnalyzer
 import app.lenews.sync.Synchronizer
-import app.lenews.timelime.TimelineScreenModel
+import app.lenews.timeline.TimelineScreenModel
 import app.lenews.util.ApplicationScope
 import app.lenews.util.DataStorePreferences
 import app.lenews.util.Preferences

@@ -35,7 +35,7 @@ import app.lenews.account.credentials.AccountCredentialsScreenMode
 import app.lenews.home.HomeScreen
 import app.lenews.repositories.BaseRepository
 import app.lenews.sync.SyncWorker
-import app.lenews.timelime.TimelineTab
+import app.lenews.timeline.TimelineTab
 import app.lenews.util.Preferences
 import app.lenews.util.theme.LeNewsTheme
 import app.lenews.db.Database

@@ -1,4 +1,4 @@
-package app.lenews.timelime.components
+package app.lenews.timeline.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
