@@ -26,12 +26,14 @@ package app.lenews.api.services.greader
  * article on. On the way out every write endpoint accepts the decimal, so the
  * decimal is what is sent.
  *
- * The hexadecimal form is read as unsigned, because sixteen digits cover the
- * whole 64-bit range while a signed parse stops halfway. FreshRSS ids in use are
- * far below that (an id is the discovery time in Unix seconds times a million),
- * so the two agree on every real id; reading it unsigned only means an id that
- * did reach the top of the range parses to the same number in both forms instead
- * of failing in one of them.
+ * Every form is read and written **unsigned**, because sixteen hexadecimal
+ * digits cover the whole 64-bit range while a signed parse stops halfway.
+ * FreshRSS ids in use are far below that (an id is the discovery time in Unix
+ * seconds times a million), so the two forms agree on every real id either way;
+ * being unsigned throughout means an id that did reach the top of the range
+ * becomes the same number in both forms and goes back out as the digits the
+ * server sent, instead of failing in one direction and being sent negative in
+ * the other.
  */
 object ArticleIds {
 
@@ -52,8 +54,8 @@ object ArticleIds {
     }
 
     /** Parses the decimal form `stream/items/ids` sends. */
-    fun fromDecimal(id: String): Long = id.trim().toLong()
+    fun fromDecimal(id: String): Long = java.lang.Long.parseUnsignedLong(id.trim())
 
     /** The form every write endpoint takes. */
-    fun toDecimal(id: Long): String = id.toString()
+    fun toDecimal(id: Long): String = java.lang.Long.toUnsignedString(id)
 }

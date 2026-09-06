@@ -105,11 +105,13 @@ class GReaderItemsAdapter : JsonAdapter<List<Item>>() {
     }
 
     /**
-     * The read and starred flags an article arrives with. The sync does not
-     * trust them for state — the id lists of `stream/items/ids` are what decides
-     * that — but they are still parsed, because an article arriving starred has
-     * to be stored starred until the lists say otherwise. Labels are skipped:
-     * this fork has no tags.
+     * The read and starred flags an article arrives with. They are not state:
+     * the id lists of `stream/items/ids` are what decides that, and the store
+     * inserts every new article unread and unstarred whatever these say. They
+     * are parsed because the initial sync fetches no read id list and the read
+     * flag is then the only thing the server says about a starred article it
+     * holds as read (`GReaderRepository.readIdsTheServerHolds`). Labels are
+     * skipped: this fork has no tags.
      */
     private fun getStates(reader: JsonReader, item: Item) = with(reader) {
         beginArray()

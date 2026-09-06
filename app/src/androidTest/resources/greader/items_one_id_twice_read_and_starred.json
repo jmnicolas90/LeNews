@@ -1,0 +1,58 @@
+{
+  "id": "user/-/state/com.google/reading-list",
+  "updated": 1625235516,
+  "items": [
+    {
+      "id": "tag:google.com,2005:reader/item/0005c62466ee28fe",
+      "crawlTimeMsec": "1625234531559",
+      "timestampUsec": "1625234531559678",
+      "published": 1625234040,
+      "title": "the delivery the server sent first",
+      "summary": {
+        "content": "the content the server sent first"
+      },
+      "alternate": [
+        {
+          "href": "https://github.com/FreshRSS/FreshRSS/releases/tag/first",
+          "type": "text/html"
+        }
+      ],
+      "categories": [
+        "user/-/state/com.google/reading-list",
+        "user/-/label/Blogs"
+      ],
+      "origin": {
+        "streamId": "feed/2",
+        "title": "FreshRSS @ GitHub"
+      },
+      "author": "An author"
+    },
+    {
+      "id": "tag:google.com,2005:reader/item/0005c62466ee28fe",
+      "crawlTimeMsec": "1625234531559",
+      "timestampUsec": "1625234531559678",
+      "published": 1625147640,
+      "title": "the delivery the server sent last",
+      "summary": {
+        "content": "the content the server sent last"
+      },
+      "alternate": [
+        {
+          "href": "https://github.com/FreshRSS/FreshRSS/releases/tag/last",
+          "type": "text/html"
+        }
+      ],
+      "categories": [
+        "user/-/state/com.google/reading-list",
+        "user/-/label/Blogs",
+        "user/-/state/com.google/read",
+        "user/-/state/com.google/starred"
+      ],
+      "origin": {
+        "streamId": "feed/2",
+        "title": "FreshRSS @ GitHub"
+      },
+      "author": "An author"
+    }
+  ]
+}

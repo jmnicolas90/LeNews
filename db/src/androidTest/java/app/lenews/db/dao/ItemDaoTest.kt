@@ -108,13 +108,59 @@ class ItemDaoTest {
         assertEquals("second", itemDao.select(ARTICLE_ID).title)
     }
 
+    /**
+     * §3 step 4b: a new article enters the store unread, unstarred and with no
+     * `read_at`, whatever the content said. The read and starred flags an article
+     * arrives with are not state — the id lists of the sync are — and storing
+     * them here would write `read = 1` with no `read_at`, which invariant 2
+     * forbids and nothing repairs afterwards, since marking read only touches
+     * rows that are unread.
+     */
     @Test
-    fun anArticleThatArrivesStarredIsStoredStarred() = runTest {
+    fun anArticleThatArrivesReadAndStarredIsInsertedInTheNeutralState() = runTest {
         val itemDao = database.itemDao()
 
-        itemDao.upsertArticles(listOf(article(title = "starred").apply { isStarred = true }))
+        val inserted = itemDao.upsertArticles(
+            listOf(
+                article(title = "read on the web").apply {
+                    isRead = true
+                    isStarred = true
+                    readAt = null
+                }
+            )
+        )
 
-        assertTrue(itemDao.select(ARTICLE_ID).isStarred)
+        with(itemDao.select(ARTICLE_ID)) {
+            assertFalse(isRead, "the article is stored unread")
+            assertFalse(isStarred)
+            assertNull(readAt)
+        }
+
+        // and what the caller is handed back is what the store holds
+        with(inserted.single()) {
+            assertFalse(isRead)
+            assertFalse(isStarred)
+            assertNull(readAt)
+        }
+    }
+
+    /**
+     * The sequel to the neutral insert: the state the sync learned is applied on
+     * top of it, and a read learned at sync is stamped with the sync's clock.
+     */
+    @Test
+    fun theStateAppliedAfterTheInsertStampsAReadLearnedAtSync() = runTest {
+        val itemDao = database.itemDao()
+        itemDao.upsertArticles(listOf(article(title = "read on the web").apply { isRead = true }))
+
+        itemDao.markRead(listOf(ARTICLE_ID), READ_AT)
+        itemDao.star(listOf(ARTICLE_ID))
+
+        with(itemDao.select(ARTICLE_ID)) {
+            assertTrue(isRead)
+            assertEquals(READ_AT, readAt, "read = 1 goes with a read_at, never without")
+            assertTrue(isStarred)
+        }
     }
 
     @Test

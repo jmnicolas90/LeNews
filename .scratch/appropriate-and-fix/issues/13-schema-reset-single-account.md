@@ -230,6 +230,126 @@ match anything**, because the deleted strings took their `MissingTranslation` an
 unfiltered warning, `VectorRaster` on `ic_freshrss.xml`, which followed the file
 from `db` (where warnings print and stop nothing) into `app`.
 
+### Review round (2026-09-06)
+
+An adversarial review of this branch found five things. All five were accepted
+and are fixed here, in a second commit on the same branch.
+
+**1. A new article was stored with the state its content carried.**
+`GReaderItemsAdapter` sets `isRead` from the read category `stream/contents`
+sends, and the insert wrote it through: an article read on the web arrived as
+`read = 1` with `read_at` null, which invariant 2 forbids, and nothing repaired
+it afterwards because marking read only touches rows that are unread. Such a row
+is invisible to the history and to the horizon for ever. `ItemDao.upsertArticles`
+now inserts every new article in the neutral state — unread, unstarred, no
+`read_at` — which is step 4b of the model, and the state application decides what
+it is. The guard is in the DAO rather than in the caller, so no route into the
+store can write the inconsistent row.
+
+The state application had to be right for the **initial sync** too, and there it
+had nothing to work with: §7 pulls the unread and the starred articles and the
+unread and starred id lists, and no read id list at all, so an article read and
+starred on the web would have come out of a first sync unread — back in the
+timeline the user had already cleared. `GReaderRepository.readIdsTheServerHolds`
+takes the read ids from the content's own flag for that one case, and from
+`stream/items/ids` for every later sync, which is where §3 says they come from.
+Either way the read is stamped with the sync's clock.
+
+**2. An article id past 2^63 did not survive the round trip.** `fromLongForm`
+read sixteen hexadecimal digits unsigned, but `fromDecimal` parsed with
+`toLong()` and `toDecimal` printed with `toString()`: the same id threw a
+`NumberFormatException` coming from `stream/items/ids` and went back to the
+server negative. `ArticleIds` is unsigned on all three sides now
+(`java.lang.Long.parseUnsignedLong`, `java.lang.Long.toUnsignedString`), and
+`ArticleIdsTest` makes the round trip at 2^63 and at 2^64 − 1 in both directions
+and checks that the hexadecimal and the decimal of those two ids agree.
+
+**3. The response was sorted before its duplicates were resolved.** The DAO keeps
+the last occurrence of an id, but `GReaderRepository.insertItems` sorted the
+articles by publication date first, so an article whose date the server corrected
+backwards had its **stale** occurrence sorted last and its stale content stored.
+The duplicates are now resolved in response order, before the sort, which is what
+§2 asks for. The new fixture
+`app/src/androidTest/resources/greader/items_one_id_twice_read_and_starred.json`
+delivers one id twice, with different content and a decreasing date, and the
+second delivery carrying the read and starred categories;
+`SynchronizerTest.syncStoresAnArticleThatArrivesReadWithTheMomentItWasLearned`
+syncs it and asserts one row, the second delivery's content, `starred`, and read
+with a `read_at` inside the window the sync ran in — never read with nothing to
+say when.
+
+**4. The folder timeline read the whole store.** `Feed.folder_id = ?` can only be
+tested once an article row has been read, because the article table is the outer
+loop of the join, so the filter removed nothing: opening a folder walked
+`Article(pub_date)` from the newest article down, and a folder with no article
+walked all hundred thousand of them to return none — **39 ms**, against a 10 ms
+budget. The filter is now `Article.feed_id In (Select id From Feed Where
+folder_id = ?)` **with the index named**, `Article Indexed By
+index_Article_feed_id_pub_date`, which is the same device the drawer's per-feed
+count already uses. Naming it is not decoration: the subquery alone left the
+choice to the planner, which picks the fast plan while it has no statistics and
+the 39 ms one after `PRAGMA optimize`. The plan is now the same in both states:
+
+```
+SEARCH Article USING INDEX index_Article_feed_id_pub_date (feed_id=?)
+LIST SUBQUERY 1
+  SEARCH Feed USING COVERING INDEX index_Feed_folder_id (folder_id=?)
+SEARCH Feed USING INTEGER PRIMARY KEY (rowid=?)
+SEARCH Folder USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN
+USE TEMP B-TREE FOR ORDER BY
+```
+
+The temporary b-tree is what the folder costs: the feeds of the folder are read
+first, each feed's articles come back already in date order, and merging them
+back into one order is a sort — of the folder's own articles, not of the store,
+and bounded by the page. A folder holding a tenth of a hundred thousand articles
+takes 3.7 ms; the same folder left to the planner takes 0.5 ms with statistics
+and the empty folder 39 ms, and a page that is sometimes forty times over budget
+is worse than one that is always well inside it.
+
+**5. The history first page had no asserted budget**, although §6 gives it one
+and names this ticket. It is asserted now, in both statistics states, with a
+check that the page comes back full and ordered by `read_at` descending — a
+budget met by a query returning nothing would say nothing. The query itself moved
+into `db/src/androidTest/java/app/lenews/db/HistoryQuery.kt` so the budget test
+and the benchmark measure the same text; ticket 16 replaces it with the real
+one.
+
+`TimelineTimeBudgetTest` therefore asserts **seven pages and two drawer counts**
+under 10 ms where it asserted four and two, plus `COUNT(*)` under 20 ms on 20,000
+articles as before. Medians of seven warm runs on `bench-pixel6-aosp`, 100,000
+articles, before and after `PRAGMA optimize`:
+
+| Query | before optimize | after optimize |
+| --- | ---: | ---: |
+| timeline, all articles | 0.51 | 0.34 |
+| timeline, unread only | 0.54 | 0.40 |
+| timeline, one feed | 0.36 | 0.40 |
+| **timeline, one folder** | **3.68** | **3.70** |
+| **timeline, a folder with no article** | **0.02** | **0.02** |
+| timeline, starred | 0.40 | 0.34 |
+| **history, first page** | **0.05** | **0.05** |
+| drawer, unread count per feed | 1.09 | 1.15 |
+| drawer, unread count of the last 24 hours | 1.02 | 1.30 |
+| Paging `COUNT(*)`, 20,000 articles | 8.92 | 8.99 |
+
+The seeded store grew an eleventh folder holding one feed and no article, which
+is the case the old query was worst at.
+
+### What the review round left out
+
+- **The benchmark was not given the folder pages.** `TimelineSlownessBenchmarkTest`
+  still measures the timelines it measured, and the two folder numbers above come
+  from the budget test, which is where they are asserted. Adding them to the
+  benchmark would mean seeding its empty folder too, for a number nobody gates on.
+- **The unread-only timeline inside a folder is not measured.** It goes through
+  the same named index and costs what the folder costs, but no number was put on
+  it.
+- **Nothing else in §3 moved.** The initial sync still reads the read state from
+  the content's flag rather than from a read id list, because §7's initial sync
+  does not fetch one; whether it should is ticket 14's, along with the rest of the
+  sync rewrite.
+
 ### What was consciously left out
 
 - **The rest of §3.** One transaction around the whole sync, batching the

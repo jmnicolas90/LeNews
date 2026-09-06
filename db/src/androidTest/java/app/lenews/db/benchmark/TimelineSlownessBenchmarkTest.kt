@@ -25,6 +25,7 @@ import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import app.lenews.db.AnalyzeOnCreate
 import app.lenews.db.Database
+import app.lenews.db.HistoryQuery
 import app.lenews.db.entities.Item
 import app.lenews.db.filters.MainFilter
 import app.lenews.db.filters.QueryFilters
@@ -135,12 +136,10 @@ private class Benchmark(private val articleCount: Int) {
 
     /**
      * The history list of `docs/article-store.md` §5. Ticket 16 builds the
-     * screen; the index it needs exists now, so the query is measured now.
+     * screen; the index it needs exists now, so the query is measured now, and
+     * `TimelineTimeBudgetTest` holds its budget.
      */
-    private val historySql =
-        "Select Article.id, Article.title, Article.read_at, Feed.name From Article " +
-                "Inner Join Feed On Article.feed_id = Feed.id " +
-                "Where read_at Is Not Null Order By read_at DESC"
+    private val historySql = HistoryQuery.SQL
 
     fun run() {
         line("# Timeline slowness — $articleCount articles, article store schema")

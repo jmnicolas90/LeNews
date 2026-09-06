@@ -37,9 +37,14 @@ import kotlin.test.fail
 
 /**
  * The time budget of `docs/article-store.md` §6, on a seeded store, on a real
- * device: the first page of each timeline and the two drawer counts under 10 ms
- * on a hundred thousand articles, and Paging's `COUNT(*)` under 20 ms on the
- * twenty thousand retention leaves.
+ * device: the first page of each timeline, the first page of the history and
+ * the two drawer counts under 10 ms on a hundred thousand articles, and Paging's
+ * `COUNT(*)` under 20 ms on the twenty thousand retention leaves.
+ *
+ * The folder timeline is measured on a folder full of articles and on a folder
+ * with none: a filter written on a column of `Feed` cannot be tested before an
+ * article row has been read, so the empty folder is the case that reads the
+ * whole store to return nothing, and it is the one that goes red first.
  *
  * The store is seeded and then measured in both the states it can be in: with
  * the indexes the schema creates and no statistics, which is what a phone has
@@ -64,6 +69,10 @@ class TimelineTimeBudgetTest {
         val store = SeededStore(FULL_STORE_ARTICLES)
 
         try {
+            // a budget met by a page that comes back empty, or in the wrong
+            // order, is a budget met by accident
+            store.checkTheFirstPagesReturnWhatTheyShould()
+
             // Both states the store can be in: as the sync leaves it, and after
             // the `PRAGMA optimize` the model puts at the end of every sync.
             // Statistics can make the planner change its mind for the worse,
@@ -163,6 +172,35 @@ private class SeededStore(articleCount: Int) {
         check(count("Select count(*) From Article Where starred = 1") > 0) {
             "the store holds no starred article, so the stars timeline measures nothing"
         }
+        check(count("Select count(*) From Article Where read_at Is Not Null") > 0) {
+            "the store holds no read article, so the history measures nothing"
+        }
+
+        addTheEmptyFolder()
+    }
+
+    /**
+     * A folder the seeder does not fill: one feed, no article. It is the folder
+     * the timeline is worst at — there is nothing to return, so nothing stops a
+     * query written the wrong way from reading every article in the store to
+     * find that out.
+     */
+    private fun addTheEmptyFolder() {
+        val folderId = EMPTY_FOLDER.folderId
+        val feedId = ArticleStoreSeeder.FEED_COUNT + 1
+
+        writable().execSQL(
+            "Insert Into Folder(id, name, remote_id) " +
+                    "Values ($folderId, 'Empty folder', 'user/-/label/Empty folder')"
+        )
+        writable().execSQL(
+            "Insert Into Feed(id, name, description, url, siteUrl, last_updated, color, " +
+                    "icon_url, folder_id, remote_id, notification_enabled, open_in, " +
+                    "open_in_ask) Values ($feedId, 'Feed $feedId', 'A feed with no article', " +
+                    "'https://feed$feedId.example/rss', 'https://feed$feedId.example', '', 0, " +
+                    "'https://feed$feedId.example/icon.png', $folderId, " +
+                    "'feed/https://feed$feedId.example/rss', 1, 'LOCAL_VIEW', 1)"
+        )
     }
 
     private fun count(sql: String): Long {
@@ -186,7 +224,10 @@ private class SeededStore(articleCount: Int) {
         measurePage("timeline, all articles", QueryFilters()),
         measurePage("timeline, unread only", QueryFilters(showReadItems = false)),
         measurePage("timeline, one feed", QueryFilters(subFilter = SubFilter.FEED, feedId = 1)),
+        measurePage("timeline, one folder", POPULATED_FOLDER),
+        measurePage("timeline, a folder with no article", EMPTY_FOLDER),
         measurePage("timeline, starred", QueryFilters(mainFilter = MainFilter.STARS)),
+        measure("history, first page", firstPageOf(HistoryQuery.SQL)),
         measure(
             "drawer, unread count per feed",
             FeedUnreadCountQueryBuilder.build(MainFilter.ALL).sql
@@ -194,11 +235,45 @@ private class SeededStore(articleCount: Int) {
         measureUnreadCountOfTheLast24Hours(),
     )
 
-    /** The first page of a timeline, wrapped the way Room's Paging source wraps it. */
-    fun measurePage(name: String, filters: QueryFilters): Measurement {
-        val sql = ItemsQueryBuilder.buildItemsQuery(filters).sql
-        return measure(name, "SELECT * FROM ( $sql ) LIMIT $PAGE_SIZE OFFSET 0")
+    /**
+     * The pages the budget covers return what they are supposed to return: a
+     * full page where there are articles to show, nothing at all for the empty
+     * folder, and a history that really is ordered by the moment each article
+     * became read, newest first.
+     */
+    fun checkTheFirstPagesReturnWhatTheyShould() {
+        check(rowsOfFirstPage(ItemsQueryBuilder.buildItemsQuery(QueryFilters()).sql) == PAGE_SIZE) {
+            "the all-articles timeline gives no full first page"
+        }
+        check(rowsOfFirstPage(ItemsQueryBuilder.buildItemsQuery(POPULATED_FOLDER).sql) == PAGE_SIZE) {
+            "folder ${POPULATED_FOLDER.folderId} gives no full first page, so it measures nothing"
+        }
+        check(rowsOfFirstPage(ItemsQueryBuilder.buildItemsQuery(EMPTY_FOLDER).sql) == 0) {
+            "folder ${EMPTY_FOLDER.folderId} was meant to hold no article"
+        }
+
+        val becameReadAt = ArrayList<Long>()
+        writable().query(firstPageOf(HistoryQuery.SQL)).use { cursor ->
+            val column = cursor.getColumnIndexOrThrow("read_at")
+            while (cursor.moveToNext()) becameReadAt += cursor.getLong(column)
+        }
+        check(becameReadAt.size == PAGE_SIZE) {
+            "the history gives no full first page, so its budget measures nothing"
+        }
+        check(becameReadAt == becameReadAt.sortedDescending()) {
+            "the history is not ordered by the moment the article became read, newest first"
+        }
     }
+
+    private fun rowsOfFirstPage(sql: String): Int {
+        writable().query(firstPageOf(sql)).use { cursor -> return cursor.count }
+    }
+
+    /** The first page of a timeline, wrapped the way Room's Paging source wraps it. */
+    fun measurePage(name: String, filters: QueryFilters): Measurement =
+        measure(name, firstPageOf(ItemsQueryBuilder.buildItemsQuery(filters).sql))
+
+    private fun firstPageOf(sql: String) = "SELECT * FROM ( $sql ) LIMIT $PAGE_SIZE OFFSET 0"
 
     /** The count Room's Paging source runs on the initial load of every page source. */
     fun measureCount(name: String, filters: QueryFilters): Measurement {
@@ -268,5 +343,14 @@ private class SeededStore(articleCount: Int) {
     private companion object {
         const val PAGE_SIZE = 50
         const val REPEATS = 7
+
+        /** Folder 1 holds a tenth of the feeds, so a tenth of the articles. */
+        val POPULATED_FOLDER = QueryFilters(subFilter = SubFilter.FOLDER, folderId = 1)
+
+        /** The folder [SeededStore.addTheEmptyFolder] creates. */
+        val EMPTY_FOLDER = QueryFilters(
+            subFilter = SubFilter.FOLDER,
+            folderId = ArticleStoreSeeder.FOLDER_COUNT + 1
+        )
     }
 }

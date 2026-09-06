@@ -50,13 +50,22 @@ interface ItemDao : BaseDao<Item> {
     suspend fun updateContent(content: List<ArticleContent>)
 
     /**
-     * Stores the articles a sync brought back: a new id is inserted unread and
-     * unstarred, an id already held has its content columns overwritten and
-     * every other column left alone, so read, starred, `read_at` and the pending
-     * change survive a re-delivery. Within one call the last occurrence of an id
-     * wins.
+     * Stores the articles a sync brought back: a new id is inserted in the
+     * neutral state — unread, unstarred, no `read_at` — and an id already held
+     * has its content columns overwritten and every other column left alone, so
+     * read, starred, `read_at` and the pending change survive a re-delivery.
+     * Within one call the last occurrence of an id wins.
      *
-     * @return the articles that were new, in the order they were given.
+     * The neutral insert is step 4b of `docs/article-store.md` §3, and it is
+     * enforced here rather than trusted to the caller: the read and starred
+     * flags an article arrives with are not state — the id lists of the sync
+     * are — and inserting them would write `read = 1` with no `read_at`, which
+     * invariant 2 forbids. Nothing would repair it either, since marking read
+     * only touches rows that are unread. State is applied after the insert, and
+     * a read learned at sync is stamped with the sync's clock there.
+     *
+     * @return the articles that were new, in the order they were given and in
+     * the state they were stored in.
      */
     @Transaction
     suspend fun upsertArticles(articles: List<Item>): List<Item> {
@@ -66,7 +75,9 @@ interface ItemDao : BaseDao<Item> {
 
         val lastOfEachId = LinkedHashMap<Long, Item>(articles.size)
         articles.forEach { lastOfEachId[it.id] = it }
-        val unique = lastOfEachId.values.toList()
+        val unique = lastOfEachId.values.map {
+            it.copy(isRead = false, isStarred = false, readAt = null)
+        }
 
         // insert returns the new row id, or -1 for a row the store already held
         val rowIds = insertNewArticles(unique)

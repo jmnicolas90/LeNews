@@ -59,9 +59,14 @@ class GReaderRepository(
             insertFolders(folders)
             val newFeeds = insertFeeds(feeds)
 
-            val newItems = insertItems(items + starredItems)
+            val fetched = items + starredItems
+            val newItems = insertItems(fetched)
 
-            applyItemStates(unreadIds, readIds, starredIds)
+            applyItemStates(
+                unreadIds = unreadIds,
+                readIds = readIdsTheServerHolds(syncType, fetched, readIds),
+                starredIds = starredIds
+            )
 
             account.cursor = newCursor
             database.accountDao().updateCursor(newCursor)
@@ -132,9 +137,18 @@ class GReaderRepository(
      * articles notification reports.
      */
     private suspend fun insertItems(items: List<Item>): List<Item> {
+        // The last occurrence of an id in the response wins (§2), so the
+        // duplicates go here, in the order the server sent them, and not after
+        // the sort below: an article whose publication date the server corrected
+        // backwards would otherwise have its stale occurrence sorted last, and
+        // the stale content would be the one stored.
+        val lastOfEachId = LinkedHashMap<Long, Item>(items.size)
+        items.forEach { lastOfEachId[it.id] = it }
+        val unique = lastOfEachId.values.toList()
+
         val feedIdsByRemoteId = mutableMapOf<String?, Int>()
 
-        for (item in items) {
+        for (item in unique) {
             item.feedId = feedIdsByRemoteId.getOrPut(item.feedRemoteId) {
                 database.feedDao().selectRemoteFeedLocalId(item.feedRemoteId!!)
             }
@@ -144,7 +158,30 @@ class GReaderRepository(
             }
         }
 
-        return database.itemDao().upsertArticles(items.sortedWith(Item::compareTo))
+        return database.itemDao().upsertArticles(unique.sortedWith(Item::compareTo))
+    }
+
+    /**
+     * The ids the server holds as read, which is what stamps a read learned at
+     * sync.
+     *
+     * A classic sync asks `stream/items/ids` for them and is given the list. An
+     * initial sync does not: it pulls the unread and the starred articles and
+     * the unread and starred id lists (§7), so the only thing the server says
+     * about a starred article it holds as read is the read category the article
+     * arrives with. Without that, such an article would come out of the initial
+     * sync unread and be back in the timeline the user already cleared on the
+     * web. It cannot be stored read at insert time either: the row would carry
+     * `read = 1` with no `read_at`, which invariant 2 forbids.
+     */
+    private fun readIdsTheServerHolds(
+        syncType: SyncType,
+        fetched: List<Item>,
+        readIds: List<Long>
+    ): List<Long> = if (syncType == SyncType.INITIAL_SYNC) {
+        fetched.filter { it.isRead }.map { it.id }
+    } else {
+        readIds
     }
 
     /**

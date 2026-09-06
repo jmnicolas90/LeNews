@@ -43,6 +43,43 @@ class ArticleIdsTest {
         assertEquals(-1L, ArticleIds.fromLongForm(ArticleIds.LONG_FORM_PREFIX + "ffffffffffffffff"))
     }
 
+    /**
+     * The two forms have to agree over the whole 64-bit range, not only over the
+     * half a signed parse reaches: an id the server sends in decimal past 2^63
+     * has to become the same number as its hexadecimal form, and go back out as
+     * the digits the server sent.
+     */
+    @Test
+    fun anIdPastTheSignedRangeMakesTheRoundTripInBothForms() {
+        val justPastTheHalfWay = "9223372036854775808" // 2^63
+        val theLastId = "18446744073709551615" // 2^64 - 1
+
+        assertEquals(Long.MIN_VALUE, ArticleIds.fromDecimal(justPastTheHalfWay))
+        assertEquals(justPastTheHalfWay, ArticleIds.toDecimal(Long.MIN_VALUE))
+
+        assertEquals(-1L, ArticleIds.fromDecimal(theLastId))
+        assertEquals(theLastId, ArticleIds.toDecimal(-1L))
+    }
+
+    @Test
+    fun theTwoFormsAgreeOnAnIdPastTheSignedRange() {
+        assertEquals(
+            ArticleIds.fromLongForm(ArticleIds.LONG_FORM_PREFIX + "8000000000000000"),
+            ArticleIds.fromDecimal("9223372036854775808")
+        )
+        assertEquals(
+            ArticleIds.fromLongForm(ArticleIds.LONG_FORM_PREFIX + "ffffffffffffffff"),
+            ArticleIds.fromDecimal("18446744073709551615")
+        )
+    }
+
+    @Test
+    fun aDecimalIdPastTheWholeRangeIsRefused() {
+        assertFailsWith<NumberFormatException> {
+            ArticleIds.fromDecimal("18446744073709551616") // 2^64
+        }
+    }
+
     @Test
     fun aLongFormIdWithoutItsPrefixIsRefused() {
         assertFailsWith<IllegalArgumentException> {

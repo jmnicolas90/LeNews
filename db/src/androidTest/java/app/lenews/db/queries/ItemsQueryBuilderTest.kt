@@ -91,6 +91,15 @@ class ItemsQueryBuilderTest {
         assertTrue(query.sql.contains(WITHIN_LAST_24_HOURS))
     }
 
+    /**
+     * A folder filters on the article's own feed id, against the feeds of that
+     * folder, and not on `Feed.folder_id`: the article table is the outer loop
+     * of the join, so a condition on a column of `Feed` can only be tested once
+     * an article row has been read, and opening a folder — one with no article
+     * above all — would visit the whole store. Written this way, and with the
+     * index named so the planner cannot change its mind once it has statistics,
+     * `Article(feed_id, pub_date)` serves the filter.
+     */
     @Test
     fun folderFilterCaseTest() {
         val queryFilters = QueryFilters(subFilter = SubFilter.FOLDER, folderId = 1)
@@ -98,7 +107,29 @@ class ItemsQueryBuilderTest {
         val query = ItemsQueryBuilder.buildItemsQuery(queryFilters)
         database.query(query)
 
-        assertTrue(query.sql.contains("Feed.folder_id = ${queryFilters.folderId}"))
+        with(query.sql) {
+            assertTrue(
+                contains(
+                    "Article.feed_id In (Select id From Feed Where folder_id = " +
+                            "${queryFilters.folderId})"
+                )
+            )
+            assertFalse(contains("Feed.folder_id = ${queryFilters.folderId}"))
+            assertTrue(contains("Article Indexed By index_Article_feed_id_pub_date"))
+        }
+    }
+
+    /** Only the folder timeline names an index; the others are better without. */
+    @Test
+    fun noOtherTimelineNamesAnIndex() {
+        listOf(
+            QueryFilters(),
+            QueryFilters(showReadItems = false),
+            QueryFilters(subFilter = SubFilter.FEED, feedId = 15),
+            QueryFilters(mainFilter = MainFilter.STARS)
+        ).forEach {
+            assertFalse(ItemsQueryBuilder.buildItemsQuery(it).sql.contains("Indexed By"))
+        }
     }
 
     @Test

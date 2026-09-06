@@ -49,7 +49,7 @@ here is every file this fork created that is not Markdown. `git log
 produced; it follows a file through the ticket 05 rename, so a file added under
 `com/readrops/` and moved to `app/lenews/` still counts as created here.
 
-Carrying the header — nineteen files:
+Carrying the header — twenty files:
 
 | File | Language |
 | --- | --- |
@@ -69,14 +69,17 @@ Carrying the header — nineteen files:
 | `db/src/main/java/app/lenews/db/pojo/ArticleContent.kt` | Kotlin |
 | `db/src/main/java/app/lenews/db/queries/TimeWindow.kt` | Kotlin |
 | `db/src/androidTest/java/app/lenews/db/TimelineTimeBudgetTest.kt` | Kotlin |
+| `db/src/androidTest/java/app/lenews/db/HistoryQuery.kt` | Kotlin |
 | `db/src/androidTest/java/app/lenews/db/dao/ItemDaoTest.kt` | Kotlin |
 | `db/src/androidTest/java/app/lenews/db/benchmark/ArticleStoreSeeder.kt` | Kotlin |
 | `db/src/androidTest/java/app/lenews/db/benchmark/TimelineSlownessBenchmarkTest.kt` | Kotlin |
 
-Not carrying it, and why — seven files, each for a reason, not by oversight:
+Not carrying it, and why — nine files, each for a reason, not by oversight:
 
 - `app/src/androidTest/resources/greader/items_1_item.json`,
-  `items_empty.json`, `items_no_ids.json`, `items_unread_ids.json` — **JSON has
+  `items_empty.json`, `items_no_ids.json`, `items_unread_ids.json`,
+  `items_starred_ids_one.json`,
+  `items_one_id_twice_read_and_starred.json` — **JSON has
   no comment syntax.** A header cannot go in without making the fixture invalid
   for the parser that reads it.
 - `app/lint-baseline.xml` — XML, so it could carry one, but **lint regenerates
