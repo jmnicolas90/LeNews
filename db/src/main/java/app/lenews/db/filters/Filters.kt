@@ -5,7 +5,18 @@ import java.io.Serializable
 enum class MainFilter {
     STARS,
     NEW,
-    ALL
+    ALL,
+
+    /**
+     * The history: every article that became read, newest first. It is a filter
+     * of the timeline rather than a screen of its own, because the timeline
+     * already knows how to page articles, show their feed and open them.
+     *
+     * It ignores [QueryFilters.showReadItems] — every article in the history is
+     * read by definition — and it is always ordered by the moment the article
+     * became read, so [OrderField] and [OrderType] say nothing here either.
+     */
+    HISTORY
 }
 
 enum class SubFilter {

@@ -20,6 +20,7 @@ object ItemSelectionQueryBuilder {
         "read",
         "starred AS is_starred",
         "starred",
+        "Article.read_at",
         "icon_url",
         "color",
         "Feed.name",

@@ -91,8 +91,26 @@ object DateUtils {
         return LocalDateTime.ofEpochSecond(epoch, 0, defaultOffset)
     }
 
+    /**
+     * A moment the phone stamped itself, in epoch milliseconds — `read_at` is
+     * the only one — read back on the phone's own clock.
+     */
+    fun fromEpochMillis(epoch: Long): LocalDateTime =
+        LocalDateTime.ofEpochSecond(epoch / 1000L, 0, defaultOffset)
+
     fun formattedDateByLocal(dateTime: LocalDateTime): String {
         return DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+            .withLocale(Locale.getDefault())
+            .format(dateTime)
+    }
+
+    /**
+     * Date and time of day. The history needs the hour: a day's worth of
+     * articles all became read on the same date, and "this morning" is what the
+     * reader is looking for.
+     */
+    fun formattedDateTimeByLocal(dateTime: LocalDateTime): String {
+        return DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
             .withLocale(Locale.getDefault())
             .format(dateTime)
     }

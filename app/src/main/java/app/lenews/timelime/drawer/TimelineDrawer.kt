@@ -217,6 +217,21 @@ fun DrawerDefaultItems(
         onClick = { onClick(MainFilter.STARS) },
         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
     )
+
+    // the way back to an article that was swiped away: open the drawer, tap
+    // History, tap the article — three taps from the timeline
+    NavigationDrawerItem(
+        label = { Text(text = stringResource(R.string.history)) },
+        icon = {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_history),
+                contentDescription = null
+            )
+        },
+        selected = selectedItem == MainFilter.HISTORY,
+        onClick = { onClick(MainFilter.HISTORY) },
+        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+    )
 }
 
 @Composable

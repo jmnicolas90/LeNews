@@ -130,9 +130,6 @@ interface ItemDao : BaseDao<Item> {
     @Query("Update Article Set starred = :starred Where id = :itemId")
     suspend fun setStarred(itemId: Long, starred: Boolean)
 
-    @Query("Update Article Set read = 1, read_at = :now Where read = 0 And id In (:itemIds)")
-    suspend fun markRead(itemIds: List<Long>, now: Long)
-
     //endregion
 
     //region the state a sync learned

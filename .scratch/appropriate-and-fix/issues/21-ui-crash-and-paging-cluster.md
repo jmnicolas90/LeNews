@@ -44,3 +44,13 @@ changed for them.
   `onDispose` still writes has to tolerate an article dropped while the screen
   was open — a pending change for a row that is gone fails on the foreign key —
   even once ticket 16 has moved the decisions themselves out of the buffer.
+
+  **Done by ticket 16 (2026-09-06), so this fifth item is closed.** The buffer,
+  the `onDispose` override and `Repository.setItemsRead` — the `require` that
+  threw — are all deleted; the item screen writes each decision through
+  `BaseRepository` as the reader makes it, and marking an article unread goes
+  down the same route as marking it read. The article dropped while the screen
+  was open is handled too: `setItemReadState` and `setItemStarState` check the
+  article is still held, inside the transaction that writes, and discard the
+  decision if it is not, so nothing is queued against a row the foreign key no
+  longer has. The four original items of this ticket are untouched.

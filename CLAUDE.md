@@ -140,11 +140,16 @@ header in the same commit.**
   Ticket 14 synced a debug build against it **from the emulator**, three times,
   after pushing the Caddy local-authority root into
   `/data/misc/user/0/cacerts-added` there; the app's network security config
-  already trusts user CAs, so nothing in the app had to change. `local.properties`
+  already trusts user CAs, so nothing in the app had to change. Ticket 16 did the
+  same again for upstream issue #341 — star an article, mark the starred list
+  read, sync twice and the read is still there, which is the server having taken
+  it — and left the account as found. `local.properties`
   lives in the main checkout only, so a worktree that needs the debug account has
-  to be given a copy of that gitignored file. Still open: the same root on the
-  **phone**, which cannot be checked from this machine, and a second sample
-  proving the feeds really produce a few hundred articles a day. The
+  to be given a copy of that gitignored file, deleted again afterwards. Still
+  open: the same root on the **phone**, which cannot be checked from this
+  machine. The second sample of the article rate is rough but taken: 119 new
+  articles in the 1 h 47 min between two syncs on 2026-09-06, which is well over
+  a few hundred a day. The
   instrumented gate stage needs no network at all: it uses MockWebServer on the
   emulator. A real phone is often attached to this machine over adb and is out
   of bounds; G7 pins the serial so nothing can reach it.
@@ -252,9 +257,10 @@ Notes that save time:
   translation debt (199 `MissingTranslation`, 135 `ExtraTranslation`, 47
   `UnusedResources`, 10 `MissingDefaultResource`, 3 `ImpliedQuantity`), waiting
   on the locales product call nobody has made. Since ticket 13 deleted the
-  strings the multi-account screens used, **9 of those entries no longer match
-  anything** and lint says so on every run; that is findings cleared, not a
-  problem, and the file was left alone rather than regenerated. `api` and `db` have no errors
+  strings the multi-account screens used and ticket 16 put the last unused
+  drawable to work, **10 of those entries no longer match anything** and lint
+  says so on every run; that is findings cleared, not a problem, and the file was
+  left alone rather than regenerated. `api` and `db` have no errors
   and no baseline, so their warnings still print. **A baseline is a list of
   findings to clear, not a rule switched off**: a new error of any of those
   kinds still fails the gate. Known noise: `lintVitalRelease`, which
@@ -342,8 +348,9 @@ every claim a permalink into FreshRSS source. The facts a session trips over:
   table holding what the server has not been told. `ItemState`,
   `ItemStateChange`, `Tag`, `TagJoin` and `AccountConfig.useSeparateState` are
   gone, and so is every branch on it. Every route by which an article becomes
-  read writes the state, the date and the pending change in one transaction; see
-  `BaseRepository`.
+  read writes the state, the date and the pending change in one transaction, **at
+  the moment the reader acts** — see `BaseRepository`, and the history paragraph
+  below for why no screen holds a decision back.
 
 **The article store is `docs/article-store.md` (ticket 12), and its schema is
 built (ticket 13).** The tree has the entities of §1 — `Account` as one row,
@@ -373,9 +380,8 @@ upsert, read state, starred state, the retention delete, the cursor,
 `PRAGMA optimize` — so a failure anywhere rolls back the articles, the state and
 the cursor together and the next sync repeats the same pull harmlessly. The
 inherited 2500 and 1000 caps are gone. **Still pending, so do not write code as
-if it were done**: the history list on screen, §5 and §8 (16); and which of the
-14 inherited locales LeNews keeps, which is the one product call that clears
-most of the lint baseline.
+if it were done**: which of the 14 inherited locales LeNews keeps, which is the
+one product call that clears most of the lint baseline.
 
 **The retention rule is built** (ticket 15): `deleteWhatRetentionDrops` in
 `db/src/main/java/app/lenews/db/Retention.kt`, one delete run at step 4e of the
@@ -412,6 +418,32 @@ the transaction never opens on a partial or unreadable list. An explicitly empty
 `itemRefs` is the one answer that means the stream holds nothing. Cost on the
 seeded store: 543 ms to drop 90,630 of 100,000 articles once, then 50 ms a sync
 for the same hundred thousand ids with nothing left to drop.
+
+**The history list is built** (ticket 16). It is a fourth `MainFilter`,
+`HISTORY`, beside `ALL`, `NEW` and `STARS`, so it is the timeline's own query,
+pager and item row with `read_at` for the filter and the order: `Article.read_at
+Is Not Null` ordered by `read_at DESC`, over `Article Indexed By
+index_Article_read_at`, which is that index walked backwards — 0.4 ms for the
+first page on a hundred thousand articles, the same before and after
+`PRAGMA optimize`. It ignores *show read articles* and the timeline's own
+ordering, because every article in it is read and the order is the point. **The
+sub-filter composes**: a feed or a folder narrows the history to that feed or
+folder, exactly as it narrows any other main filter. The mark-all-read button is
+not shown there — everything in the list is read already. `TimelineItem` takes a
+`becameReadAt` and shows that moment, with the hour, in place of the publication
+date. The drawer entry is the way back: drawer, History, article — three taps.
+
+**No screen holds a read or a star back any more.** `ItemScreenModel` used to
+keep every decision in memory and write them all when the screen was disposed,
+which let a background sync drop an article the reader had just starred. It
+writes through `BaseRepository` as the reader acts, and keeps a set of article
+ids the list goes on showing, so that an article read while the unread timeline
+is behind it does not shift the list under the reader's finger:
+`ItemsQueryBuilder.buildItemsQuery(filters, keptArticleIds)` relaxes the state
+conditions — and only those — for those ids. The timeline passes an empty set and
+gets exactly the query it had before the set existed. A decision about an article
+the store no longer holds is dropped rather than queued against a row that is
+gone, which the foreign key would refuse.
 
 ## Tickets and bookkeeping
 

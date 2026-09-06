@@ -61,6 +61,10 @@ abstract class BaseRepository(
         val now = System.currentTimeMillis()
 
         database.withTransaction {
+            if (!stillHeld(item)) {
+                return@withTransaction
+            }
+
             if (item.isRead) {
                 database.itemDao().markRead(item.id, now)
             } else {
@@ -73,28 +77,28 @@ abstract class BaseRepository(
 
     open suspend fun setItemStarState(item: Item) {
         database.withTransaction {
+            if (!stillHeld(item)) {
+                return@withTransaction
+            }
+
             database.itemDao().setStarred(item.id, item.isStarred)
             database.pendingChangeDao().queueStarred(item.id, item.isStarred)
         }
     }
 
-    open suspend fun setItemsRead(items: List<Item>) {
-        require(items.none { it.isRead }) {
-            "Do not queue a read change for an article which is already read"
-        }
-
-        if (items.isEmpty()) {
-            return
-        }
-
-        val ids = items.map { it.id }
-        val now = System.currentTimeMillis()
-
-        database.withTransaction {
-            database.pendingChangeDao().queueReadForArticles(ids)
-            database.itemDao().markRead(ids, now)
-        }
-    }
+    /**
+     * Whether the store still holds this article. Retention drops articles
+     * inside every sync, so a screen that has been open across one can be
+     * holding an article that is gone: the update would change no row and the
+     * pending change would then point at nothing, which the foreign key refuses.
+     * A decision about an article the phone no longer has is dropped instead —
+     * the server was never told, and there is nothing left to tell it about.
+     *
+     * Asked inside the transaction that writes, so the answer cannot go stale
+     * between the question and the write.
+     */
+    private suspend fun stillHeld(item: Item): Boolean =
+        database.itemDao().itemExists(item.id)
 
     open suspend fun setAllItemsRead() {
         val now = System.currentTimeMillis()

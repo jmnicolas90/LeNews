@@ -26,6 +26,9 @@ object ItemsQueryBuilder {
         "read",
         "starred AS is_starred",
         "starred",
+        // the moment the article became read, which the history list shows in
+        // place of the publication date
+        "Article.read_at",
         "Feed.name",
         "color",
         "icon_url",
@@ -75,7 +78,39 @@ object ItemsQueryBuilder {
                 "CROSS JOIN Feed On Article.feed_id = Feed.id " +
                 "LEFT JOIN Folder On Feed.folder_id = Folder.id"
 
-    fun buildItemsQuery(queryFilters: QueryFilters): SupportSQLiteQuery =
+    /**
+     * The same join again, with `Article(read_at)` named: the history is that
+     * index walked backwards, which gives the filter and the order in one pass
+     * and stops at the end of the page.
+     *
+     * The index is named for the same reason the folder names one. Left to the
+     * planner, nothing forbids a scan of `Article(pub_date)` with a sort on top,
+     * and ticket 13 measured a planner changing its mind for the worse as soon
+     * as `PRAGMA optimize` gave it statistics. Named, the plan is the same
+     * before and after.
+     */
+    private const val JOIN_FOR_THE_HISTORY =
+        "Article Indexed By index_Article_read_at " +
+                "CROSS JOIN Feed On Article.feed_id = Feed.id " +
+                "LEFT JOIN Folder On Feed.folder_id = Folder.id"
+
+    /**
+     * The query the timeline, the history and the item screen all page through.
+     *
+     * [keptArticleIds] are articles the caller wants to keep in the list even
+     * though their state no longer matches the filter. The item screen uses it:
+     * an article read while it is open leaves the unread timeline the moment the
+     * read is written, and the list under the reader's finger would shift by
+     * one. The state conditions — unread, starred, in the history — are the only
+     * ones relaxed for those ids; which feed an article belongs to and when it
+     * was published do not change while it is being read, so those conditions
+     * stay as they are. Empty, which is what the timeline passes, the query is
+     * exactly what it was before the set existed.
+     */
+    fun buildItemsQuery(
+        queryFilters: QueryFilters,
+        keptArticleIds: Set<Long> = emptySet()
+    ): SupportSQLiteQuery =
         with(queryFilters) {
             if (subFilter == SubFilter.FEED && feedId == 0) {
                 throw IllegalArgumentException("FeedId must be greater than 0 if subFilter is FEED")
@@ -83,31 +118,38 @@ object ItemsQueryBuilder {
                 throw IllegalArgumentException("FolderId must be greater than 0 if subFilter is FOLDER")
             }
 
-            val join = if (subFilter == SubFilter.FOLDER) JOIN_FOR_A_FOLDER else JOIN
-
-            SupportSQLiteQueryBuilder.builder(join).run {
+            SupportSQLiteQueryBuilder.builder(tableToRead(this@with)).run {
                 columns(COLUMNS)
-                selection(buildWhereClause(this@with), null)
-                orderBy(buildOrderByClause(orderField, orderType))
+                selection(buildWhereClause(this@with, keptArticleIds), null)
+                orderBy(buildOrderByClause(this@with))
 
                 create()
             }
         }
 
-    private fun buildWhereClause(queryFilters: QueryFilters): String =
+    private fun tableToRead(queryFilters: QueryFilters): String = when {
+        queryFilters.subFilter == SubFilter.FOLDER -> JOIN_FOR_A_FOLDER
+        queryFilters.mainFilter == MainFilter.HISTORY -> JOIN_FOR_THE_HISTORY
+        else -> JOIN
+    }
+
+    private fun buildWhereClause(queryFilters: QueryFilters, keptArticleIds: Set<Long>): String =
         buildString {
             // SupportSQLiteQueryBuilder writes no WHERE at all for an empty
             // selection, so a clause that is always true keeps the shape simple
             append("1 = 1 ")
 
-            if (!queryFilters.showReadItems) {
-                append("And Article.read = 0 ")
+            val state = buildStateClause(queryFilters)
+            if (state.isNotEmpty()) {
+                if (keptArticleIds.isEmpty()) {
+                    append("And $state ")
+                } else {
+                    append("And ($state Or Article.id In (${keptArticleIds.joinToString(",")})) ")
+                }
             }
 
-            when (queryFilters.mainFilter) {
-                MainFilter.STARS -> append("And Article.starred = 1 ")
-                MainFilter.NEW -> append("And $WITHIN_LAST_24_HOURS ")
-                else -> {}
+            if (queryFilters.mainFilter == MainFilter.NEW) {
+                append("And $WITHIN_LAST_24_HOURS ")
             }
 
             when (queryFilters.subFilter) {
@@ -124,14 +166,44 @@ object ItemsQueryBuilder {
             toString()
         }
 
-    private fun buildOrderByClause(orderField: OrderField, orderType: OrderType): String {
+    /**
+     * The conditions on the article's own state, which are the ones an article
+     * the reader acts on can stop satisfying.
+     */
+    private fun buildStateClause(queryFilters: QueryFilters): String = buildString {
+        if (queryFilters.mainFilter == MainFilter.HISTORY) {
+            // an article in the history is read by definition, so showReadItems
+            // has nothing to say about this list
+            append("Article.read_at Is Not Null")
+            return@buildString
+        }
+
+        if (!queryFilters.showReadItems) {
+            append("Article.read = 0")
+        }
+
+        if (queryFilters.mainFilter == MainFilter.STARS) {
+            if (isNotEmpty()) {
+                append(" And ")
+            }
+            append("Article.starred = 1")
+        }
+    }
+
+    private fun buildOrderByClause(queryFilters: QueryFilters): String {
+        // the history is the order in which articles became read, newest first,
+        // and nothing else: it is what the list is for
+        if (queryFilters.mainFilter == MainFilter.HISTORY) {
+            return "Article.read_at DESC"
+        }
+
         return buildString {
-            when (orderField) {
+            when (queryFilters.orderField) {
                 OrderField.ID -> append("Article.id ")
                 else -> append("pub_date ")
             }
 
-            when (orderType) {
+            when (queryFilters.orderType) {
                 OrderType.DESC -> append("DESC")
                 else -> append("ASC")
             }

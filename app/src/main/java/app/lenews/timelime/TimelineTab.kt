@@ -236,7 +236,7 @@ object TimelineTab : Tab {
                 },
                 snackbarHost = { SnackbarHost(snackbarHostState) },
                 floatingActionButton = {
-                    if (!state.hideReadAllFAB) {
+                    if (state.showReadAllFAB) {
                         FloatingActionButton(
                             onClick = {
                                 if (state.filters.mainFilter == MainFilter.ALL) {
@@ -325,6 +325,16 @@ object TimelineTab : Tab {
                                                         screenModel.updateItemReadState(itemWithFeed.item)
                                                     },
                                                     size = preferences.itemSize,
+                                                    // the history shows when the
+                                                    // article became read in place
+                                                    // of its publication date
+                                                    becameReadAt = if (
+                                                        state.filters.mainFilter == MainFilter.HISTORY
+                                                    ) {
+                                                        itemWithFeed.item.readAt
+                                                    } else {
+                                                        null
+                                                    },
                                                     modifier = Modifier.animateItem()
                                                 )
                                             }

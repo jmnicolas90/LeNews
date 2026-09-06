@@ -688,11 +688,113 @@ class SyncTest : KoinTest {
     }
 
     /**
+     * §5, the last route: an article the server still holds and no longer calls
+     * unread became read somewhere else, and the only date the API allows is
+     * the sync's own clock — no output carries a read timestamp. The article the
+     * server still calls unread gets no date at all, and the sync that follows
+     * learns the same thing and leaves the first date alone.
+     */
+    @Test
+    fun aReadLearnedAtSyncIsStampedWithTheSyncClockAndNotStampedAgain() = runTest {
+        server.readingListPages = listOf(
+            listOf(FreshRSSStub.articleJson(ARTICLE_A), FreshRSSStub.articleJson(ARTICLE_B))
+        )
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A))
+
+        val before = System.currentTimeMillis()
+        synchronize()
+        val after = System.currentTimeMillis()
+
+        val stillUnread = everyArticle().first { it.id == ARTICLE_A }
+        assertFalse(stillUnread.isRead)
+        assertNull(stillUnread.readAt, "an unread article carries no date")
+
+        val learnedRead = everyArticle().first { it.id == ARTICLE_B }
+        assertTrue(learnedRead.isRead)
+        val readAt = assertNotNull(learnedRead.readAt, "a read learned at sync carries no date")
+        assertTrue(
+            readAt in before..after,
+            "the date is not this sync's clock: $readAt is outside $before..$after"
+        )
+        assertNull(
+            database.pendingChangeDao().select(ARTICLE_B),
+            "the server already knows, so there is nothing to tell it"
+        )
+
+        synchronize()
+
+        assertEquals(
+            readAt,
+            everyArticle().first { it.id == ARTICLE_B }.readAt,
+            "a read the phone already knew was stamped again"
+        )
+    }
+
+    /**
+     * The regression the review of ticket 15 asked for. The reader opens an
+     * article and stars it; a sync runs while the screen is open and the
+     * server's full id list no longer names that article.
+     *
+     * The star is in the store before that sync — the item screen writes each
+     * decision as it is made and buffers nothing until it is left — so retention
+     * sees a starred article and keeps it, which is the rule. Leaving the screen
+     * writes nothing at all now, and a decision made afterwards still works.
+     */
+    @Test
+    fun anArticleStarredWhileItIsOpenSurvivesASyncThatDropsIt() = runTest {
+        server.readingListPages = listOf(
+            listOf(FreshRSSStub.articleJson(ARTICLE_A), FreshRSSStub.articleJson(ARTICLE_B))
+        )
+        server.serverIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_A, ARTICLE_B))
+
+        synchronize()
+
+        // the reader opens the first article and stars it
+        val repository = repository()
+        repository.setItemStarState(Item(id = ARTICLE_A).apply { isStarred = true })
+        assertTrue(database.itemDao().select(ARTICLE_A)!!.isStarred, "the star was buffered")
+
+        // the sync that runs meanwhile: the server has dropped that article and
+        // does not call it starred either
+        server.readingListPages = listOf(emptyList())
+        server.serverIdPages = listOf(listOf(ARTICLE_B))
+        server.unreadIdPages = listOf(listOf(ARTICLE_B))
+        server.starredIdPages = listOf(emptyList())
+
+        synchronize()
+
+        val left = everyArticle()
+        assertEquals(
+            listOf(ARTICLE_A, ARTICLE_B),
+            left.map { it.id },
+            "the article the reader had just starred was dropped"
+        )
+        assertTrue(left.first { it.id == ARTICLE_A }.isStarred, "the star the reader saw is gone")
+
+        // leaving the screen writes nothing; acting on the article again works
+        repository.setItemReadState(Item(id = ARTICLE_A).apply { isRead = true })
+        assertTrue(database.itemDao().select(ARTICLE_A)!!.isRead)
+    }
+
+    /**
      * Runs one sync through the repository rather than through [Synchronizer],
      * so that [GReaderRepository.afterTheStoreIsWritten] can be used to fail
      * the transaction where the model says everything must roll back.
      */
     private suspend fun synchronize(failInsideTheTransaction: Boolean = false) {
+        repository(failInsideTheTransaction).synchronize()
+    }
+
+    /**
+     * The repository the app builds for the one account, pointed at the stub.
+     * The tests that act on an article the way a screen does use it too, so what
+     * they exercise is the code the screens call.
+     */
+    private suspend fun repository(
+        failInsideTheTransaction: Boolean = false
+    ): GReaderRepository {
         val account = storedAccount()
         getKoin().get<AuthInterceptor>().credentials = Credentials.toCredentials(account)
 
@@ -700,15 +802,13 @@ class SyncTest : KoinTest {
             parametersOf(Credentials.toCredentials(account))
         }
 
-        val repository = object : GReaderRepository(database, account, dataSource) {
+        return object : GReaderRepository(database, account, dataSource) {
             override suspend fun afterTheStoreIsWritten() {
                 if (failInsideTheTransaction) {
                     throw IOException("a failure injected inside the sync transaction")
                 }
             }
         }
-
-        repository.synchronize()
     }
 
     private suspend fun storedAccount(): Account = database.accountDao().select()!!

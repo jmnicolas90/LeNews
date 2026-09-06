@@ -55,7 +55,13 @@ fun TimelineItem(
     onShare: () -> Unit,
     onSetReadState: () -> Unit,
     modifier: Modifier = Modifier,
-    size: TimelineItemSize = TimelineItemSize.LARGE
+    size: TimelineItemSize = TimelineItemSize.LARGE,
+    /**
+     * When the article became read, shown in place of its publication date. The
+     * history list is the one that passes it; everywhere else the publication
+     * date is what the reader is looking at.
+     */
+    becameReadAt: Long? = null
 ) {
 
     fun handleSwipeAction(swipeAction: SwipeAction) {
@@ -169,7 +175,8 @@ fun TimelineItem(
                     onClick = onClick,
                     onFavorite = onFavorite,
                     onShare = onShare,
-                    modifier = modifier
+                    modifier = modifier,
+                    becameReadAt = becameReadAt
                 )
             }
 
@@ -179,7 +186,8 @@ fun TimelineItem(
                     onClick = onClick,
                     onFavorite = onFavorite,
                     onShare = onShare,
-                    modifier = modifier
+                    modifier = modifier,
+                    becameReadAt = becameReadAt
                 )
             }
 
@@ -189,7 +197,8 @@ fun TimelineItem(
                     onClick = onClick,
                     onFavorite = onFavorite,
                     onShare = onShare,
-                    modifier = modifier
+                    modifier = modifier,
+                    becameReadAt = becameReadAt
                 )
             }
         }

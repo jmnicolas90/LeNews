@@ -10,6 +10,7 @@ import app.lenews.db.filters.OrderField
 import app.lenews.db.filters.OrderType
 import app.lenews.db.filters.QueryFilters
 import app.lenews.db.filters.SubFilter
+import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
 import org.junit.After
@@ -130,6 +131,64 @@ class ItemsQueryBuilderTest {
         ).forEach {
             assertFalse(ItemsQueryBuilder.buildItemsQuery(it).sql.contains("Indexed By"))
         }
+    }
+
+    /**
+     * The history filters and orders on `read_at`, ignores the "show read
+     * articles" checkbox — every article in it is read — and names the index it
+     * walks, so the plan is the same whether the planner has statistics or not.
+     */
+    @Test
+    fun historyFilterCaseTest() {
+        val queryFilters = QueryFilters(
+            showReadItems = false,
+            mainFilter = MainFilter.HISTORY,
+            orderField = OrderField.ID,
+            orderType = OrderType.ASC
+        )
+
+        val query = ItemsQueryBuilder.buildItemsQuery(queryFilters)
+        database.query(query)
+
+        with(query.sql) {
+            assertTrue(contains("Article Indexed By index_Article_read_at"))
+            assertTrue(contains("Article.read_at Is Not Null"))
+            assertTrue(contains("Article.read_at DESC"))
+            assertFalse(contains("Article.read = 0"))
+        }
+    }
+
+    /**
+     * The articles the item screen asks to keep in the list relax the state
+     * conditions and nothing else: the feed an article belongs to and the day it
+     * was published do not change while the reader has it open.
+     */
+    @Test
+    fun keptArticlesRelaxTheStateConditionsAndNoOthers() {
+        val queryFilters = QueryFilters(
+            showReadItems = false,
+            subFilter = SubFilter.FEED,
+            feedId = 15
+        )
+
+        val query = ItemsQueryBuilder.buildItemsQuery(queryFilters, setOf(42L))
+        database.query(query)
+
+        with(query.sql) {
+            assertTrue(contains("(Article.read = 0 Or Article.id In (42))"))
+            assertTrue(contains("And Article.feed_id = 15"))
+        }
+    }
+
+    /** No article to keep, and the query is exactly the one the timeline runs. */
+    @Test
+    fun anEmptyKeptSetChangesNothing() {
+        val queryFilters = QueryFilters(showReadItems = false)
+
+        assertEquals(
+            ItemsQueryBuilder.buildItemsQuery(queryFilters).sql,
+            ItemsQueryBuilder.buildItemsQuery(queryFilters, emptySet()).sql
+        )
     }
 
     @Test

@@ -37,6 +37,7 @@ fun TimelineAppBar(
                         MainFilter.STARS -> stringResource(R.string.favorites)
                         MainFilter.ALL -> stringResource(R.string.articles)
                         MainFilter.NEW -> stringResource(R.string.new_articles)
+                        MainFilter.HISTORY -> stringResource(R.string.history)
                     },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

@@ -358,6 +358,9 @@ class TimelineScreenModel(
                     MainFilter.STARS -> repository?.setAllStarredItemsRead()
                     MainFilter.ALL -> repository?.setAllItemsRead()
                     MainFilter.NEW -> repository?.setAllNewItemsRead()
+                    // every article in the history is already read; the screen
+                    // does not offer the button, and this is the second lock
+                    MainFilter.HISTORY -> Unit
                 }
             }
         }
@@ -457,6 +460,12 @@ data class TimelineState(
 ) {
 
     val showSubtitle = filters.subFilter != SubFilter.ALL
+
+    /**
+     * Marking everything read has nothing to do in the history, where every
+     * article is read already, so the button is not there to be pressed.
+     */
+    val showReadAllFAB = !hideReadAllFAB && filters.mainFilter != MainFilter.HISTORY
 }
 
 @Stable

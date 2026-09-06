@@ -47,18 +47,6 @@ interface PendingChangeDao : BaseDao<PendingChange> {
     suspend fun queueStarred(articleId: Long, starred: Boolean)
 
     /**
-     * Queues a read decision for every article the ids name. Articles already
-     * read are left out by the caller, which passes only the ones it is
-     * changing.
-     */
-    @Query(
-        """Insert Into PendingChange(article_id, read, starred)
-        Select Article.id, 1, NULL From Article Where Article.id In (:articleIds)
-        On Conflict(article_id) Do Update Set read = 1"""
-    )
-    suspend fun queueReadForArticles(articleIds: List<Long>)
-
-    /**
      * The mark-all-read routes, one statement each. Only unread articles are
      * queued: reading an already read article changes nothing and tells the
      * server nothing, so the queue grows by the unread count and not by the

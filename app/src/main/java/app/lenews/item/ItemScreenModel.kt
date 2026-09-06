@@ -16,7 +16,6 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.cachedIn
-import androidx.paging.map
 import cafe.adriel.voyager.core.model.StateScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
 import coil3.imageLoader
@@ -32,21 +31,17 @@ import app.lenews.util.Utils
 import app.lenews.db.Database
 import app.lenews.db.entities.Item
 import app.lenews.db.entities.account.Account
-import app.lenews.db.filters.MainFilter
 import app.lenews.db.filters.QueryFilters
 import app.lenews.db.pojo.ItemWithFeed
 import app.lenews.db.queries.ItemSelectionQueryBuilder
 import app.lenews.db.queries.ItemsQueryBuilder
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -68,7 +63,6 @@ class ItemScreenModel(
     //TODO Is <lateinit var> really the best solution?
     private lateinit var account: Account
     private lateinit var repository: BaseRepository
-    private lateinit var pagingSource: PagingSource<Int, ItemWithFeed>
 
     private val useCustomShareIntentTpl = preferences.useCustomShareIntentTpl.flow.stateIn(
         screenModelScope, SharingStarted.Eagerly, false
@@ -77,8 +71,18 @@ class ItemScreenModel(
         screenModelScope, SharingStarted.Eagerly, ""
     )
 
-    private val useStateChanges = itemIndex > -1 && (queryFilters.mainFilter != MainFilter.ALL
-            || !queryFilters.showReadItems)
+    /**
+     * The articles the reader has acted on while this screen has been open.
+     *
+     * A read or a star is written to the store the moment it is made, which is
+     * what `docs/article-store.md` §5 asks for and what keeps a background sync
+     * from dropping an article the reader has just starred. The cost is that an
+     * article read while the unread timeline is behind this screen stops
+     * matching the query that built the list, and the list under the reader's
+     * finger would shift by one. So the ids stay in the query until the screen
+     * is left: the store is never stale, and the list never jumps.
+     */
+    private val keptArticleIds = MutableStateFlow(emptySet<Long>())
 
     private val _itemState: MutableStateFlow<PagingData<ItemWithFeed>> =
         MutableStateFlow(
@@ -141,11 +145,9 @@ class ItemScreenModel(
     }
 
     private fun createPagingSource(): PagingSource<Int, ItemWithFeed> {
-        val query = ItemsQueryBuilder.buildItemsQuery(queryFilters)
+        val query = ItemsQueryBuilder.buildItemsQuery(queryFilters, keptArticleIds.value)
 
-        return database.itemDao().selectAll(query).apply {
-            pagingSource = this
-        }
+        return database.itemDao().selectAll(query)
     }
 
     private fun buildPager(): Flow<PagingData<ItemWithFeed>> {
@@ -161,105 +163,50 @@ class ItemScreenModel(
             pagingSourceFactory = { createPagingSource() }
         )
             .flow
-            .map {
-                it.map { itemWithFeed ->
-                    val stateChange = state.value.stateChanges
-                        .firstOrNull { stateChange -> stateChange.itemId == itemWithFeed.item.id }
-
-                    if (stateChange != null) {
-                        itemWithFeed.copy(
-                            isRead = if (stateChange.readChange) {
-                                !itemWithFeed.isRead
-                            } else {
-                                itemWithFeed.isRead
-                            },
-                            isStarred = if (stateChange.starChange) {
-                                !itemWithFeed.isStarred
-                            } else {
-                                itemWithFeed.isStarred
-                            },
-                        )
-                    } else {
-                        itemWithFeed
-                    }
-                }
-            }
             .cachedIn(screenModelScope)
     }
 
-    // TODO this must be tested one way or another
-    private fun updateStateChange(item: Item, readChange: Boolean) {
-        val stateChange = state.value.stateChanges.firstOrNull { it.itemId == item.id }
-
-        if (stateChange != null) {
-            val newStateChange = if (readChange) {
-                stateChange.copy(readChange = !stateChange.readChange)
-            } else {
-                stateChange.copy(starChange = !stateChange.starChange)
-            }
-
-            if (!newStateChange.readChange && !newStateChange.starChange) {
-                mutableState.update {
-                    it.copy(stateChanges = it.stateChanges.filterNot { stateChange -> stateChange.itemId == item.id })
-                }
-            } else {
-                mutableState.update {
-                    it.copy(stateChanges = it.stateChanges.map { mapStateChange ->
-                        if (mapStateChange.itemId == item.id) {
-                            newStateChange
-                        } else {
-                            mapStateChange
-                        }
-                    })
-                }
-            }
-        } else {
-            mutableState.update {
-                it.copy(
-                    stateChanges = it.stateChanges + if (readChange) {
-                        StateChange(
-                            item = item,
-                            readChange = true
-                        )
-                    } else {
-                        StateChange(
-                            item = item,
-                            starChange = true
-                        )
-                    }
-                )
-            }
-        }
-    }
-
+    /**
+     * The article the reader has just swiped to becomes read, once. It is not a
+     * toggle: the page can be entered again, and an article that is already read
+     * has nothing to become.
+     */
     fun setItemRead(itemWithFeed: ItemWithFeed) {
-        val item = itemWithFeed.item
+        if (itemWithFeed.isRead) {
+            return
+        }
 
-        if (!itemWithFeed.isRead && !state.value.stateChanges.any { it.item.id == item.id }) {
-            setItemReadState(item)
+        val item = itemWithFeed.item.apply { isRead = true }
+
+        keepShowing(item.id)
+        screenModelScope.launch(dispatcher) {
+            repository.setItemReadState(item)
         }
     }
 
+    /** The read toggle of the bottom bar. */
     fun setItemReadState(item: Item) {
-        if (useStateChanges) {
-            updateStateChange(item, readChange = true)
-            pagingSource.invalidate()
-        } else {
-            screenModelScope.launch(dispatcher) {
-                repository.setItemReadState(item.apply { isRead = !isRead })
-            }
+        keepShowing(item.id)
+        screenModelScope.launch(dispatcher) {
+            repository.setItemReadState(item.apply { isRead = !isRead })
         }
     }
 
+    /** The star toggle of the bottom bar. */
     fun setItemStarState(item: Item) {
-        if (useStateChanges) {
-            updateStateChange(item, readChange = false)
-            pagingSource.invalidate()
-        } else {
-            screenModelScope.launch(dispatcher) {
-                repository.setItemStarState(item.apply { isStarred = !isStarred })
-            }
+        keepShowing(item.id)
+        screenModelScope.launch(dispatcher) {
+            repository.setItemStarState(item.apply { isStarred = !isStarred })
         }
+    }
+
+    /**
+     * Keeps an article in the list even once it no longer matches the filter the
+     * list was built with. Recorded before the write, so that the reload the
+     * write sets off already reads it.
+     */
+    private fun keepShowing(itemId: Long) {
+        keptArticleIds.update { it + itemId }
     }
 
     fun openImageDialog(url: String) = mutableState.update { it.copy(imageDialogUrl = url) }
@@ -347,32 +294,6 @@ class ItemScreenModel(
     fun shareItem(itemWithFeed: ItemWithFeed, context: Context) = Utils.shareItem(
         itemWithFeed, context, useCustomShareIntentTpl.value, customShareIntentTpl.value
     )
-
-    @OptIn(DelicateCoroutinesApi::class)
-    override fun onDispose() {
-        // Use GlobalScope instead of NonCancellable
-        // It seems that NonCancellable is not is sufficiently non cancellable
-        // I ran multiple times into very frustrating situations where items were not set read
-        // The risk of leak here is mitigated by the fact that only one shot operations are performed
-        // If the coroutine is cancelled for whatever reason, only items state will be lost, which is not a big deal
-        // and should happen very rarely
-        GlobalScope.launch(dispatcher) {
-            repository.setItemsRead(
-                items = state.value.stateChanges
-                    .filter { it.readChange }
-                    .map { it.item }
-            )
-
-            state.value.stateChanges
-                .filter { it.starChange }
-                .forEach {
-                    repository.setItemStarState(it.item.apply {
-                        isStarred = !isStarred
-                    })
-                }
-
-        }
-    }
 }
 
 @Stable
@@ -381,17 +302,5 @@ data class ItemState(
     val fileDownloadedEvent: Boolean = false,
     val openInExternalBrowser: Boolean = false,
     val theme: String? = "",
-    val error: String? = null,
-    val stateChanges: List<StateChange> = listOf()
+    val error: String? = null
 )
-
-@Stable
-data class StateChange(
-    val item: Item,
-    val starChange: Boolean = false,
-    val readChange: Boolean = false
-) {
-
-    val itemId: Long
-        get() = item.id
-}
