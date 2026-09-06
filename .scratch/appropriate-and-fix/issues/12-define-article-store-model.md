@@ -1,7 +1,7 @@
 # 12 — Define the article store: identity, state, sync, mirror, history
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: 04, 09, 11
 
 ## Question
@@ -31,6 +31,68 @@ What has to be decided:
 Constraint from charting: **do not design features beyond the three pain points.** The model must serve the timeline, the drawer, the item screen, the history list and sync, nothing else.
 
 **Done when** `docs/article-store.md` exists with the entities, the identity rule, the sync sequence with its transaction boundary, the mirror-and-horizon rule, the becoming-read rule and the index list, such that tickets 13 to 16 can be implemented against it and a test can be written from it directly.
+
+## Answer (2026-09-06)
+
+Grilled in two rounds with the user, every question put with a recommendation
+and every recommendation taken. The model is written in **`docs/article-store.md`**
+(entities, identity, the sync sequence with its transaction boundary, the
+mirror-and-horizon predicate, becoming read, indexes and statistics, the time
+budget, the initial sync, the screens served, and the tests the rules imply),
+the one hard-to-reverse choice in **`docs/adr/0001-freshrss-id-is-the-article-key.md`**,
+and `CONTEXT.md` gained *Pending change* and *Cursor* and now says an article's
+identity is FreshRSS's number for it. No code was written.
+
+What was decided, one line each:
+
+- **Identity**: the FreshRSS 64-bit id is the article's primary key, stored as
+  a decimal integer; no autoincrement id, no `remote_id` string. Unique on its
+  own, not `(feed_id, id)`. A re-delivered id updates the content columns and
+  keeps every state column; last occurrence in a response wins.
+- **One read state**: `read`, `starred` and `read_at` are columns on the
+  article. `ItemState` and `ItemStateChange` are gone, and so is
+  `useSeparateState`.
+- **Pending changes**: a `PendingChange(article_id, read?, starred?)` table,
+  one row per article, uploaded first in batches of at most 998, cleared only
+  where the value still matches what was uploaded; the server's lists never
+  touch a column that has a pending value.
+- **Sync**: every network call before the transaction, then one Room
+  transaction in order: feeds and folders, article upserts, read state, starred
+  state, retention delete, cursor, `PRAGMA optimize`. A failure anywhere rolls
+  back everything and deletes nothing. State comes from three paged
+  `stream/items/ids` walks (all, unread, starred); `stream/contents` is content
+  only. Starred ids the store lacks have their content fetched; the
+  starred-exclusion workaround goes.
+- **Cursor**: a column on the one-row `Account` table, written in the
+  transaction; not derived from the data, not in DataStore.
+- **Mirror and horizon**: "no longer returns it" = absent from the full
+  reading-list id set of this sync. One delete in the transaction:
+  `starred = 0 AND ((read = 1 AND read_at < now − 30 days) OR (read = 0 AND id
+  not on the server))`. The horizon is a named constant, not a setting. A
+  starred article whose feed is unsubscribed goes with the feed, and that is
+  the one case starred does not survive.
+- **Becoming read**: `read_at` on the article, stamped on every 0→1 transition
+  by any route, sync time for a read learned at sync; unread clears it, reading
+  again stamps anew; history is `read_at IS NOT NULL ORDER BY read_at DESC`,
+  no history table; an article the horizon dropped is gone from it.
+- **Initial sync**: all unread and all starred articles, paged to the end, no
+  cap, no read articles; history starts empty at install.
+- **Indexes**: primary key, `(pub_date)`, `(feed_id, pub_date)`,
+  `(read, pub_date)`, `(starred, pub_date)`, `(read_at)`, plus the unique
+  `remote_id` on Feed and Folder; `PRAGMA optimize` after every sync and at
+  creation, because ticket 11 proved an index without statistics fixes nothing.
+- **Budget**: on the 100k seeded store, first page of every timeline, the
+  drawer counts and the history page under 10 ms; on a 20k store, Paging's
+  `COUNT(*)` under 20 ms.
+- **Schema reset**: Room version 1, no migrations; `Account` stays as one row
+  (URL, name, tokens, notifications flag, cursor) and every other `account_id`
+  column goes; credentials stay outside the database.
+- **Tags dropped** from the schema: unfinished upstream, outside the pain
+  points, the one per-row query the timeline still paid.
+
+The three inherited defects recorded below are each answered by a rule above:
+the caps by §7 and the paged pulls, the identity by §2, the starred workaround
+by step 2 of §3. Tickets 13 to 16 implement them.
 
 ## From the global review (2026-09-06)
 

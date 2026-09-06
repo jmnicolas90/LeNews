@@ -7,8 +7,8 @@ implementation detail.
 ## Language
 
 **Article**:
-One entry in a feed, as FreshRSS delivers it. Identified by the id FreshRSS
-gives it, which never changes and is never shared by two articles.
+One entry in a feed, as FreshRSS delivers it. Its identity is the number
+FreshRSS gives it, which never changes and is never shared by two articles.
 _Avoid_: item, entry, post
 
 **Feed**:
@@ -50,9 +50,19 @@ of the horizon and of what FreshRSS returns.
 _Avoid_: favourite, saved
 
 **Sync**:
-One exchange with FreshRSS: push the local state changes, then pull what has
-changed since the last sync. Repeating a sync must change nothing.
+One exchange with FreshRSS: push the pending changes, then pull what has
+changed since the cursor. Repeating a sync must change nothing.
 _Avoid_: refresh, update, fetch
+
+**Pending change**:
+A read or starred decision made on the phone that FreshRSS has not yet been
+told. The phone's decision wins over the server's answer until it is uploaded.
+_Avoid_: queue, dirty flag, state change
+
+**Cursor**:
+The moment of the last successful sync, from which the next one asks FreshRSS
+for what changed.
+_Avoid_: lastModified, timestamp
 
 **Mirror**:
 The rule that the phone holds what FreshRSS holds, no more: an article

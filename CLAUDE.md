@@ -344,13 +344,18 @@ every claim a permalink into FreshRSS source. The facts a session trips over:
   queued in `ItemStateChange` for the next upload. Every query builder in `db`
   branches on that boolean. Do not assume `Item.read` means anything.
 
-**Pending, so do not write code as if it were decided**: how the article store
-is modelled at all, including whether tags survive the schema reset (ticket 12,
-a grilling ticket); collapsing the account layer and the separate-state join
-for a single account (ticket 13); the mirror-and-horizon retention rule
-(ticket 15, below); what the history list looks like (ticket 16); and which of
-the 14 inherited locales LeNews keeps, which is the one product call that
-clears most of the lint baseline.
+**The article store is decided, not implemented.** `docs/article-store.md`
+(ticket 12) is the model tickets 13 to 16 build: the FreshRSS id as the
+article's primary key, read and starred state as columns on the article with a
+`PendingChange` table for what the server has not been told, one sync
+transaction, one retention delete, `read_at` as the history, tags dropped, and
+the index list with its time budget. Read it before touching the schema, the
+sync or retention; until ticket 13 lands the tree still has the old shape
+described above. **Pending, so do not write code as if it were decided**: the
+collapse itself (ticket 13); the sync rewrite (14); retention (15); what the
+history list looks like on screen (16); and which of the 14 inherited locales
+LeNews keeps, which is the one product call that clears most of the lint
+baseline.
 
 **The retention rule** is agreed in principle and not implemented (ticket 15).
 It is two rules with one exception that covers both:
