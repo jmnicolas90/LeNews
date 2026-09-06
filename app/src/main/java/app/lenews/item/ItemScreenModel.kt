@@ -24,13 +24,13 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import app.lenews.R
 import app.lenews.repositories.BaseRepository
+import app.lenews.util.ApplicationScope
 import app.lenews.util.PAGING_PAGE_SIZE
 import app.lenews.util.PAGING_PREFETCH_DISTANCE
 import app.lenews.util.Preferences
 import app.lenews.util.Utils
 import app.lenews.db.Database
 import app.lenews.db.entities.Item
-import app.lenews.db.entities.account.Account
 import app.lenews.db.filters.QueryFilters
 import app.lenews.db.pojo.ItemWithFeed
 import app.lenews.db.queries.ItemSelectionQueryBuilder
@@ -42,6 +42,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -57,12 +59,19 @@ class ItemScreenModel(
     private val queryFilters: QueryFilters,
     private val database: Database,
     private val preferences: Preferences,
+    private val applicationScope: ApplicationScope,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : StateScreenModel<ItemState>(ItemState()), KoinComponent {
 
-    //TODO Is <lateinit var> really the best solution?
-    private lateinit var account: Account
-    private lateinit var repository: BaseRepository
+    /**
+     * The repository the account gives, once the account has arrived — it is
+     * read from the database, so it is not there when the screen opens.
+     *
+     * A flow rather than a `lateinit var`: a decision made before the account
+     * has arrived waits for it instead of throwing, and a decision made after
+     * the screen is gone still finds it.
+     */
+    private val repository = MutableStateFlow<BaseRepository?>(null)
 
     private val useCustomShareIntentTpl = preferences.useCustomShareIntentTpl.flow.stateIn(
         screenModelScope, SharingStarted.Eagerly, false
@@ -72,7 +81,8 @@ class ItemScreenModel(
     )
 
     /**
-     * The articles the reader has acted on while this screen has been open.
+     * The articles the reader has acted on while this screen has been open,
+     * starting with the one it was opened on.
      *
      * A read or a star is written to the store the moment it is made, which is
      * what `docs/article-store.md` §5 asks for and what keeps a background sync
@@ -81,8 +91,31 @@ class ItemScreenModel(
      * matching the query that built the list, and the list under the reader's
      * finger would shift by one. So the ids stay in the query until the screen
      * is left: the store is never stale, and the list never jumps.
+     *
+     * [itemId] is in the set from the start for the same reason, one process
+     * later: the article is marked read as soon as it is opened, so if the
+     * process is killed and the screen recreated, the unread list it was opened
+     * from no longer holds it. Asking for it by id is what puts the reader back
+     * on the article they were reading instead of on whatever has taken its
+     * place.
      */
-    private val keptArticleIds = MutableStateFlow(emptySet<Long>())
+    private val keptArticleIds = MutableStateFlow(setOf(itemId))
+
+    /** The ids above, for the tests of this screen. */
+    internal val keptArticles: Set<Long>
+        get() = keptArticleIds.value
+
+    /**
+     * The id of the article the pager last told this model about.
+     *
+     * The pager reports the page the reader is on, and the reader changing page
+     * is not the only thing that changes it: when the open article stops
+     * matching the query — marked unread in the history, for one — the list is
+     * built again in a different order and the pager follows the article's key
+     * to its new index. That is the same article, not a page the reader has
+     * turned to, and it must not count as a visit.
+     */
+    private var lastPagedArticleId: Long? = null
 
     private val _itemState: MutableStateFlow<PagingData<ItemWithFeed>> =
         MutableStateFlow(
@@ -102,14 +135,10 @@ class ItemScreenModel(
     init {
         screenModelScope.launch(dispatcher) {
             database.accountDao().selectAccount()
-                // the parameter is not named `account`: it would shadow the
-                // property of that name, and the qualified `this` that undoes
-                // the shadowing has the exact shape of an email address, which
-                // scripts/check-no-personal-email.sh reports
                 .collect { storedAccount ->
-                    account = storedAccount ?: return@collect
+                    val account = storedAccount ?: return@collect
 
-                    repository = get { parametersOf(account) }
+                    repository.value = get<BaseRepository> { parametersOf(account) }
 
                     if (itemIndex > -1) {
                         itemState = buildPager()
@@ -170,33 +199,50 @@ class ItemScreenModel(
      * The article the reader has just swiped to becomes read, once. It is not a
      * toggle: the page can be entered again, and an article that is already read
      * has nothing to become.
+     *
+     * The page can also be *renumbered* rather than entered, when the list is
+     * built again around the article the reader is on. The article the pager
+     * names is then the one it named last time, and nothing has been visited:
+     * marking it read there would undo the reader's own decision to mark it
+     * unread, and stamp it with a date they never asked for.
      */
     fun setItemRead(itemWithFeed: ItemWithFeed) {
-        if (itemWithFeed.isRead) {
+        val item = itemWithFeed.item
+        val sameArticleAsLastTime = item.id == lastPagedArticleId
+        lastPagedArticleId = item.id
+
+        if (sameArticleAsLastTime || itemWithFeed.isRead) {
             return
         }
 
-        val item = itemWithFeed.item.apply { isRead = true }
-
         keepShowing(item.id)
-        screenModelScope.launch(dispatcher) {
-            repository.setItemReadState(item)
-        }
+        write { repository -> repository.setItemReadState(item.apply { isRead = true }) }
     }
 
     /** The read toggle of the bottom bar. */
     fun setItemReadState(item: Item) {
         keepShowing(item.id)
-        screenModelScope.launch(dispatcher) {
-            repository.setItemReadState(item.apply { isRead = !isRead })
-        }
+        write { repository -> repository.setItemReadState(item.apply { isRead = !isRead }) }
     }
 
     /** The star toggle of the bottom bar. */
     fun setItemStarState(item: Item) {
         keepShowing(item.id)
-        screenModelScope.launch(dispatcher) {
-            repository.setItemStarState(item.apply { isStarred = !isStarred })
+        write { repository -> repository.setItemStarState(item.apply { isStarred = !isStarred }) }
+    }
+
+    /**
+     * Writes a decision the reader has made.
+     *
+     * On the application's scope, not on the screen's: the screen can be gone
+     * before the write reaches the store — Room's transaction executor is busy
+     * for as long as a sync holds it — and a decision the reader has made and
+     * seen is not the screen's to cancel. It waits for the account rather than
+     * assuming it has arrived, and the scope logs whatever throws.
+     */
+    private fun write(decision: suspend (BaseRepository) -> Unit) {
+        applicationScope.launch(dispatcher) {
+            decision(repository.filterNotNull().first())
         }
     }
 

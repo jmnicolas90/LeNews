@@ -242,3 +242,57 @@ a day. One more sample, still not a week.
   statement that could have done a run of them in one went with the buffer,
   because nothing called it; wiring the timeline to a batch is a change of its
   own.
+
+### Review round (2026-09-06)
+
+An adversarial review of the branch found three ways the item screen could lose
+or undo a decision. All three were accepted and fixed here, each with a test
+that fails without its fix.
+
+**A list built again around the open article is not a page the reader turned
+to.** In the history, marking the open article unread clears its `read_at`, so
+it leaves the list; the list is built again in another order, and the pager
+follows the article's key to its new index. The screen reports that as the page
+the reader is on, and the "swiped to this page" route marked the article read
+again, one moment after the reader asked for the opposite, with a date they
+never chose. `ItemScreenModel` now remembers the id of the article the pager
+last named and does nothing when the pager names it again; a page the reader
+really turns to is a different id, and is still marked read.
+
+**A decision outlives the screen it was made on.** The writes ran in
+`screenModelScope`, which Voyager cancels when the screen is disposed. A write
+waiting for Room's transaction executor — a sync holds it for as long as a sync
+takes — was cancelled before it committed, and with the `onDispose` write gone
+there was nothing left to write it later. They run in `ApplicationScope` now
+(`app/src/main/java/app/lenews/util/ApplicationScope.kt`, one Koin singleton for
+the process, a `SupervisorJob` on `Dispatchers.IO` with a handler that logs).
+The screen's own scope still carries what the screen alone cares about: the
+pager, the preferences, the image work. The same change made the repository a
+flow rather than a `lateinit var`, so a decision made before the account has
+arrived waits for it instead of throwing, which is the other half of what
+ticket 20 asks about this file.
+
+**The reader comes back to the article they were reading.** The set of ids the
+list keeps showing lived only in memory. The article is marked read as soon as
+it is opened, so after the process was killed the recreated screen asked the
+unread timeline for a list that no longer held it, and opened whatever now sat
+at the restored index — then marked that read too. The set is now seeded with
+the id the screen was opened on, so the list still holds the article, and the
+page the screen opens on is found by that id rather than by the index the
+timeline passed (`initialPage` in `app/src/main/java/app/lenews/item/InitialPage.kt`,
+used by `ItemScreen`), which also covers a sync having put newer articles above
+it meanwhile.
+
+Five new tests: `app/src/androidTest/java/app/lenews/item/ItemScreenModelTest.kt`
+holds the model to all three — the reindex that must not write, the page turn
+that must, the decision made just before disposal, and the recreated screen —
+and `app/src/test/java/app/lenews/item/InitialPageTest.kt` covers the page
+lookup itself, including the placeholder page and a position past the end of the
+list. With the three fixes backed out, three of the four instrumented tests fail
+and each says which of the three defects it caught.
+
+Left out: nothing about the *live* screen was changed beyond these three. The
+pager can still be renumbered under the reader for reasons other than their own
+decision — a sync inserting an article above the one they are on — and the
+screen follows it without complaint; that is the behaviour this fork inherited
+and no test was written for it.

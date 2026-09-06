@@ -17,3 +17,15 @@ Three review findings about ownership that survive ticket 04, small enough to sh
 Test what has a seam: a `Data` round-trip with two concurrent results; a disposal before the repository is available.
 
 **Done when** the gate is green and each of the three is fixed with the review's file reference struck through in the resolution.
+
+## From the review of ticket 16 (2026-09-06)
+
+**The application-owned scope this ticket's third item asks for exists**, as
+`ApplicationScope` in `app/src/main/java/app/lenews/util/ApplicationScope.kt`,
+registered as a Koin singleton in `AppModule`: a `SupervisorJob` on
+`Dispatchers.IO` with a handler that logs what throws, for work that must finish
+after the screen that started it is gone. Use it rather than adding a second
+one. The rest of that item is already done as well — `ItemScreenModel` has no
+`onDispose` write and no `GlobalScope`, and its repository is a flow the writes
+wait on instead of a `lateinit var` — so what is left of the third item is to
+check the same shapes nowhere else. The first two items are untouched.

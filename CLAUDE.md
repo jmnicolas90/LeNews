@@ -41,14 +41,11 @@ there. `CONTRIBUTING.md` holds the rule for copyright headers —
 `Copyright (C) 2026 Jean-Michel Nicolas`, name only, on files this fork creates,
 in the comment syntax of their language, *added* under upstream's header and
 never substituted for it, and **not** on Markdown documentation, which says in
-its own prose who wrote it. In this tree that means five `scripts/*.sh`,
-`.github/workflows/ci.yml`, the two fork-drawn launcher drawables,
-`app/src/test/java/app/lenews/util/accounterror/GReaderErrorTest.kt` and
-`db/src/androidTest/java/app/lenews/db/benchmark/TimelineSlownessBenchmarkTest.kt`
-carry the header, `LICENSE` is byte-identical to upstream's, and nothing else
-does.
-`CONTRIBUTING.md` lists the six non-Markdown fork-created files that
-deliberately carry no header and why — JSON has no comments, the lint baseline is regenerated, and
+its own prose who wrote it. `CONTRIBUTING.md` carries the list itself,
+file by file — thirty-two non-Markdown files carry the header today, and
+`grep -rl "Copyright (C) 2026 Jean-Michel Nicolas"` is how the table is checked;
+`LICENSE` is byte-identical to upstream's. The same file lists the ten
+non-Markdown fork-created files that deliberately carry no header and why — JSON has no comments, the lint baseline is regenerated, and
 `util/components/LoadingScreen.kt` is upstream's own code moved into a file of
 its own when `RefreshScreen.kt` was deleted, so a fork line on it would claim
 someone else's work. **Adding a fork-created source file means adding the
@@ -443,7 +440,15 @@ is behind it does not shift the list under the reader's finger:
 conditions — and only those — for those ids. The timeline passes an empty set and
 gets exactly the query it had before the set existed. A decision about an article
 the store no longer holds is dropped rather than queued against a row that is
-gone, which the foreign key would refuse.
+gone, which the foreign key would refuse. **The writes run in `ApplicationScope`**
+(`app/src/main/java/app/lenews/util/ApplicationScope.kt`, one Koin singleton),
+not in the screen's own scope, which Voyager cancels on disposal: a write waiting
+behind a sync for Room's transaction executor would be cancelled before it
+committed, and nothing would write it afterwards. Anything only the screen cares
+about stays on the screen's scope. The kept set is seeded with the article the
+screen was opened on, and the page it opens on is found by that id rather than by
+the index the timeline passed, so a screen recreated after process death comes
+back to the article the reader was reading.
 
 ## Tickets and bookkeeping
 

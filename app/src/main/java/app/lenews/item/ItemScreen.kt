@@ -90,8 +90,16 @@ class ItemScreen(
             }
 
             else -> {
+                // The page the reader's article is on, found by its id: the
+                // index the timeline passed is only where the article was in
+                // the timeline's list, and after the process was killed and
+                // this screen recreated the list can be a different one.
                 val pagerState = rememberPagerState(
-                    initialPage = if (itemIndex > -1) itemIndex else 0,
+                    initialPage = initialPage(
+                        loadedArticleIds = items.itemSnapshotList.map { it?.item?.id },
+                        itemId = itemId,
+                        itemIndex = itemIndex
+                    ),
                     pageCount = { items.itemCount }
                 )
 

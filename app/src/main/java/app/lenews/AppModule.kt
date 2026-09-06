@@ -25,6 +25,7 @@ import app.lenews.repositories.GetFoldersWithFeeds
 import app.lenews.sync.SyncAnalyzer
 import app.lenews.sync.Synchronizer
 import app.lenews.timelime.TimelineScreenModel
+import app.lenews.util.ApplicationScope
 import app.lenews.util.DataStorePreferences
 import app.lenews.util.Preferences
 import app.lenews.db.entities.Feed
@@ -53,7 +54,8 @@ val appModule = module {
             itemIndex = itemIndex,
             queryFilters = queryFilters,
             database = get(),
-            preferences = get()
+            preferences = get(),
+            applicationScope = get()
         )
     }
 
@@ -68,6 +70,10 @@ val appModule = module {
     factory { (feed: Feed) -> FeedColorScreenModel(feed, get()) }
 
     single { GetFoldersWithFeeds(get()) }
+
+    // One per process, and never cancelled: it carries the writes that have to
+    // finish after the screen that started them is gone. See ApplicationScope.
+    single { ApplicationScope() }
 
     factory<BaseRepository> { (account: Account) ->
         GReaderRepository(

@@ -49,7 +49,7 @@ here is every file this fork created that is not Markdown. `git log
 produced; it follows a file through the ticket 05 rename, so a file added under
 `com/readrops/` and moved to `app/lenews/` still counts as created here.
 
-Carrying the header — twenty-four files:
+Carrying the header — thirty-two files:
 
 | File | Language |
 | --- | --- |
@@ -69,7 +69,6 @@ Carrying the header — twenty-four files:
 | `db/src/main/java/app/lenews/db/pojo/ArticleContent.kt` | Kotlin |
 | `db/src/main/java/app/lenews/db/queries/TimeWindow.kt` | Kotlin |
 | `db/src/androidTest/java/app/lenews/db/TimelineTimeBudgetTest.kt` | Kotlin |
-| `db/src/androidTest/java/app/lenews/db/HistoryQuery.kt` | Kotlin |
 | `db/src/androidTest/java/app/lenews/db/dao/ItemDaoTest.kt` | Kotlin |
 | `db/src/androidTest/java/app/lenews/db/dao/PendingChangeDaoTest.kt` | Kotlin |
 | `api/src/main/java/app/lenews/api/services/greader/ArticleStateChange.kt` | Kotlin |
@@ -77,6 +76,15 @@ Carrying the header — twenty-four files:
 | `app/src/androidTest/java/app/lenews/testutil/FreshRSSStub.kt` | Kotlin |
 | `db/src/androidTest/java/app/lenews/db/benchmark/ArticleStoreSeeder.kt` | Kotlin |
 | `db/src/androidTest/java/app/lenews/db/benchmark/TimelineSlownessBenchmarkTest.kt` | Kotlin |
+| `db/src/main/java/app/lenews/db/Retention.kt` | Kotlin |
+| `db/src/androidTest/java/app/lenews/db/RetentionTest.kt` | Kotlin |
+| `db/src/androidTest/java/app/lenews/db/BecomingReadTest.kt` | Kotlin |
+| `db/src/androidTest/java/app/lenews/db/HistoryListTest.kt` | Kotlin |
+| `app/src/androidTest/java/app/lenews/repositories/BecomingReadRoutesTest.kt` | Kotlin |
+| `app/src/main/java/app/lenews/util/ApplicationScope.kt` | Kotlin |
+| `app/src/main/java/app/lenews/item/InitialPage.kt` | Kotlin |
+| `app/src/test/java/app/lenews/item/InitialPageTest.kt` | Kotlin |
+| `app/src/androidTest/java/app/lenews/item/ItemScreenModelTest.kt` | Kotlin |
 
 Not carrying it, and why — ten files, each for a reason, not by oversight:
 
