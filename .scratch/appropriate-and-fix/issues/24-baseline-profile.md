@@ -2,7 +2,7 @@
 
 Type: task
 Status: open
-Blocked by: 23
+Blocked by: 26
 
 ## Question
 
@@ -28,11 +28,12 @@ Compiler allocated 4198KB to compile void app.lenews.timelime.components.Timelin
 is one composable costing 4 MB of JIT output at first use. That is the debug
 build having no profile at all, so it says nothing yet about the release build —
 which is exactly why the measurement has to happen on a release build, and why
-this ticket waits on ticket 23 to make one installable.
+this ticket waits on [ticket 26](26-signing-config-and-keystore.md) to make
+one installable. ([Ticket 23](23-release-signing.md) decided how; 26 builds it.)
 
 **Steps:**
 
-1. Once ticket 23 lands a signable release configuration, install a
+1. Once ticket 26 lands a signable release configuration, install a
    release build on `bench-pixel6-aosp` and, if the user allows it again, on the
    Samsung. Time cold start to first timeline frame and a scroll of the timeline,
    several runs, on a store of a realistic size — the phone held **1,572
