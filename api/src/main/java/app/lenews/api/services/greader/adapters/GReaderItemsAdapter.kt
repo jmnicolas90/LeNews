@@ -1,12 +1,12 @@
 package app.lenews.api.services.greader.adapters
 
+import app.lenews.api.services.greader.ArticleIds
 import app.lenews.api.services.greader.GReaderDataSource.Companion.GOOGLE_READ
 import app.lenews.api.services.greader.GReaderDataSource.Companion.GOOGLE_STARRED
 import app.lenews.api.utils.exceptions.ParseException
 import app.lenews.api.utils.extensions.nextNonEmptyString
 import app.lenews.api.utils.extensions.nextNullableString
 import app.lenews.db.entities.Item
-import app.lenews.db.entities.Tag
 import app.lenews.db.util.DateUtils
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.JsonReader
@@ -48,7 +48,7 @@ class GReaderItemsAdapter : JsonAdapter<List<Item>>() {
             while (hasNext()) {
                 with(item) {
                     when (selectName(NAMES)) {
-                        0 -> remoteId = nextNonEmptyString()
+                        0 -> id = ArticleIds.fromLongForm(nextNonEmptyString())
                         1 -> pubDate = DateUtils.fromEpochSeconds(nextLong())
                         2 -> title = nextNonEmptyString()
                         3 -> content = getContent(reader)
@@ -104,31 +104,24 @@ class GReaderItemsAdapter : JsonAdapter<List<Item>>() {
         return href
     }
 
+    /**
+     * The read and starred flags an article arrives with. They are not state:
+     * the id lists of `stream/items/ids` are what decides that, and the store
+     * inserts every new article unread and unstarred whatever these say. They
+     * are parsed because the initial sync fetches no read id list and the read
+     * flag is then the only thing the server says about a starred article it
+     * holds as read (`GReaderRepository.readIdsTheServerHolds`). Labels are
+     * skipped: this fork has no tags.
+     */
     private fun getStates(reader: JsonReader, item: Item) = with(reader) {
-        val tags = mutableListOf<Tag>()
         beginArray()
 
         while (hasNext()) {
-            val value = nextString()
-
-            with(value) {
-                when {
-                    equals(GOOGLE_READ) -> item.isRead = true
-                    equals(GOOGLE_STARRED) -> item.isStarred = true
-                    // might also contain a folder, filtering is needed
-                    contains("user/-/label/") -> {
-                        val tag = Tag(
-                            name = value.removePrefix("user/-/label/"),
-                            remoteId = value
-                        )
-
-                        tags += tag
-                    }
-                }
+            when (nextString()) {
+                GOOGLE_READ -> item.isRead = true
+                GOOGLE_STARRED -> item.isStarred = true
             }
         }
-
-        item.tags = tags
 
         endArray()
     }

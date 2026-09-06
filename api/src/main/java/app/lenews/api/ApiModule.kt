@@ -5,7 +5,7 @@ import app.lenews.api.services.greader.GReaderDataSource
 import app.lenews.api.services.greader.GReaderService
 import app.lenews.api.services.greader.adapters.FreshRSSUserInfoAdapter
 import app.lenews.api.services.greader.adapters.GReaderFeedsAdapter
-import app.lenews.api.services.greader.adapters.GReaderFoldersTagsAdapter
+import app.lenews.api.services.greader.adapters.GReaderFoldersAdapter
 import app.lenews.api.services.greader.adapters.GReaderItemsAdapter
 import app.lenews.api.services.greader.adapters.GReaderItemsIdsAdapter
 import app.lenews.api.utils.AuthInterceptor
@@ -53,11 +53,11 @@ val apiModule = module {
                 GReaderItemsAdapter()
             )
             .add(
-                Types.newParameterizedType(List::class.java, String::class.java),
+                Types.newParameterizedType(List::class.java, Long::class.javaObjectType),
                 GReaderItemsIdsAdapter()
             )
             .add(GReaderFeedsAdapter())
-            .add(GReaderFoldersTagsAdapter())
+            .add(GReaderFoldersAdapter())
             .add(FreshRSSUserInfoAdapter())
             .build()
     }

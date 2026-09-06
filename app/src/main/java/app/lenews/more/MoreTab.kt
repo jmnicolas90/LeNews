@@ -27,7 +27,7 @@ import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabOptions
 import app.lenews.BuildConfig
 import app.lenews.R
-import app.lenews.account.selection.adaptiveIconPainterResource
+import app.lenews.util.components.adaptiveIconPainterResource
 import app.lenews.more.debug.DebugScreen
 import app.lenews.more.preferences.PreferencesScreen
 import app.lenews.util.components.IconText

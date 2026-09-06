@@ -5,8 +5,8 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
-import app.lenews.db.entities.account.Account
 import java.io.Serializable
 
 enum class OpenIn {
@@ -21,12 +21,11 @@ enum class OpenIn {
             parentColumns = ["id"],
             childColumns = ["folder_id"],
             onDelete = ForeignKey.SET_NULL
-        ), ForeignKey(
-            entity = Account::class,
-            parentColumns = ["id"],
-            childColumns = ["account_id"],
-            onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        Index(value = ["folder_id"]),
+        Index(value = ["remote_id"], unique = true)
     ]
 )
 data class Feed(
@@ -41,9 +40,8 @@ data class Feed(
     @ColumnInfo(name = "icon_url") var iconUrl: String? = null,
     var etag: String? = null,
     @ColumnInfo(name = "last_modified") var lastModified: String? = null,
-    @ColumnInfo(name = "folder_id", index = true) var folderId: Int? = null,
+    @ColumnInfo(name = "folder_id") var folderId: Int? = null,
     @ColumnInfo("remote_id") var remoteId: String? = null,
-    @ColumnInfo(name = "account_id", index = true) var accountId: Int = 0,
     @ColumnInfo(
         name = "notification_enabled",
         defaultValue = "1"

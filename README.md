@@ -17,26 +17,28 @@ share it, and notify you when a background sync brings new ones.
 What is gone is everything that was not FreshRSS: local RSS parsing, Nextcloud
 News, the Fever API, OPML import and export.
 
-One account is the scope LeNews is designed for, but it is not yet what the code
-does. The account screen inherited from Readrops is still a multi-account
-screen: it has a button that adds another account, it lists the others under
-"Other accounts" so you can switch, and logging in a second time really does
-store a second account. Collapsing all of that into a plain login screen is a
-later change, and it waits on a decision about how articles are stored — the
-account is threaded through the database schema, so the two have to move
-together.
+One account is the scope LeNews is designed for, and it is what the code does:
+the first screen is a FreshRSS login screen, and there is no way to add, switch
+or delete an account because there is only ever one.
 
-What is **not** done yet — the three problems this fork exists to fix:
+Where the three problems this fork exists to fix stand today:
 
-- **It still slows down as articles accumulate.** The database has the indexes
-  it inherited and nothing more, and articles are never deleted.
-- **An article can still be stored twice.** The sync inserts what the server
-  returns without checking whether it is already there, and FreshRSS re-sends
-  the boundary article on every sync as a matter of course.
-- **There is still no history.** An article swiped away is not findable again
-  in a list of what became read, and when.
+- **Storing an article twice is no longer possible.** The article's identity is
+  the number FreshRSS gives it, and that number is the primary key, so an
+  article FreshRSS sends again — which it does on every sync — updates the row
+  it already has.
+- **The timeline no longer slows down as articles accumulate**, but the store
+  still grows without bound. Reading a page of any timeline, and the drawer's
+  unread counts, take about the same time on a hundred thousand articles as on
+  ten thousand. What still grows is the count of articles the list paging asks
+  for on every reload, because nothing deletes old articles yet.
+- **The date an article became read is recorded, but there is no history
+  screen yet.** Every route by which an article becomes read stamps it; the
+  chronological list that makes a swiped-away article findable again is the
+  next piece of work.
 
-Those are the next pieces of work, not features you have today.
+Deleting old articles and the history list are the next pieces of work, not
+features you have today.
 
 ## Where it comes from
 

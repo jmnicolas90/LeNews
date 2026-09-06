@@ -6,18 +6,18 @@ import junit.framework.TestCase.assertEquals
 import okio.Buffer
 import org.junit.Test
 
-class GReaderFoldersTagsAdapterTest {
+class GReaderFoldersAdapterTest {
 
     private val adapter = Moshi.Builder()
-        .add(GReaderFoldersTagsAdapter())
+        .add(GReaderFoldersAdapter())
         .build()
-        .adapter(GReaderFoldersTags::class.java)
+        .adapter(GReaderFolders::class.java)
 
     @Test
     fun validFoldersTest() {
         val stream = TestUtils.loadResource("services/greader/adapters/folders.json")
 
-        val (folders, tags) = adapter.fromJson(Buffer().readFrom(stream))!!
+        val (folders) = adapter.fromJson(Buffer().readFrom(stream))!!
 
         assertEquals(folders.size, 1)
 
@@ -25,7 +25,5 @@ class GReaderFoldersTagsAdapterTest {
             assertEquals(name, "Blogs")
             assertEquals(remoteId, "user/-/label/Blogs")
         }
-
-        assertEquals(2, tags.size)
     }
 }

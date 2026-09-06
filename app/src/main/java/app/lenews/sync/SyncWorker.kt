@@ -11,7 +11,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
-import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
@@ -24,9 +23,7 @@ import androidx.work.workDataOf
 import app.lenews.MainActivity
 import app.lenews.R
 import app.lenews.LeNewsApp
-import app.lenews.repositories.SyncResult
 import app.lenews.util.extensions.putSerializable
-import app.lenews.db.entities.account.Account
 import kotlinx.coroutines.flow.first
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -70,15 +67,12 @@ class SyncWorker(
         return try {
             val synchronizer = get<Synchronizer>()
 
-            val syncResults = synchronizer.synchronizeAccounts(
-                notificationBuilder = notificationBuilder,
-                accountId = inputData.getInt(ACCOUNT_ID_KEY, -1)
-            )
+            val outcome = synchronizer.synchronize(notificationBuilder)
 
             notificationManager.cancel(SYNC_NOTIFICATION_ID)
 
             if (!isManual) {
-                displaySyncResults(syncResults)
+                displaySyncResult(outcome)
             }
 
             return Result.success(workDataOf(END_SYNC_KEY to true))
@@ -97,15 +91,13 @@ class SyncWorker(
         }
     }
 
-    private suspend fun displaySyncResults(syncResults: Map<Account, SyncResult>) {
+    private suspend fun displaySyncResult(outcome: SyncOutcome) {
         val notificationContent = get<SyncAnalyzer>()
-            .getNotificationContent(syncResults)
+            .getNotificationContent(outcome.account, outcome.syncResult)
 
         if (notificationContent != null) {
             val intent = Intent(applicationContext, MainActivity::class.java).apply {
-                if (notificationContent.accountId > 0) {
-                    putExtra(ACCOUNT_ID_KEY, notificationContent.accountId)
-                }
+                putExtra(FROM_SYNC_KEY, true)
 
                 if (notificationContent.item != null) {
                     putExtra(ITEM_ID_KEY, notificationContent.item.id)
@@ -129,11 +121,9 @@ class SyncWorker(
                 .setAutoCancel(true)
 
             notificationContent.item?.let { item ->
-                // the actions write through the account's repository, so they need
-                // to know which account the article belongs to
                 notificationBuilder
-                    .addAction(getMarkReadAction(item.id, notificationContent.accountId))
-                    .addAction(getMarkFavoriteAction(item.id, notificationContent.accountId))
+                    .addAction(getMarkReadAction(item.id))
+                    .addAction(getMarkFavoriteAction(item.id))
             }
 
             notificationContent.largeIcon?.let { notificationBuilder.setLargeIcon(it) }
@@ -144,11 +134,10 @@ class SyncWorker(
         }
     }
 
-    private fun getMarkReadAction(itemId: Int, accountId: Int): Action {
+    private fun getMarkReadAction(itemId: Long): Action {
         val intent = Intent(applicationContext, SyncBroadcastReceiver::class.java).apply {
             action = SyncBroadcastReceiver.ACTION_MARK_READ
             putExtra(ITEM_ID_KEY, itemId)
-            putExtra(ACCOUNT_ID_KEY, accountId)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -167,11 +156,10 @@ class SyncWorker(
             .build()
     }
 
-    private fun getMarkFavoriteAction(itemId: Int, accountId: Int): Action {
+    private fun getMarkFavoriteAction(itemId: Long): Action {
         val intent = Intent(applicationContext, SyncBroadcastReceiver::class.java).apply {
             action = SyncBroadcastReceiver.ACTION_SET_FAVORITE
             putExtra(ITEM_ID_KEY, itemId)
-            putExtra(ACCOUNT_ID_KEY, accountId)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -202,14 +190,16 @@ class SyncWorker(
         const val END_SYNC_KEY = "END_SYNC"
         const val SYNC_FAILURE_KEY = "SYNC_FAILURE"
         const val SYNC_FAILURE_EXCEPTION_KEY = "SYNC_FAILURE_EXCEPTION"
-        const val ACCOUNT_ID_KEY = "ACCOUNT_ID"
+
+
+        /** Marks the intent a sync notification carries, so the app knows to open the timeline. */
+        const val FROM_SYNC_KEY = "FROM_SYNC"
         const val ITEM_ID_KEY = "ITEM_ID"
 
-        suspend fun startNow(context: Context, data: Data, onUpdate: (WorkInfo) -> Unit) {
+        suspend fun startNow(context: Context, onUpdate: (WorkInfo) -> Unit) {
             val request = OneTimeWorkRequestBuilder<SyncWorker>()
                 .addTag(TAG)
                 .addTag(WORK_MANUAL)
-                .setInputData(data)
                 .build()
 
             WorkManager.getInstance(context).apply {

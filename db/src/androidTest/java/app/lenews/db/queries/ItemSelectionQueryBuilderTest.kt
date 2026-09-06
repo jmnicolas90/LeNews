@@ -27,24 +27,14 @@ class ItemSelectionQueryBuilderTest {
 
     @Test
     fun defaultCaseTest() {
-        val query = ItemSelectionQueryBuilder.buildQuery(10, separateState = false)
+        val query = ItemSelectionQueryBuilder.buildQuery(10)
         database.query(query)
 
         with(query.sql) {
-            assertTrue(contains("Item.id = 10"))
-            assertFalse(contains("Left Join ItemState"))
-        }
-    }
-
-    @Test
-    fun separateStateTest() {
-        val query = ItemSelectionQueryBuilder.buildQuery(10, separateState = true)
-        database.query(query)
-
-        with(query.sql) {
-            assertTrue(contains("Left Join ItemState"))
-            assertTrue(contains("ItemState.read"))
-            assertTrue(contains("ItemState.starred"))
+            assertTrue(contains("Article.id = 10"))
+            assertTrue(contains("read AS is_read"))
+            assertTrue(contains("starred AS is_starred"))
+            assertFalse(contains("ItemState"))
         }
     }
 }

@@ -13,11 +13,9 @@
     <string name="articles">கட்டுரைகள்</string>
     <string name="show_read_articles">வாசிப்பு கட்டுரைகளைக் காட்டு</string>
     <string name="password_helper">இது உங்கள் ஃப்ரெச்ஆர்எச்எச் பநிஇ கடவுச்சொல் (உள்ளமைவு&gt; சுயவிவரம்)</string>
-    <string name="add_account">கணக்கைச் சேர்க்கவும்</string>
     <string name="no_feed">ஊட்டம் இல்லை</string>
     <string name="edit_folder">கோப்புறையைத் திருத்து</string>
     <string name="delete_folder">கோப்புறையை நீக்கவா?</string>
-    <string name="delete_account">கணக்கை நீக்கு</string>
     <string name="feed_deleted">தீவனம் %1$s நீக்கப்பட்டது</string>
     <string name="feed_doesnt_exist">ஊட்டம் %1$s சேவையகத்தில் இல்லை</string>
     <string name="error_occured">பிழை ஏற்பட்டது</string>
@@ -25,7 +23,6 @@
     <string name="folder_doesnt_exist">கோப்புறை சேவையகத்தில் இல்லை</string>
     <string name="credentials">நற்சான்றிதழ்கள்</string>
     <string name="login_failed">உள்நுழைவு தோல்வியடைந்தது. உங்கள் சான்றுகளை சரிபார்க்கவும்</string>
-    <string name="new_account">புதிய கணக்கு</string>
     <string name="local">உள்ளக</string>
     <string name="delete">நீக்கு</string>
     <string name="app_licence">GPLV3 உரிமத்தின் கீழ் வெளியிடப்பட்ட பயன்பாடு</string>
@@ -126,10 +123,8 @@
     <string name="account_name">கணக்கு பெயர்</string>
     <string name="login">புகுபதிவு</string>
     <string name="password">கடவுச்சொல்</string>
-    <string name="choose_account">ஒரு கணக்கைத் தேர்வுசெய்க</string>
     <string name="account">கணக்கு</string>
     <string name="feeds">ஊட்டங்கள்</string>
-    <string name="delete_account_question">கணக்கை நீக்கவா?</string>
     <string name="filter_newest">புதியது முதல் பழமையானது</string>
     <string name="filter_oldest">பழமையானது முதல் புதியது</string>
     <string name="get_feeds_colors">ஊட்டங்களின் வண்ணங்களைப் பெறுங்கள்</string>
@@ -157,7 +152,6 @@
     <string name="http_error_5XX">Http பிழை %1$d, சேவையக பிழை</string>
     <string name="http_error">Http பிழை %1$d</string>
     <string name="enable_all">அனைத்தையும் இயக்கு</string>
-    <string name="other_accounts">பிற கணக்குகள்</string>
     <string name="update">புதுப்பிப்பு</string>
     <string name="unread">%1$d படிக்கவில்லை</string>
     <string name="preferences">விருப்பத்தேர்வுகள்</string>

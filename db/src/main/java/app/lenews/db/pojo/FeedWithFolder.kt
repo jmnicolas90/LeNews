@@ -24,8 +24,7 @@ data class FolderWithFeed(
     val feedSiteUrl: String? = null,
     val feedNotificationsEnabled: Boolean = true,
     val feedOpenIn: OpenIn? = null,
-    val feedRemoteId: String? = null,
-    val accountId: Int = 0
+    val feedRemoteId: String? = null
 )
 
 data class FeedWithCount(
@@ -35,6 +34,5 @@ data class FeedWithCount(
     val feedUrl: String? = null,
     val feedSiteUrl: String? = null,
     val feedDescription: String? = null,
-    val unreadCount: Int = 0,
-    val accountId: Int = 0
+    val unreadCount: Int = 0
 )

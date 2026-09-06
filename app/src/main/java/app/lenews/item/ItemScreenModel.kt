@@ -57,7 +57,7 @@ import java.io.File
 import java.net.URI
 
 class ItemScreenModel(
-    private val itemId: Int,
+    private val itemId: Long,
     private val itemIndex: Int,
     private val queryFilters: QueryFilters,
     private val database: Database,
@@ -97,23 +97,20 @@ class ItemScreenModel(
 
     init {
         screenModelScope.launch(dispatcher) {
-            database.accountDao().selectCurrentAccount()
+            database.accountDao().selectAccount()
                 // the parameter is not named `account`: it would shadow the
                 // property of that name, and the qualified `this` that undoes
                 // the shadowing has the exact shape of an email address, which
                 // scripts/check-no-personal-email.sh reports
-                .collect { currentAccount ->
-                    account = currentAccount!!
+                .collect { storedAccount ->
+                    account = storedAccount ?: return@collect
 
                     repository = get { parametersOf(account) }
 
                     if (itemIndex > -1) {
                         itemState = buildPager()
                     } else {
-                        val query = ItemSelectionQueryBuilder.buildQuery(
-                            itemId = itemId,
-                            separateState = account.config.useSeparateState
-                        )
+                        val query = ItemSelectionQueryBuilder.buildQuery(itemId)
 
                         database.itemDao().selectItemById(query)
                             .collect { itemWithFeed ->
@@ -144,10 +141,7 @@ class ItemScreenModel(
     }
 
     private fun createPagingSource(): PagingSource<Int, ItemWithFeed> {
-        val query = ItemsQueryBuilder.buildItemsQuery(
-            queryFilters = queryFilters,
-            separateState = account.config.useSeparateState
-        )
+        val query = ItemsQueryBuilder.buildItemsQuery(queryFilters)
 
         return database.itemDao().selectAll(query).apply {
             pagingSource = this
@@ -169,8 +163,6 @@ class ItemScreenModel(
             .flow
             .map {
                 it.map { itemWithFeed ->
-                    itemWithFeed.item.tags = database.tagDao().selectAllByItem(itemWithFeed.item.id)
-
                     val stateChange = state.value.stateChanges
                         .firstOrNull { stateChange -> stateChange.itemId == itemWithFeed.item.id }
 
@@ -400,6 +392,6 @@ data class StateChange(
     val readChange: Boolean = false
 ) {
 
-    val itemId: Int
+    val itemId: Long
         get() = item.id
 }

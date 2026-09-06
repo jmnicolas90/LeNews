@@ -15,13 +15,11 @@ class GetFoldersWithFeeds(
 ) {
 
     fun get(
-        accountId: Int,
         mainFilter: MainFilter,
-        useSeparateState: Boolean,
         hideReadFeeds: Boolean = false
     ): Flow<Map<Folder?, List<Feed>>> {
-        val foldersAndFeedsQuery = FoldersAndFeedsQueryBuilder.build(accountId, mainFilter, hideReadFeeds, useSeparateState)
-        val unreadItemsCountQuery = FeedUnreadCountQueryBuilder.build(accountId, mainFilter, useSeparateState)
+        val foldersAndFeedsQuery = FoldersAndFeedsQueryBuilder.build(mainFilter, hideReadFeeds)
+        val unreadItemsCountQuery = FeedUnreadCountQueryBuilder.build(mainFilter)
 
         return combine(
             flow = database.folderDao().selectFoldersAndFeeds(foldersAndFeedsQuery),
@@ -33,8 +31,7 @@ class GetFoldersWithFeeds(
                         Folder(
                             id = it.folderId!!,
                             name = it.folderName,
-                            remoteId = it.folderRemoteId,
-                            accountId = it.accountId
+                            remoteId = it.folderRemoteId
                         )
                     } else {
                         null
@@ -79,10 +76,5 @@ class GetFoldersWithFeeds(
         }
     }
 
-    fun getNewItemsUnreadCount(accountId: Int, useSeparateState: Boolean): Flow<Int> =
-        if (useSeparateState) {
-            database.itemDao().selectUnreadNewItemsCountByItemState(accountId)
-        } else {
-            database.itemDao().selectUnreadNewItemsCount(accountId)
-        }
+    fun getNewItemsUnreadCount(): Flow<Int> = database.itemDao().selectUnreadNewItemsCount()
 }

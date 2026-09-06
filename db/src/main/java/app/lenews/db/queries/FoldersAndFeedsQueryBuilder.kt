@@ -21,31 +21,27 @@ object FoldersAndFeedsQueryBuilder {
         "Feed.remote_id as feedRemoteId",
         "Folder.id As folderId",
         "Folder.name As folderName",
-        "Folder.account_id as accountId",
-        "Folder.remoteId as folderRemoteId"
+        "Folder.remote_id as folderRemoteId"
     )
 
-    private val FEED_JOIN = """(Select * From Feed Where account_id = :accountId) Feed 
-        Left Join Folder On Folder.id = Feed.folder_id""".trimMargin()
-
-    private const val SEPARATE_STATE = " Inner Join ItemState On ItemState.remote_id = Item.remote_id"
+    private const val FEED_JOIN = "Feed Left Join Folder On Folder.id = Feed.folder_id"
 
     private const val FOLDER_JOIN = "Folder Left Join Feed On Folder.id = Feed.folder_id "
 
-    private const val ITEM_JOIN = " Inner Join Item On Item.feed_id = Feed.id "
+    private const val ARTICLE_JOIN = " Inner Join Article On Article.feed_id = Feed.id "
 
     private const val FEED_SELECTION = "Feed.folder_id is NULL OR Feed.folder_id is NOT NULL "
 
-    private const val FOLDER_SELECTION = "Feed.id is NULL And Folder.account_id = :accountId"
+    private const val FOLDER_SELECTION = "Feed.id is NULL"
 
-    fun build(accountId: Int, mainFilter: MainFilter, hideReadFeeds: Boolean, useSeparateState: Boolean): SupportSQLiteQuery {
+    fun build(mainFilter: MainFilter, hideReadFeeds: Boolean): SupportSQLiteQuery {
         return SimpleSQLiteQuery(
             """
-            ${buildFeedQuery(accountId, mainFilter, hideReadFeeds, useSeparateState).sql}
+            ${buildFeedQuery(mainFilter, hideReadFeeds).sql}
             ${
                 if (!hideReadFeeds) {
                     """UNION ALL
-                        ${buildFolderQuery(accountId).sql}
+                        ${buildFolderQuery().sql}
                     """.trimIndent()
                 } else {
                     ""
@@ -54,38 +50,27 @@ object FoldersAndFeedsQueryBuilder {
         )
     }
 
-    private fun buildFeedQuery(accountId: Int, mainFilter: MainFilter, hideReadFeeds: Boolean, useSeparateState: Boolean): SupportSQLiteQuery {
+    private fun buildFeedQuery(mainFilter: MainFilter, hideReadFeeds: Boolean): SupportSQLiteQuery {
         val tables = buildString {
             append(FEED_JOIN)
             if (hideReadFeeds) {
-                append(ITEM_JOIN)
-                if(useSeparateState) append(SEPARATE_STATE)
+                append(ARTICLE_JOIN)
             }
         }
         val selection = buildString {
             append(FEED_SELECTION)
             if (hideReadFeeds) {
-                if(useSeparateState) append("AND ItemState.read = 0 ")
-                else append("And Item.read = 0 ")
+                append("And Article.read = 0 ")
 
                 when (mainFilter) {
-                    MainFilter.STARS -> {
-                        if (!useSeparateState) {
-                            append("And Item.starred = 1 ")
-                        } else {
-                            append("And ItemState.starred = 1 ")
-                        }
-                    }
-                    MainFilter.NEW -> {
-                        append("""And DateTime(Round(Item.pub_date / 1000), 'unixepoch') 
-                                Between DateTime(DateTime("now"), "-24 hour") And DateTime("now") """.trimMargin())
-                    }
+                    MainFilter.STARS -> append("And Article.starred = 1 ")
+                    MainFilter.NEW -> append("And Article.pub_date >= $LAST_24_HOURS_START ")
                     else -> {}
                 }
             }
         }
 
-        return SupportSQLiteQueryBuilder.builder(tables.replace(":accountId", "$accountId")).run {
+        return SupportSQLiteQueryBuilder.builder(tables).run {
             columns(COLUMNS)
             selection(selection, null)
             groupBy("Feed.id")
@@ -94,10 +79,10 @@ object FoldersAndFeedsQueryBuilder {
         }
     }
 
-    private fun buildFolderQuery(accountId: Int): SupportSQLiteQuery {
+    private fun buildFolderQuery(): SupportSQLiteQuery {
         return SupportSQLiteQueryBuilder.builder(FOLDER_JOIN).run {
             columns(COLUMNS)
-            selection(FOLDER_SELECTION.replace(":accountId", "$accountId"), null)
+            selection(FOLDER_SELECTION, null)
 
             create()
         }

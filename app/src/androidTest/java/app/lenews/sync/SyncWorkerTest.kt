@@ -15,7 +15,6 @@ import androidx.work.WorkManager
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.TestListenableWorkerBuilder
 import androidx.work.testing.WorkManagerTestInitHelper
-import androidx.work.workDataOf
 import app.lenews.testutil.LeNewsTestRule
 import app.lenews.testutil.TestUtils
 import app.lenews.testutil.okResponseWithBody
@@ -23,7 +22,6 @@ import app.lenews.util.extensions.getSerializable
 import app.lenews.db.Database
 import app.lenews.db.entities.account.Account
 import app.lenews.R
-import app.lenews.db.entities.account.AccountType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -77,17 +75,13 @@ class SyncWorkerTest : KoinTest {
 
     private val account = Account(
         name = "Account",
-        type = AccountType.FRESHRSS,
         url = mockServer.url("/").toString(),
         writeToken = "writeToken",
         isNotificationsEnabled = true
     )
 
     // an account with no url makes the synchronization fail before any request
-    private val brokenAccount = Account(
-        name = "Broken account",
-        type = AccountType.FRESHRSS
-    )
+    private val brokenAccount = Account(name = "Broken account")
 
     @Before
     fun before() = runTest {
@@ -99,8 +93,7 @@ class SyncWorkerTest : KoinTest {
 
         mockServer.dispatcher = greaderDispatcher("greader/items_1_item.json")
 
-        account.id = database.accountDao().insert(account).toInt()
-        brokenAccount.id = database.accountDao().insert(brokenAccount).toInt()
+        database.accountDao().upsert(account)
     }
 
     @After
@@ -152,9 +145,8 @@ class SyncWorkerTest : KoinTest {
     /**
      * Answers the calls one synchronization makes, with a single new article.
      *
-     * The article the notification is about is also the one id the unread ids call
-     * returns, so the synchronization gives it a row in ItemState, which is where a
-     * FreshRSS account keeps its read and starred state.
+     * The article the notification is about is also the one id the unread ids
+     * call returns, so the synchronization stores it unread.
      */
     private fun greaderDispatcher(itemsResource: String) = object : Dispatcher() {
 
@@ -208,7 +200,6 @@ class SyncWorkerTest : KoinTest {
     fun manualWorkerTest() = runTest {
         val worker = TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
             .setTags(listOf(SyncWorker.WORK_MANUAL))
-            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         val result = worker.doWork()
@@ -226,7 +217,6 @@ class SyncWorkerTest : KoinTest {
     fun autoWorkerWithNotificationsTest() = runBlocking {
         val worker = TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
             .setTags(listOf(SyncWorker.WORK_AUTO))
-            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         val result = worker.doWork()
@@ -258,17 +248,16 @@ class SyncWorkerTest : KoinTest {
         starAction.actionIntent.send()
         delay(1000L)
 
-        // a FreshRSS account keeps its read and starred state in ItemState, which is
-        // what the timeline reads; the Item row is not where the actions belong
-        val itemState = database.itemStateDao().selectItemState(account.id, ITEM_REMOTE_ID)
-        assertTrue { itemState.read }
-        assertTrue { itemState.starred }
+        // read and starred state lives on the article row, dated
+        val item = database.itemDao().select(ARTICLE_ID)
+        assertTrue { item.isRead }
+        assertTrue { item.isStarred }
+        assertNotNull(item.readAt, "an article that became read carries the date it did")
 
         // and both changes are queued for the next synchronization to upload
-        val feed = database.feedDao().selectFeeds(account.id).first()
-        val item = database.itemDao().selectItems(feed.id).first()
-        assertTrue { database.itemStateChangeDao().readStateChangeExists(item.id) }
-        assertTrue { database.itemStateChangeDao().starStateChangeExists(item.id) }
+        val pendingChange = assertNotNull(database.pendingChangeDao().select(ARTICLE_ID))
+        assertEquals(true, pendingChange.read)
+        assertEquals(true, pendingChange.starred)
 
         // the next synchronization uploads them
         editTagRequests.clear()
@@ -276,16 +265,16 @@ class SyncWorkerTest : KoinTest {
         val nextWorker =
             TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
                 .setTags(listOf(SyncWorker.WORK_MANUAL))
-                .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
                 .build()
 
         assertTrue { nextWorker.doWork() is ListenableWorker.Result.Success }
 
+        // the id goes back to the server in its decimal form
         assertTrue {
-            editTagRequests.any { it.contains("a=$GOOGLE_READ") && it.contains(ITEM_REMOTE_ID) }
+            editTagRequests.any { it.contains("a=$GOOGLE_READ") && it.contains("$ARTICLE_ID") }
         }
         assertTrue {
-            editTagRequests.any { it.contains("a=$GOOGLE_STARRED") && it.contains(ITEM_REMOTE_ID) }
+            editTagRequests.any { it.contains("a=$GOOGLE_STARRED") && it.contains("$ARTICLE_ID") }
         }
     }
 
@@ -297,13 +286,11 @@ class SyncWorkerTest : KoinTest {
         val request1 = OneTimeWorkRequestBuilder<SyncWorker>()
             .addTag(SyncWorker.TAG)
             .addTag(SyncWorker.WORK_MANUAL)
-            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         val request2 = OneTimeWorkRequestBuilder<SyncWorker>()
             .addTag(SyncWorker.TAG)
             .addTag(SyncWorker.WORK_MANUAL)
-            .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to account.id))
             .build()
 
         workManager.enqueue(request1)
@@ -350,10 +337,12 @@ class SyncWorkerTest : KoinTest {
 
     @Test
     fun exceptionTest() = runTest {
+        // one account means the broken one replaces the good one
+        database.accountDao().upsert(brokenAccount)
+
         val manualWorker =
             TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
                 .setTags(listOf(SyncWorker.WORK_MANUAL))
-                .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to brokenAccount.id))
                 .build()
 
         val result = manualWorker.doWork()
@@ -376,7 +365,6 @@ class SyncWorkerTest : KoinTest {
         val autoWorker =
             TestListenableWorkerBuilder.from<SyncWorker>(context, SyncWorker::class.java)
                 .setTags(listOf(SyncWorker.WORK_AUTO))
-                .setInputData(workDataOf(SyncWorker.ACCOUNT_ID_KEY to brokenAccount.id))
                 .build()
 
         val autoResult = autoWorker.doWork()
@@ -387,9 +375,10 @@ class SyncWorkerTest : KoinTest {
 
     companion object {
 
-        // the one article in greader/items_1_item.json, as the unread ids call
-        // returns it: decimal 1625234531559678 is hexadecimal 0005c62466ee28fe
-        private const val ITEM_REMOTE_ID = "tag:google.com,2005:reader/item/0005c62466ee28fe"
+        // the one article in greader/items_1_item.json: the long form
+        // tag:google.com,2005:reader/item/0005c62466ee28fe is this number, and
+        // the unread ids call sends the same number in decimal
+        private const val ARTICLE_ID = 1625234531559678L
 
         private const val GOOGLE_READ = "user/-/state/com.google/read"
         private const val GOOGLE_UNREAD = "user/-/state/com.google/unread"

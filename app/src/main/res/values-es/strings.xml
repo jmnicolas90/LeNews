@@ -20,13 +20,10 @@
     <string name="feed_insertion_parse_failed">Fallo al analizar el feed %1$s</string>
     <string name="feed_insertion_unknown_error">Error desconocido para el feed %1$s</string>
     <string name="login">Identificación</string>
-    <string name="add_account">Añadir cuenta</string>
-    <string name="choose_account">Elige una cuenta</string>
     <string name="account">Cuenta</string>
     <string name="no_feed">Sin feeds</string>
     <string name="feeds">Feeds</string>
     <string name="delete_folder">¿Borrar carpeta\?</string>
-    <string name="delete_account">Borrar cuenta</string>
     <string name="folder_already_exists">La carpeta ya existe</string>
     <string name="credentials">Credenciales</string>
     <string name="filter_newest">De más reciente a más antiguo</string>
@@ -59,11 +56,9 @@
     <string name="unread">%1$d sin leer</string>
     <string name="error_occured">Se produjo un error</string>
     <string name="folder_doesnt_exist">La carpeta no existe en el servidor</string>
-    <string name="new_account">Nueva cuenta</string>
     <string name="share_article">Compartir Artículo</string>
     <string name="articles">Artículos</string>
     <string name="password">Contraseña</string>
-    <string name="delete_account_question">¿Borrar cuenta\?</string>
     <string name="edit_folder">Editar carpeta</string>
     <string name="external_navigator">Navegador web externo</string>
     <string name="app_licence">Aplicación publicada bajo la licencia GPLv3</string>
@@ -124,7 +119,6 @@
     <string name="enable_all">Activar todo</string>
     <string name="disable_all">Desactivar todo</string>
     <string name="open_source_libraries">Bibliotecas de código abierto</string>
-    <string name="other_accounts">Otras cuentas</string>
     <string name="show_notifications_background_sync">Mostrar notificaciones después de la sincronización en segundo plano</string>
     <string name="background_sync_new_articles">Recibir notificaciones de nuevos artículos tras la sincronización en segundo plano</string>
     <string name="no_article">Sin artículos</string>

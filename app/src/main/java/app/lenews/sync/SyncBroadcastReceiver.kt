@@ -18,11 +18,10 @@ import org.koin.core.parameter.parametersOf
 /**
  * The mark read and star actions carried by the new articles notification.
  *
- * Both go through the account's repository rather than writing the Item row
- * directly. A FreshRSS account keeps its read and starred state in its own table,
- * ItemState, which is what the timeline reads, and records the change in
- * ItemStateChange so the next sync uploads it. Writing Item.read would change a
- * column nothing reads and send nothing to the server.
+ * Both go through the repository rather than writing the article row directly,
+ * because becoming read is two writes: the state and its date on the article,
+ * and a pending change so the next sync tells FreshRSS. Writing the row alone
+ * would leave the server none the wiser.
  */
 class SyncBroadcastReceiver : BroadcastReceiver(), KoinComponent {
 
@@ -38,9 +37,8 @@ class SyncBroadcastReceiver : BroadcastReceiver(), KoinComponent {
             return
         }
 
-        val itemId = intent.getIntExtra(SyncWorker.ITEM_ID_KEY, -1)
-        val accountId = intent.getIntExtra(SyncWorker.ACCOUNT_ID_KEY, -1)
-        if (itemId < 0 || accountId < 0) {
+        val itemId = intent.getLongExtra(SyncWorker.ITEM_ID_KEY, -1L)
+        if (itemId < 0) {
             return
         }
 
@@ -50,7 +48,7 @@ class SyncBroadcastReceiver : BroadcastReceiver(), KoinComponent {
 
         GlobalScope.launch {
             try {
-                val account = database.accountDao().select(accountId)
+                val account = database.accountDao().select() ?: return@launch
                 val repository = get<BaseRepository> { parametersOf(account) }
                 val item = database.itemDao().select(itemId)
 

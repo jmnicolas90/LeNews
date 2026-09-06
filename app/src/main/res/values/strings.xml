@@ -36,15 +36,12 @@
     <string name="login">Login</string>
     <string name="password">Password</string>
     <string name="password_helper">This is your FreshRSS API password (Configuration &gt; Profile)</string>
-    <string name="add_account">Add account</string> <!-- To check -->
     <string name="no_feed">No feed</string>
-    <string name="choose_account">Choose an account</string>
     <string name="account">Account</string>
+    <string name="freshrss" translatable="false">FreshRSS</string>
     <string name="feeds">Feeds</string>
     <string name="edit_folder">Edit folder</string>
     <string name="delete_folder">Delete folder ?</string>
-    <string name="delete_account">Delete account</string>
-    <string name="delete_account_question">Delete account ?</string>
     <string name="feed_deleted">The feed %1$s has been deleted</string> <!-- To check -->
     <string name="feed_doesnt_exist">The feed %1$s doesn\'t exist on the server</string>
     <string name="error_occured">An error occurred</string>
@@ -53,7 +50,6 @@
     <string name="credentials">Credentials</string>
     <string name="filter_newest">Newest to oldest</string> <!-- keep for new filter -->
     <string name="filter_oldest">Oldest to newest</string> <!-- keep for new filter -->
-    <string name="new_account">New account</string>
     <string name="app_url" translatable="false">https://github.com/jmnicolas90/LeNews</string>
     <string name="delete">Delete</string>
     <string name="app_licence">App released under the GPLv3 licence</string>
@@ -113,7 +109,6 @@
     <string name="disable_all">Disable all</string>
     <string name="open_source_libraries">Open source libraries</string>
     <string name="app_issues_url" translatable="false">https://github.com/jmnicolas90/LeNews/issues</string>
-    <string name="other_accounts">Other accounts</string>
     <string name="update">Update</string>
     <string name="rename_account">Rename account</string>
     <string name="name">Name</string>

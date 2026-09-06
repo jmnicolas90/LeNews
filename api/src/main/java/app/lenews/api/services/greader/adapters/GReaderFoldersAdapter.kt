@@ -3,26 +3,27 @@ package app.lenews.api.services.greader.adapters
 import app.lenews.api.utils.exceptions.ParseException
 import app.lenews.api.utils.extensions.nextNonEmptyString
 import app.lenews.db.entities.Folder
-import app.lenews.db.entities.Tag
 import com.squareup.moshi.FromJson
 import com.squareup.moshi.JsonReader
 import com.squareup.moshi.ToJson
 import java.util.StringTokenizer
 
-data class GReaderFoldersTags(
-    val folders: List<Folder>,
-    val tags: List<Tag>
+/**
+ * The folders of `tag/list`. The same call also lists the user's labels, which
+ * this fork does not store, so entries whose type is not `folder` are skipped.
+ */
+data class GReaderFolders(
+    val folders: List<Folder>
 )
 
-class GReaderFoldersTagsAdapter {
+class GReaderFoldersAdapter {
 
     @ToJson
-    fun toJson(foldersTags: GReaderFoldersTags) = ""
+    fun toJson(folders: GReaderFolders) = ""
 
     @FromJson
-    fun fromJson(reader: JsonReader): GReaderFoldersTags = with(reader) {
+    fun fromJson(reader: JsonReader): GReaderFolders = with(reader) {
         val folders = mutableListOf<Folder>()
-        val tags = mutableListOf<Tag>()
 
         return try {
             beginObject()
@@ -33,7 +34,7 @@ class GReaderFoldersTagsAdapter {
 
                         while (hasNext()) {
                             beginObject()
-                            parseFolder(reader, folders, tags)
+                            parseFolder(reader, folders)
 
                             endObject()
                         }
@@ -47,10 +48,7 @@ class GReaderFoldersTagsAdapter {
 
             endObject()
 
-            GReaderFoldersTags(
-                folders,
-                tags
-            )
+            GReaderFolders(folders)
         } catch (e: Exception) {
             throw ParseException("GReader folders parsing failure", e)
         }
@@ -58,8 +56,7 @@ class GReaderFoldersTagsAdapter {
 
     private fun parseFolder(
         reader: JsonReader,
-        folders: MutableList<Folder>,
-        tags: MutableList<Tag>
+        folders: MutableList<Folder>
     ) = with(reader) {
         var name: String? = null
         var remoteId: String? = null
@@ -85,20 +82,11 @@ class GReaderFoldersTagsAdapter {
             return@with
         }
 
-        when (type) {
-            "folder" -> {
-                folders += Folder(
-                    name = name,
-                    remoteId = remoteId
-                )
-            }
-
-            "tag" -> {
-                tags += Tag(
-                    name = name,
-                    remoteId = remoteId!!
-                )
-            }
+        if (type == "folder") {
+            folders += Folder(
+                name = name,
+                remoteId = remoteId
+            )
         }
     }
 

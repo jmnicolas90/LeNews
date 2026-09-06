@@ -1,7 +1,6 @@
 package app.lenews.sync
 
 import android.content.Context
-import android.util.Log
 import app.lenews.R
 import app.lenews.repositories.SyncResult
 import app.lenews.testutil.LeNewsTestRule
@@ -9,7 +8,6 @@ import app.lenews.db.Database
 import app.lenews.db.entities.Feed
 import app.lenews.db.entities.Item
 import app.lenews.db.entities.account.Account
-import app.lenews.db.entities.account.AccountType
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -31,228 +29,133 @@ class SyncAnalyzerTest : KoinTest {
     @get:Rule
     val testRule = LeNewsTestRule()
 
-    private val account1 = Account(
-        name = "test account 1",
-        type = AccountType.FRESHRSS,
+    private val account = Account(
+        name = "test account",
         isNotificationsEnabled = true
     )
 
-    private val account2 = Account(
-        name = "test account 2",
-        type = AccountType.FRESHRSS,
+    private val accountWithNotificationsOff = Account(
+        name = "test account",
         isNotificationsEnabled = false
-    )
-
-    private val account3 = Account(
-        name = "test account 3",
-        type = AccountType.FRESHRSS,
-        isNotificationsEnabled = true
     )
 
     @Before
     fun before() = runTest {
-        println("BeforeAll called")
-        val accounts = listOf(
-            account1,
-            account2,
-            account3
-        )
+        database.accountDao().upsert(account)
 
-        database.accountDao().insert(accounts)
-            .zip(accounts)
-            .forEach { (id, account) -> account.id = id.toInt() }
-
-        for ((index, account) in accounts.withIndex()) {
-            val feed = Feed(
-                name = "Feed $index",
+        // feed 1 has notifications on, feed 2 has them off
+        database.feedDao().insert(
+            Feed(
+                name = "Feed 0",
+                remoteId = "feed/0",
                 iconUrl = "https://url.com/icon.jpg",
-                accountId = account.id,
-                isNotificationEnabled = index % 2 == 0,
+                isNotificationEnabled = true
             )
-
-            database.feedDao().insert(feed)
-        }
+        )
+        database.feedDao().insert(
+            Feed(
+                name = "Feed 1",
+                remoteId = "feed/1",
+                iconUrl = "https://url.com/icon.jpg",
+                isNotificationEnabled = false
+            )
+        )
+        database.feedDao().insert(
+            Feed(
+                name = "Feed 2",
+                remoteId = "feed/2",
+                iconUrl = "https://url.com/icon.jpg",
+                isNotificationEnabled = true
+            )
+        )
     }
 
     @Test
-    fun oneElementEveryWhereTest() = runTest {
+    fun oneArticleFromOneFeedTest() = runTest {
         val item = Item(
+            id = 1,
             title = "caseOneElementEveryWhere",
             feedId = 1,
-            remoteId = "item 1",
             pubDate = LocalDateTime.now()
         )
 
-        val syncResult = SyncResult(items = listOf(item))
-        val content = syncAnalyzer.getNotificationContent(mapOf(account1 to syncResult))
+        val content = syncAnalyzer.getNotificationContent(account, SyncResult(items = listOf(item)))
 
         assertNotNull(content)
         assertEquals("caseOneElementEveryWhere", content.text)
         assertEquals("Feed 0", content.title)
         assertTrue(content.largeIcon != null)
-        assertTrue(content.accountId > 0)
     }
 
     @Test
-    fun twoItemsOneFeedTest() = runTest {
-        val item = Item(title = "caseTwoItemsOneFeed", feedId = 1)
+    fun severalArticlesFromOneFeedTest() = runTest {
+        val item = Item(id = 1, title = "caseTwoItemsOneFeed", feedId = 1)
         val syncResult = SyncResult(items = listOf(item, item, item))
 
-        syncAnalyzer.getNotificationContent(mapOf(account1 to syncResult)).let { content ->
+        syncAnalyzer.getNotificationContent(account, syncResult).let { content ->
             assertNotNull(content)
 
             assertEquals(get<Context>().getString(R.string.new_items, 3), content.text)
             assertEquals("Feed 0", content.title)
             assertTrue(content.largeIcon != null)
-            assertTrue(content.accountId > 0)
         }
     }
 
     @Test
-    fun multipleFeedsTest() = runTest {
-        val item = Item(feedId = 1)
-        val item2 = Item(feedId = 3)
+    fun severalArticlesFromSeveralFeedsTest() = runTest {
+        val item = Item(id = 1, feedId = 1)
+        val item2 = Item(id = 2, feedId = 3)
 
         val syncResult = SyncResult(items = listOf(item, item2))
-        val content = syncAnalyzer.getNotificationContent(mapOf(account1 to syncResult))
+        val content = syncAnalyzer.getNotificationContent(account, syncResult)
 
         assertNotNull(content)
         assertEquals(get<Context>().getString(R.string.new_items, 2), content.text)
-        assertEquals(account1.name, content.title)
+        assertEquals(account.name, content.title)
         assertTrue(content.largeIcon != null)
-        assertTrue(content.accountId > 0)
-    }
-
-    @Test
-    fun multipleAccountsTest() = runTest {
-        val item = Item(feedId = 1)
-        val item2 = Item(feedId = 3)
-
-        val syncResult = SyncResult(items = listOf(item, item2))
-        val syncResult2 = SyncResult(items = listOf(item, item2))
-        val syncResults = mapOf(account1 to syncResult, account3 to syncResult2)
-
-        val content = syncAnalyzer.getNotificationContent(syncResults)
-
-        assertNotNull(content)
-        assertEquals(get<Context>().getString(R.string.new_items, 4), content.title)
     }
 
     @Test
     fun accountNotificationsDisabledTest() = runTest {
-        val item1 = Item(title = "testAccountNotificationsDisabled", feedId = 1)
-        val item2 = Item(title = "testAccountNotificationsDisabled2", feedId = 1)
+        val item1 = Item(id = 1, title = "testAccountNotificationsDisabled", feedId = 1)
+        val item2 = Item(id = 2, title = "testAccountNotificationsDisabled2", feedId = 1)
 
         val syncResult = SyncResult(items = listOf(item1, item2))
-        assertNull(syncAnalyzer.getNotificationContent(mapOf(account2 to syncResult)))
+        assertNull(syncAnalyzer.getNotificationContent(accountWithNotificationsOff, syncResult))
     }
 
     @Test
     fun feedNotificationsDisabledTest() = runTest {
-        val item1 = Item(title = "testAccountNotificationsDisabled", feedId = 2)
-        val item2 = Item(title = "testAccountNotificationsDisabled2", feedId = 2)
-
-        Log.d("SyncAnalyzerTest", "$account1")
+        val item1 = Item(id = 1, title = "testFeedNotificationsDisabled", feedId = 2)
+        val item2 = Item(id = 2, title = "testFeedNotificationsDisabled2", feedId = 2)
 
         val syncResult = SyncResult(items = listOf(item1, item2))
-        val content = syncAnalyzer.getNotificationContent(mapOf(account1 to syncResult))
-        assertNull(content)
+        assertNull(syncAnalyzer.getNotificationContent(account, syncResult))
     }
 
+    /**
+     * Two feeds, one of which has notifications off, so only one article is
+     * left: the notification is about that article and names its feed.
+     */
     @Test
-    fun twoAccountsWithOneAccountNotificationsEnabledTest() = runTest {
+    fun oneFeedOfTwoWithNotificationsEnabledTest() = runTest {
         val item1 = Item(
-            title = "testTwoAccountsWithOneAccountNotificationsEnabled",
+            id = 1,
+            title = "testTwoFeedsWithOneFeedNotificationEnabled",
             feedId = 1,
-            remoteId = "remoteId 1",
             pubDate = LocalDateTime.now()
         )
 
-        val item2 = Item(
-            title = "testTwoAccountsWithOneAccountNotificationsEnabled2",
-            feedId = 3
-        )
-
-        val item3 = Item(
-            title = "testTwoAccountsWithOneAccountNotificationsEnabled3",
-            feedId = 3
-        )
-
-        val syncResult1 = SyncResult(items = listOf(item1))
-        val syncResult2 = SyncResult(items = listOf(item2, item3))
-
-        val syncResults = mapOf(account1 to syncResult1, account2 to syncResult2)
-
-        val content = syncAnalyzer.getNotificationContent(syncResults)
-
-        assertNotNull(content)
-        assertEquals("testTwoAccountsWithOneAccountNotificationsEnabled", content.text)
-        assertEquals("Feed 0", content.title)
-        assertTrue(content.largeIcon != null)
-        assertTrue(content.item != null)
-    }
-
-    @Test
-    fun twoAccountsWithOneFeedNotificationEnabledTest() = runTest {
-        val item1 = Item(
-            title = "testTwoAccountsWithOneAccountNotificationsEnabled",
-            feedId = 1,
-            remoteId = "remoteId 1",
-            pubDate = LocalDateTime.now()
-        )
-
-        val item2 = Item(
-            title = "testTwoAccountsWithOneAccountNotificationsEnabled2",
-            feedId = 2
-        )
-
-        val item3 = Item(
-            title = "testTwoAccountsWithOneAccountNotificationsEnabled3",
-            feedId = 2
-        )
-
-        val syncResult1 = SyncResult(items = listOf(item1))
-        val syncResult2 = SyncResult(items = listOf(item2, item3))
-
-        val syncResults = mapOf(account1 to syncResult1, account2 to syncResult2)
-
-        val content = syncAnalyzer.getNotificationContent(syncResults)
-
-        assertNotNull(content)
-        assertEquals("testTwoAccountsWithOneAccountNotificationsEnabled", content.text)
-        assertEquals("Feed 0", content.title)
-        assertTrue(content.largeIcon != null)
-        assertTrue(content.item != null)
-    }
-
-
-    @Test
-    fun oneAccountTwoFeedsWithOneFeedNotificationEnabledTest() = runTest {
-        val item1 = Item(
-            title = "testTwoAccountsWithOneAccountNotificationsEnabled",
-            feedId = 1,
-            remoteId = "remoteId 1",
-            pubDate = LocalDateTime.now()
-        )
-
-        val item2 = Item(
-            title = "testTwoAccountsWithOneAccountNotificationsEnabled2",
-            feedId = 2
-        )
-
-        val item3 = Item(
-            title = "testTwoAccountsWithOneAccountNotificationsEnabled3",
-            feedId = 2
-        )
+        val item2 = Item(id = 2, title = "from the silent feed", feedId = 2)
+        val item3 = Item(id = 3, title = "from the silent feed again", feedId = 2)
 
         val syncResult = SyncResult(items = listOf(item1, item2, item3))
-        val content = syncAnalyzer.getNotificationContent(mapOf(account1 to syncResult))
+        val content = syncAnalyzer.getNotificationContent(account, syncResult)
 
         assertNotNull(content)
-        assertEquals("testTwoAccountsWithOneAccountNotificationsEnabled", content.text)
+        assertEquals("testTwoFeedsWithOneFeedNotificationEnabled", content.text)
         assertEquals("Feed 0", content.title)
         assertTrue(content.largeIcon != null)
         assertTrue(content.item != null)
-        assertTrue(content.accountId > 0)
     }
 }

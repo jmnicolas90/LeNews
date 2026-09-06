@@ -49,7 +49,7 @@ here is every file this fork created that is not Markdown. `git log
 produced; it follows a file through the ticket 05 rename, so a file added under
 `com/readrops/` and moved to `app/lenews/` still counts as created here.
 
-Carrying the header — ten files:
+Carrying the header — twenty files:
 
 | File | Language |
 | --- | --- |
@@ -62,27 +62,49 @@ Carrying the header — ten files:
 | `app/src/main/res/drawable/ic_launcher_background.xml` | XML |
 | `app/src/main/res/drawable/ic_launcher_foreground.xml` | XML |
 | `app/src/test/java/app/lenews/util/accounterror/GReaderErrorTest.kt` | Kotlin |
+| `api/src/main/java/app/lenews/api/services/greader/ArticleIds.kt` | Kotlin |
+| `api/src/test/java/app/lenews/api/services/greader/ArticleIdsTest.kt` | Kotlin |
+| `db/src/main/java/app/lenews/db/entities/PendingChange.kt` | Kotlin |
+| `db/src/main/java/app/lenews/db/dao/PendingChangeDao.kt` | Kotlin |
+| `db/src/main/java/app/lenews/db/pojo/ArticleContent.kt` | Kotlin |
+| `db/src/main/java/app/lenews/db/queries/TimeWindow.kt` | Kotlin |
+| `db/src/androidTest/java/app/lenews/db/TimelineTimeBudgetTest.kt` | Kotlin |
+| `db/src/androidTest/java/app/lenews/db/HistoryQuery.kt` | Kotlin |
+| `db/src/androidTest/java/app/lenews/db/dao/ItemDaoTest.kt` | Kotlin |
+| `db/src/androidTest/java/app/lenews/db/benchmark/ArticleStoreSeeder.kt` | Kotlin |
 | `db/src/androidTest/java/app/lenews/db/benchmark/TimelineSlownessBenchmarkTest.kt` | Kotlin |
 
-Not carrying it, and why — six files, each for a reason, not by oversight:
+Not carrying it, and why — nine files, each for a reason, not by oversight:
 
 - `app/src/androidTest/resources/greader/items_1_item.json`,
-  `items_empty.json`, `items_no_ids.json`, `items_unread_ids.json` — **JSON has
+  `items_empty.json`, `items_no_ids.json`, `items_unread_ids.json`,
+  `items_starred_ids_one.json`,
+  `items_one_id_twice_read_and_starred.json` — **JSON has
   no comment syntax.** A header cannot go in without making the fixture invalid
   for the parser that reads it.
 - `app/lint-baseline.xml` — XML, so it could carry one, but **lint regenerates
   this file** and would drop the comment the next time the baseline is updated.
   A rule that a tool undoes is not a rule.
-- `app/src/main/java/app/lenews/util/components/LoadingScreen.kt` — Kotlin, so
-  it could carry one, but **the code in it is upstream's.** It is `fun
-  LoadingScreen` lifted unchanged out of `util/components/RefreshScreen.kt`
-  when that file was deleted with the local-RSS screens; git records a new
-  file, but the fork wrote none of it. A fork copyright line here would claim
-  someone else's work, which is exactly what the rule above forbids.
+- `app/src/main/java/app/lenews/util/components/LoadingScreen.kt` and
+  `app/src/main/java/app/lenews/util/components/AdaptiveIconPainter.kt` —
+  Kotlin, so they could carry one, but **the code in them is upstream's.** The
+  first is `fun LoadingScreen` lifted unchanged out of
+  `util/components/RefreshScreen.kt` when that file was deleted with the
+  local-RSS screens; the second is `fun adaptiveIconPainterResource` lifted
+  unchanged out of the account selection screen when ticket 13 replaced that
+  screen with the FreshRSS login screen. Git records new files, but the fork
+  wrote neither. A fork copyright line here would claim someone else's work,
+  which is exactly what the rule above forbids.
 
-Room's schema JSON under `db/schemas/` is in the same position as the fixtures —
-generated, and JSON — but it does not appear on the list at all: those files are
-inherited from upstream and only renamed, so the rule never reached them.
+Two kinds of file the command does not reach, because git records them as
+renames rather than as additions, and neither carries a header either.
+`db/schemas/app.lenews.db.Database/1.json` is generated JSON: ticket 13 rewrote
+every line of it when the schema restarted at version 1 and deleted the other
+five, so the content is this fork's, but Room rewrites the file from the
+entities on every build and a comment would not survive — and JSON has nowhere
+to put one. `app/src/main/res/drawable/ic_freshrss.xml` moved from the `db`
+module to `app` in the same ticket, when the account type enum that referenced
+it was deleted; it is upstream's artwork wherever it sits.
 
 Two consequences worth stating plainly. **A new source file this fork writes
 gets the header in the same commit** — that is the moment it is cheap. And **the

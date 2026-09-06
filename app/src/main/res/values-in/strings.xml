@@ -34,15 +34,11 @@
     <string name="login">Masuk</string>
     <string name="password">Sandi</string>
     <string name="password_helper">Ini adalah sandi API FreshRSS Anda (Konfigurasi &gt; Profil)</string>
-    <string name="add_account">Tambah akun</string>
     <string name="no_feed">Tidak ada feed</string>
-    <string name="choose_account">Pilih akun</string>
     <string name="account">Akun</string>
     <string name="feeds">Feed</string>
     <string name="edit_folder">Sunting folder</string>
     <string name="delete_folder">Hapus folder ?</string>
-    <string name="delete_account">Hapus akun</string>
-    <string name="delete_account_question">Hapus akun ?</string>
     <string name="feed_deleted">Feed %1$s telah dihapus</string>
     <string name="feed_doesnt_exist">Feed %1$s tidak ada pada server</string>
     <string name="error_occured">Telah terjadi keslahan</string>
@@ -52,7 +48,6 @@
     <string name="filter_newest">Terbaru &gt; terlama</string>
     <string name="filter_oldest">Terlama &gt; terbaru</string>
     <string name="login_failed">Gagal masuk. Silakan periksa kredensial Anda</string>
-    <string name="new_account">Akun baru</string>
     <string name="local">Lokal</string>
     <string name="delete">Hapus</string>
     <string name="app_licence">Aplikasi dirilis dengan lisensi GPLv3</string>

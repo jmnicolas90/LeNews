@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import app.lenews.R
-import app.lenews.item.components.TagSurface
 import app.lenews.util.components.FeedIcon
 import app.lenews.util.extensions.canDisplayOnBackground
 import app.lenews.util.extensions.displayColor
@@ -214,25 +213,6 @@ fun LargeTimelineItem(
                         )
                     }
 
-                    if (itemWithFeed.item.tags.isNotEmpty()) {
-                        ShortSpacer()
-
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            maxLines = 2,
-                            horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.shortSpacing),
-                            verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.shortSpacing)
-                        ) {
-                            for (tag in itemWithFeed.item.tags) {
-                                TagSurface(
-                                    name = tag.name,
-                                    backgroundColor = displayColor,
-                                    truncateName = true
-                                )
-                            }
-                        }
-
-                    }
                 }
 
                 if (itemWithFeed.item.hasImage) {

@@ -33,15 +33,11 @@
     <string name="account_name">Nom du compte</string>
     <string name="login">Identifiant</string>
     <string name="password">Mot de passe</string>
-    <string name="add_account">Ajouter un compte</string>
     <string name="no_feed">Aucun flux</string>
-    <string name="choose_account">Choisir un compte</string>
     <string name="account">Compte</string>
     <string name="feeds">Flux</string>
     <string name="edit_folder">Modifier le dossier</string>
     <string name="delete_folder">Supprimer le dossier ?</string>
-    <string name="delete_account">Supprimer le compte</string>
-    <string name="delete_account_question">Supprimer le compte ?</string>
     <string name="feed_deleted">Le flux %1$s a été supprimé</string>
     <string name="feed_doesnt_exist">Le flux %1$s n\'existe pas sur le serveur</string>
     <string name="error_occured">Une erreur s\'est produite</string>
@@ -51,7 +47,6 @@
     <string name="filter_newest">Du plus récent au plus ancien</string>
     <string name="filter_oldest">Du plus ancien au plus récent</string>
     <string name="login_failed">La connexion a échoué. Veuillez vérifier vos identifiants</string>
-    <string name="new_account">Nouveau compte</string>
     <string name="new_articles">Nouveaux articles</string>
     <string name="local">Local</string>
     <string name="delete">Supprimer</string>
@@ -123,7 +118,6 @@
     <string name="enable_all">Tout activer</string>
     <string name="disable_all">Tout désactiver</string>
     <string name="open_source_libraries">Bibliothèques Open source</string>
-    <string name="other_accounts">Autres comptes</string>
     <string name="update">Mettre à jour</string>
     <string name="rename_account">Renommer le compte</string>
     <string name="name">Nom</string>

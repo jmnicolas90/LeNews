@@ -130,7 +130,7 @@ object HomeScreen : AndroidScreen() {
         }
     }
 
-    suspend fun openItem(itemId: Int) {
+    suspend fun openItem(itemId: Long) {
         tabChannel.send(TimelineTab)
         TimelineTab.openItem(itemId)
     }

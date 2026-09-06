@@ -18,11 +18,16 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.parameter.parametersOf
+
+/** One account and what one synchronization of it brought back. */
+data class SyncOutcome(
+    val account: Account,
+    val syncResult: SyncResult
+)
 
 class Synchronizer(
     private val notificationManager: NotificationManagerCompat,
@@ -32,44 +37,37 @@ class Synchronizer(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : KoinComponent {
 
-    suspend fun synchronizeAccounts(
-        notificationBuilder: Builder,
-        accountId: Int
-    ): Map<Account, SyncResult> {
-        val syncResults = mutableMapOf<Account, SyncResult>()
-
-        val accounts = if (accountId == -1) {
-            database.accountDao().selectAllAccounts().first()
-        } else {
-            listOf(database.accountDao().select(accountId))
+    /**
+     * Synchronizes the one account, and returns it with what the sync brought
+     * back so the caller can build the notification.
+     */
+    suspend fun synchronize(notificationBuilder: Builder): SyncOutcome {
+        val account = checkNotNull(database.accountDao().select()) {
+            "There is no account to synchronize"
         }
 
-        for (account in accounts) {
-            account.login = encryptedPreferences.getString(account.loginKey, null)
-            account.password = encryptedPreferences.getString(account.passwordKey, null)
+        account.login = encryptedPreferences.getString(Account.LOGIN_KEY, null)
+        account.password = encryptedPreferences.getString(Account.PASSWORD_KEY, null)
 
-            val repository = get<BaseRepository> { parametersOf(account) }
+        val repository = get<BaseRepository> { parametersOf(account) }
 
-            notificationBuilder.setContentTitle(
-                context.resources.getString(
-                    R.string.updating_account,
-                    account.name
-                )
+        notificationBuilder.setContentTitle(
+            context.resources.getString(
+                R.string.updating_account,
+                account.name
             )
+        )
 
-            if (notificationManager.areNotificationsEnabled()) {
-                notificationManager.notify(SYNC_NOTIFICATION_ID, notificationBuilder.build())
-            }
-
-            get<AuthInterceptor>().credentials = Credentials.toCredentials(account)
-            val syncResult = repository.synchronize()
-
-            fetchFeedColors(syncResult, notificationBuilder)
-
-            syncResults[account] = syncResult
+        if (notificationManager.areNotificationsEnabled()) {
+            notificationManager.notify(SYNC_NOTIFICATION_ID, notificationBuilder.build())
         }
 
-        return syncResults
+        get<AuthInterceptor>().credentials = Credentials.toCredentials(account)
+        val syncResult = repository.synchronize()
+
+        fetchFeedColors(syncResult, notificationBuilder)
+
+        return SyncOutcome(account, syncResult)
     }
 
     private suspend fun fetchFeedColors(

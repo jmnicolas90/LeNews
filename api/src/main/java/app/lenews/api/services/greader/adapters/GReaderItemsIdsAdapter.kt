@@ -1,21 +1,26 @@
 package app.lenews.api.services.greader.adapters
 
 import android.annotation.SuppressLint
+import app.lenews.api.services.greader.ArticleIds
 import app.lenews.api.utils.exceptions.ParseException
 import app.lenews.api.utils.extensions.nextNonEmptyString
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.JsonReader
 import com.squareup.moshi.JsonWriter
 
-class GReaderItemsIdsAdapter : JsonAdapter<List<String>>() {
+/**
+ * The id lists of `stream/items/ids`, which sends the decimal form. Both this
+ * and [GReaderItemsAdapter] end up with the same number for the same article.
+ */
+class GReaderItemsIdsAdapter : JsonAdapter<List<Long>>() {
 
-    override fun toJson(writer: JsonWriter, value: List<String>?) {
+    override fun toJson(writer: JsonWriter, value: List<Long>?) {
         // not useful here
     }
 
     @SuppressLint("CheckResult")
-    override fun fromJson(reader: JsonReader): List<String>? = with(reader) {
-        val ids = arrayListOf<String>()
+    override fun fromJson(reader: JsonReader): List<Long> = with(reader) {
+        val ids = arrayListOf<Long>()
 
         return try {
             beginObject()
@@ -28,12 +33,7 @@ class GReaderItemsIdsAdapter : JsonAdapter<List<String>>() {
                             beginObject()
 
                             when (nextName()) {
-                                "id" -> {
-                                    val value = nextNonEmptyString()
-                                    ids += "tag:google.com,2005:reader/item/" +
-                                            value.toLong()
-                                                .toString(16).padStart(value.length, '0')
-                                }
+                                "id" -> ids += ArticleIds.fromDecimal(nextNonEmptyString())
 
                                 else -> skipValue()
                             }

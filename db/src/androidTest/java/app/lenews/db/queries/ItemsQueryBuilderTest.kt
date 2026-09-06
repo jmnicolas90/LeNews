@@ -36,25 +36,31 @@ class ItemsQueryBuilderTest {
 
     @Test
     fun noFilterDefaultSortCaseTest() {
-        val queryFilters = QueryFilters(accountId = 1)
-
-        val query = ItemsQueryBuilder.buildItemsQuery(queryFilters)
+        val query = ItemsQueryBuilder.buildItemsQuery(QueryFilters())
 
         database.query(query)
 
         with(query.sql) {
-            assertTrue(contains("Feed.account_id = 1"))
             assertTrue(contains("pub_date DESC"))
 
-            assertFalse(contains("read = 0 And"))
+            assertFalse(contains("Article.read = 0"))
         }
+    }
 
+    /**
+     * The article table has to be the outer loop, or the timeline sorts the
+     * whole store on every page. `CROSS JOIN` is what says so to SQLite.
+     */
+    @Test
+    fun theArticleTableDrivesTheJoin() {
+        val query = ItemsQueryBuilder.buildItemsQuery(QueryFilters())
+
+        assertTrue(query.sql.contains("Article CROSS JOIN Feed"))
     }
 
     @Test
     fun feedFilterCaseTest() {
         val queryFilters = QueryFilters(
-            accountId = 1,
             subFilter = SubFilter.FEED,
             feedId = 15
         )
@@ -62,43 +68,73 @@ class ItemsQueryBuilderTest {
         val query = ItemsQueryBuilder.buildItemsQuery(queryFilters)
         database.query(query)
 
-        assertTrue(query.sql.contains("feed_id = 15"))
+        assertTrue(query.sql.contains("Article.feed_id = 15"))
     }
 
     @Test
     fun starsFilterCaseTest() {
-        val queryFilters = QueryFilters(accountId = 1, mainFilter = MainFilter.STARS)
+        val queryFilters = QueryFilters(mainFilter = MainFilter.STARS)
 
         val query = ItemsQueryBuilder.buildItemsQuery(queryFilters)
         database.query(query)
 
-        assertTrue(query.sql.contains("starred = 1"))
+        assertTrue(query.sql.contains("Article.starred = 1"))
     }
 
     @Test
     fun newFilterCaseTest() {
-        val queryFilters = QueryFilters(accountId = 1, mainFilter = MainFilter.NEW)
+        val queryFilters = QueryFilters(mainFilter = MainFilter.NEW)
 
         val query = ItemsQueryBuilder.buildItemsQuery(queryFilters)
         database.query(query)
 
-        assertTrue(query.sql.contains("Between DateTime(DateTime(\"now\"), \"-24 hour\") And DateTime(\"now\")"))
+        assertTrue(query.sql.contains(WITHIN_LAST_24_HOURS))
     }
 
+    /**
+     * A folder filters on the article's own feed id, against the feeds of that
+     * folder, and not on `Feed.folder_id`: the article table is the outer loop
+     * of the join, so a condition on a column of `Feed` can only be tested once
+     * an article row has been read, and opening a folder — one with no article
+     * above all — would visit the whole store. Written this way, and with the
+     * index named so the planner cannot change its mind once it has statistics,
+     * `Article(feed_id, pub_date)` serves the filter.
+     */
     @Test
     fun folderFilterCaseTest() {
-        val queryFilters = QueryFilters(accountId = 1, subFilter = SubFilter.FOLDER, folderId = 1)
+        val queryFilters = QueryFilters(subFilter = SubFilter.FOLDER, folderId = 1)
 
         val query = ItemsQueryBuilder.buildItemsQuery(queryFilters)
         database.query(query)
 
-        assertTrue(query.sql.contains("folder_id = ${queryFilters.folderId}"))
+        with(query.sql) {
+            assertTrue(
+                contains(
+                    "Article.feed_id In (Select id From Feed Where folder_id = " +
+                            "${queryFilters.folderId})"
+                )
+            )
+            assertFalse(contains("Feed.folder_id = ${queryFilters.folderId}"))
+            assertTrue(contains("Article Indexed By index_Article_feed_id_pub_date"))
+        }
+    }
+
+    /** Only the folder timeline names an index; the others are better without. */
+    @Test
+    fun noOtherTimelineNamesAnIndex() {
+        listOf(
+            QueryFilters(),
+            QueryFilters(showReadItems = false),
+            QueryFilters(subFilter = SubFilter.FEED, feedId = 15),
+            QueryFilters(mainFilter = MainFilter.STARS)
+        ).forEach {
+            assertFalse(ItemsQueryBuilder.buildItemsQuery(it).sql.contains("Indexed By"))
+        }
     }
 
     @Test
     fun oldestSortCaseTest() {
         val queryFilters = QueryFilters(
-            accountId = 1,
             orderType = OrderType.ASC,
             orderField = OrderField.DATE,
             showReadItems = false
@@ -108,7 +144,7 @@ class ItemsQueryBuilderTest {
         database.query(query)
 
         with(query.sql) {
-            assertTrue(contains("read = 0"))
+            assertTrue(contains("Article.read = 0"))
             assertTrue(contains("pub_date ASC"))
         }
     }
@@ -116,7 +152,6 @@ class ItemsQueryBuilderTest {
     @Test
     fun newestSortCaseTest() {
         val queryFilters = QueryFilters(
-            accountId = 1,
             orderType = OrderType.DESC,
             orderField = OrderField.ID
         )
@@ -125,43 +160,37 @@ class ItemsQueryBuilderTest {
         database.query(query)
 
         with(query.sql) {
-            assertTrue(contains("Item.id DESC"))
+            assertTrue(contains("Article.id DESC"))
         }
     }
 
+    /** Read and starred state comes from the article row, with no join for it. */
     @Test
-    fun separateStateTest() {
+    fun stateComesFromTheArticleRow() {
         val queryFilters = QueryFilters(
-            accountId = 1,
             showReadItems = false,
             mainFilter = MainFilter.STARS
         )
 
-        val query = ItemsQueryBuilder.buildItemsQuery(queryFilters, true)
+        val query = ItemsQueryBuilder.buildItemsQuery(queryFilters)
         database.query(query)
 
         with(query.sql) {
-            assertFalse(contains("read, starred"))
-            assertTrue(contains("ItemState.read = 0 And "))
-            assertTrue(contains("ItemState.starred = 1"))
+            assertTrue(contains("read AS is_read"))
+            assertTrue(contains("starred AS is_starred"))
+            assertFalse(contains("ItemState"))
         }
     }
 
     @Test(expected = IllegalArgumentException::class)
-    fun accountIdExceptionTest() {
-        val queryFilters = QueryFilters()
-        ItemsQueryBuilder.buildItemsQuery(queryFilters)
-    }
-
-    @Test(expected = IllegalArgumentException::class)
     fun filterFeedIdExceptionTest() {
-        val queryFilters = QueryFilters(accountId = 1, subFilter = SubFilter.FEED)
+        val queryFilters = QueryFilters(subFilter = SubFilter.FEED)
         ItemsQueryBuilder.buildItemsQuery(queryFilters)
     }
 
     @Test
     fun folderFilterExceptionTest() {
-        val queryFilters = QueryFilters(accountId = 1, subFilter = SubFilter.FOLDER)
+        val queryFilters = QueryFilters(subFilter = SubFilter.FOLDER)
         assertThrows(IllegalArgumentException::class.java) {
             ItemsQueryBuilder.buildItemsQuery(queryFilters)
         }

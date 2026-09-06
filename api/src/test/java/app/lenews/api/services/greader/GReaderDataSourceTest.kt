@@ -125,7 +125,7 @@ class GReaderDataSourceTest : KoinTest {
                 GReaderDataSource.GOOGLE_STARRED
             ),
             max = 100,
-            lastModified = 21343321321321
+            cursor = 21343321321321
         )
         assertTrue { items.size == 2 }
 
@@ -356,8 +356,8 @@ class GReaderDataSourceTest : KoinTest {
     @Test
     fun classicSync() = runTest {
         var setItemState = 0
-        val ids = listOf("1", "2", "3", "4")
-        val lastModified = 10L
+        val ids = listOf(1L, 2L, 3L, 4L)
+        val cursor = 10L
 
         mockServer.dispatcher = object : Dispatcher() {
 
@@ -381,7 +381,7 @@ class GReaderDataSourceTest : KoinTest {
 
                         // items
                         contains("contents/user/-/state/com.google/reading-list") -> {
-                            assertTrue { request.path!!.contains("ot=$lastModified") }
+                            assertTrue { request.path!!.contains("ot=$cursor") }
                             MockResponse.okResponseWithBody(TestUtils.loadResource("services/greader/adapters/items.json"))
                         }
 
@@ -399,7 +399,7 @@ class GReaderDataSourceTest : KoinTest {
         val result = freshRSSDataSource.synchronize(
             syncType = SyncType.CLASSIC_SYNC,
             syncData = GReaderSyncData(
-                lastModified = 10L,
+                cursor = 10L,
                 readIds = ids,
                 unreadIds = ids,
                 starredIds = ids,

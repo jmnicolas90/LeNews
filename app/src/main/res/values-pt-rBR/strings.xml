@@ -16,14 +16,11 @@
     <string name="login">Login</string>
     <string name="password">Senha</string>
     <string name="password_helper">Esta é sua senha do FreshRSS API (Configuração &gt; Perfil)</string>
-    <string name="add_account">Adicionar uma conta</string>
     <string name="no_feed">Nenhum Feed</string>
-    <string name="choose_account">Escolha uma conta</string>
     <string name="account">Conta</string>
     <string name="credentials">Credenciais</string>
     <string name="filter_newest">Mais recentes primeiro</string>
     <string name="filter_oldest">Mais antigos primeiro</string>
-    <string name="new_account">Nova conta</string>
     <string name="local">Local</string>
     <string name="delete">Eliminar</string>
     <string name="app_licence">App registrado sob a licença GPLv3</string>
@@ -72,8 +69,6 @@
     <string name="edit_folder">Editar pasta</string>
     <string name="open_items_in">Abrir artigos via</string>
     <string name="feeds">Feeds</string>
-    <string name="delete_account">Eliminar conta</string>
-    <string name="delete_account_question">Eliminar a conta\?</string>
     <string name="feed_deleted">O Feed %1$s foi eliminado</string>
     <string name="folder_doesnt_exist">A pasta não existe no servidor</string>
     <string name="login_failed">Não foi possível fazer login. Por favor, verifique suas credenciais</string>
@@ -129,7 +124,6 @@
     <string name="feed_url_read_only">A API não suporta modificação do URL do Feed</string>
     <string name="enable_all">Permitir tudo</string>
     <string name="open_source_libraries">Bibliotecas de código aberto</string>
-    <string name="other_accounts">Outras contas</string>
     <string name="item_view">Visão do Artigo</string>
     <string name="warning">Aviso</string>
     <string name="understand">Eu compreendo</string>
