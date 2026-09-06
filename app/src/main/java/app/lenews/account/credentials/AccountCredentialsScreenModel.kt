@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.parameter.parametersOf
@@ -107,6 +108,11 @@ class AccountCredentialsScreenModel(
         if (url.isEmpty()) {
             mutableState.update { it.copy(urlError = TextFieldError.EmptyField) }
             validate = false
+        } else if (serverUrlIsCleartext(url)) {
+            // refused here, so that no request is built and the password never
+            // leaves the phone in the clear
+            mutableState.update { it.copy(urlError = TextFieldError.CleartextUrl) }
+            validate = false
         }
 
         if (name.isEmpty()) {
@@ -162,6 +168,45 @@ internal fun accountToLogInWith(
     token = null,
     writeToken = null
 )
+
+/** A scheme at the start of an address: letters, then `://`. */
+private val URL_SCHEME = Regex("^[a-zA-Z][a-zA-Z0-9+.\\-]*://")
+
+/**
+ * Whether the server address as typed on screen would be fetched in the clear.
+ *
+ * The login sends the password and every later call carries the token, so an
+ * `http://` server means both go out readable by anyone on the way. The screen
+ * refuses such an address before it builds a request; the network security
+ * config refuses it a second time, at the socket.
+ *
+ * The decision is made on the **parsed** address, not on the text: a query
+ * string may hold `http://` without the address itself being cleartext. The
+ * scheme is compared in lower case, because `HTTP://` is the same scheme, and
+ * whitespace around what was typed is dropped.
+ *
+ * An address with no scheme is read as `https://` — which is what
+ * [Utils.normalizeUrl] does with it afterwards — so `rss.lan` is accepted and
+ * reached over TLS.
+ *
+ * Text that is no address at all is not cleartext: there is nothing to refuse
+ * here, and the empty-field check and the login's own error report it.
+ */
+internal fun serverUrlIsCleartext(typedUrl: String): Boolean {
+    val trimmed = typedUrl.trim()
+    val withScheme =
+        if (URL_SCHEME.containsMatchIn(trimmed)) trimmed else "https://$trimmed"
+
+    val parsed = withScheme.toHttpUrlOrNull()
+
+    return if (parsed != null) {
+        parsed.scheme == "http"
+    } else {
+        // A scheme with nothing usable after it does not parse, and "http://"
+        // on its own is still someone asking for plain HTTP.
+        trimmed.startsWith("http://", ignoreCase = true)
+    }
+}
 
 data class AccountCredentialsState(
     val url: String = "https://",

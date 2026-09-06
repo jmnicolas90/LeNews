@@ -136,15 +136,21 @@ header in the same commit.**
   `local.properties` — ticket 22 set that up, and the account is `ledev`.
   Ticket 14 synced a debug build against it **from the emulator**, three times,
   after pushing the Caddy local-authority root into
-  `/data/misc/user/0/cacerts-added` there; the app's network security config
-  already trusts user CAs, so nothing in the app had to change. Ticket 16 did the
+  `/data/misc/user/0/cacerts-added` there, back when the app trusted user CAs for
+  every host. Ticket 19 narrowed that to `rss.lan` alone and checked the emulator
+  half **both ways**: with the root in place the sync succeeds, with the file
+  moved to `/data/local/tmp` and the app force-stopped it fails with
+  `SSLHandshakeException: Trust anchor for certification path not found`. The
+  root was put back. Ticket 16 did the
   same again for upstream issue #341 — star an article, mark the starred list
   read, sync twice and the read is still there, which is the server having taken
   it — and left the account as found. `local.properties`
   lives in the main checkout only, so a worktree that needs the debug account has
   to be given a copy of that gitignored file, deleted again afterwards. Still
   open: the same root on the **phone**, which cannot be checked from this
-  machine. The second sample of the article rate is rough but taken: 119 new
+  machine — the app is now the reason it matters, since without that root a debug
+  build on the phone cannot reach `rss.lan` at all. The second sample of the
+  article rate is rough but taken: 119 new
   articles in the 1 h 47 min between two syncs on 2026-09-06, which is well over
   a few hundred a day. The
   instrumented gate stage needs no network at all: it uses MockWebServer on the
@@ -477,6 +483,26 @@ bound to the new one and sent there — which is what the review of ticket 18
 found. Both clients send
 `User-Agent: LeNews/<versionName>`; the string is built in the app module, where
 the version lives, and passed to `apiModule(userAgent)`.
+
+**The app speaks HTTPS and nothing else** (ticket 19).
+`app/src/main/res/xml/network_security_config.xml` is one file for every build
+type, with no `<debug-overrides>`: the base configuration refuses cleartext and
+trusts **preinstalled authorities only**, and one `<domain-config>` for
+**`rss.lan`** — `includeSubdomains="false"` — adds `user` to its trust anchors,
+which is how the Caddy local-authority root the user installed is honoured for
+their server and for nothing else. The root is not bundled. Neither HTTP client
+carries a `TrustManager`, a `hostnameVerifier` or `ConnectionSpec.CLEARTEXT`, and
+none may be added. There is **one cleartext exception and it is not a network**:
+`localhost` and `127.0.0.1`, where the instrumented tests run their stub server —
+take it out and the instrumented tests that talk to it fail with
+`UnknownServiceException: CLEARTEXT communication to localhost not permitted` —
+seen on `SyncWorkerTest`, and six androidTest files use that stub. It lives in the shipped file rather
+than in a debug-only copy so that `NetworkSecurityPolicyTest`, which reads the
+policy back on the device, speaks about the app that ships; that test also pins
+how wide the exception is. The login screen refuses an `http://` server address
+**before it builds a request** — `serverUrlIsCleartext(...)` in
+`AccountCredentialsScreenModel.kt`, decided on the parsed `HttpUrl`, with a
+schemeless address read as `https://`.
 
 ## Tickets and bookkeeping
 
