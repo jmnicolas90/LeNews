@@ -1774,17 +1774,6 @@
 
     <issue
         id="MissingTranslation"
-        message="&quot;downloaded_file&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
-        errorLine1="    &lt;string name=&quot;downloaded_file&quot;>Downloaded file!&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="155"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
         message="&quot;provide_root_url&quot; is not translated in &quot;nb&quot; (Norwegian Bokmål), &quot;in&quot; (Indonesian), &quot;ja&quot; (Japanese), &quot;it&quot; (Italian), &quot;tr&quot; (Turkish)"
         errorLine1="    &lt;string name=&quot;provide_root_url&quot;>Please provide the service root URL&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">

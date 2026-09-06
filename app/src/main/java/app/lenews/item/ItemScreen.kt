@@ -1,5 +1,6 @@
 package app.lenews.item
 
+import android.content.Context
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
@@ -11,8 +12,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
@@ -22,12 +21,12 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import app.lenews.R
 import app.lenews.util.components.AndroidScreen
 import app.lenews.util.components.CenteredProgressIndicator
-import app.lenews.util.components.Placeholder
-import app.lenews.util.extensions.isError
-import app.lenews.util.extensions.isLoading
+import app.lenews.util.components.PagingErrorPlaceholder
 import app.lenews.util.extensions.isNotEmpty
+import app.lenews.util.extensions.listState
 import app.lenews.util.extensions.openInCustomTab
 import app.lenews.util.extensions.openUrl
+import app.lenews.util.paging.PagedListState
 import app.lenews.db.filters.QueryFilters
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.core.parameter.parametersOf
@@ -65,28 +64,25 @@ class ItemScreen(
             )
         }
 
-        LaunchedEffect(state.fileDownloadedEvent) {
-            if (state.fileDownloadedEvent) {
-                snackbarHostState.showSnackbar(context.getString(R.string.downloaded_file))
+        // One snackbar at a time, in the order the results arrived, and each one
+        // acknowledged by its own id: a failure that arrives while a success is
+        // still showing waits its turn instead of going out with it.
+        val imageResult = state.imageResults.firstOrNull()
+
+        LaunchedEffect(imageResult?.id) {
+            if (imageResult != null) {
+                snackbarHostState.showSnackbar(imageResult.snackbarText(context))
+                screenModel.imageResultShown(imageResult.id)
             }
         }
 
-        LaunchedEffect(state.error) {
-            if (state.error != null) {
-                snackbarHostState.showSnackbar(state.error!!)
-            }
-        }
-
-        when {
-            items.isLoading() -> {
+        when (items.listState()) {
+            PagedListState.Loading -> {
                 CenteredProgressIndicator()
             }
 
-            items.isError() -> {
-                Placeholder(
-                    text = stringResource(R.string.error_occured),
-                    painter = painterResource(id = R.drawable.ic_error)
-                )
+            PagedListState.Error -> {
+                PagingErrorPlaceholder(onRetry = { items.retry() })
             }
 
             else -> {
@@ -152,4 +148,10 @@ class ItemScreen(
             }
         }
     }
+}
+
+/** What the reader is told about an image they asked for. */
+private fun ImageResult.snackbarText(context: Context): String = when (this) {
+    is ImageResult.Saved -> context.getString(R.string.image_saved_in_downloads, fileName)
+    is ImageResult.Failed -> message
 }

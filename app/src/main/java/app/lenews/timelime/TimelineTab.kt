@@ -55,12 +55,16 @@ import app.lenews.timelime.components.TimelineItemSize
 import app.lenews.timelime.dialog.TimelineDialogs
 import app.lenews.timelime.drawer.TimelineDrawer
 import app.lenews.util.components.LoadingScreen
+import app.lenews.util.components.PagingErrorFooter
+import app.lenews.util.components.PagingErrorPlaceholder
 import app.lenews.util.components.Placeholder
-import app.lenews.util.extensions.isError
 import app.lenews.util.extensions.isLoading
-import app.lenews.util.extensions.isNotEmpty
+import app.lenews.util.extensions.listState
+import app.lenews.util.extensions.nextPageFailed
+import app.lenews.util.extensions.rowCount
 import app.lenews.util.extensions.openInCustomTab
 import app.lenews.util.extensions.openUrl
+import app.lenews.util.paging.PagedListState
 import app.lenews.util.theme.spacing
 import app.lenews.db.entities.OpenIn
 import app.lenews.db.filters.MainFilter
@@ -260,16 +264,15 @@ object TimelineTab : Tab {
                         .fillMaxSize()
                         .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
                 ) {
+                    val listState = items.listState()
+
                     when {
-                        items.isLoading() -> {
+                        listState == PagedListState.Loading -> {
                             LoadingScreen(isRefreshing = state.isRefreshing)
                         }
 
-                        items.isError() -> {
-                            Placeholder(
-                                text = stringResource(R.string.error_occured),
-                                painter = painterResource(id = R.drawable.ic_error)
-                            )
+                        listState == PagedListState.Error -> {
+                            PagingErrorPlaceholder(onRetry = { items.retry() })
                         }
 
                         else -> {
@@ -277,7 +280,7 @@ object TimelineTab : Tab {
                                 isRefreshing = state.isRefreshing,
                                 onRefresh = { screenModel.refreshTimeline() },
                             ) {
-                                if (items.isNotEmpty()) {
+                                if (listState == PagedListState.Content) {
                                     MarkItemsRead(
                                         lazyListState = lazyListState,
                                         items = items,
@@ -290,8 +293,13 @@ object TimelineTab : Tab {
                                         contentPadding = PaddingValues(vertical = lazyColumnPadding),
                                         verticalArrangement = Arrangement.spacedBy(lazyColumnPadding)
                                     ) {
+                                        // Not items.itemCount: the rows for
+                                        // articles the next page failed to
+                                        // bring would stay blank, and the retry
+                                        // under this list would be below all of
+                                        // them.
                                         items(
-                                            count = items.itemCount,
+                                            count = items.rowCount(),
                                             key = items.itemKey { it.item.id },
                                         ) { index ->
                                             val itemWithFeed = items[index]
@@ -337,6 +345,15 @@ object TimelineTab : Tab {
                                                     },
                                                     modifier = Modifier.animateItem()
                                                 )
+                                            }
+                                        }
+
+                                        // Right under the last article that
+                                        // did load, the rows above stopping
+                                        // there.
+                                        if (items.nextPageFailed()) {
+                                            item {
+                                                PagingErrorFooter(onRetry = { items.retry() })
                                             }
                                         }
                                     }

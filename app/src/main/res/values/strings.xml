@@ -147,7 +147,6 @@
     <string name="report_error_github">Report the error on Github</string>
     <string name="copy_error_clipboard">Copy error to clipboard</string>
     <string name="copied">Copied!</string>
-    <string name="downloaded_file">Downloaded file!</string>
     <string name="provide_root_url">Please provide the service root URL</string>
     <string name="order_field_tooltip">RSS feeds always contain old articles it is unlikely you will see in your timeline if you order it by date. Ordering by article identifier lets you show all new inserted articles whatever date they might have.</string>
     <string name="date">Date</string>
@@ -175,6 +174,16 @@
          Untranslated for the same reason as the strings above. -->
     <string name="sync_failure_message_cut" tools:ignore="MissingTranslation">\u2026 (characters cut: %1$d)</string>
     <string name="error_image_download">An error occurred while downloading the image</string>
+    <!-- Ticket 21. English only, like the strings above: which languages LeNews
+         keeps is still an open product call, and the translations inherited from
+         upstream do not carry these. -->
+    <string name="error_image_save" tools:ignore="MissingTranslation">The image could not be saved to Downloads</string>
+    <!-- The name of the file, so that two images saved one after the other read
+         as two files rather than as the same message twice. It replaces
+         "downloaded_file", which said only that something had been downloaded;
+         that string and its translations went with it. -->
+    <string name="image_saved_in_downloads" tools:ignore="MissingTranslation">%1$s saved to Downloads</string>
+    <string name="retry" tools:ignore="MissingTranslation">Retry</string>
     <string name="enable_notifications">Enable notifications</string>
     <string name="account_notifications_disabled">Account notifications are currently disabled</string>
     <string name="open_feed_in">Open Feed in</string>

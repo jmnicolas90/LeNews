@@ -74,6 +74,9 @@ import kotlin.test.fail
  * - a decision outlives the screen it was made on;
  * - after the process is killed the reader comes back to the article they were
  *   reading, not to whatever has taken its place in the list.
+ *
+ * And, from the review of ticket 21, what the reader is told about the images
+ * they save: one message per image, in order, each one acknowledged on its own.
  */
 class ItemScreenModelTest : KoinTest {
 
@@ -256,6 +259,65 @@ class ItemScreenModelTest : KoinTest {
             1,
             initialPage(pages, itemId = ARTICLE_A, itemIndex = 0),
             "the screen opens on the article that has taken the reader's place"
+        )
+    }
+
+    /**
+     * Two images in a row, one saved and one not. The snackbar can only show
+     * one at a time, so the second has to wait rather than replace the first —
+     * before, a failure arriving while a success was showing was thrown away
+     * when the reader dismissed the success, and the download that failed said
+     * nothing at all.
+     */
+    @Test
+    fun twoImageResultsInARowAreTwoMessagesInOrder() = runBlocking {
+        val model = screenModel(ARTICLE_A, itemIndex = 0, QueryFilters())
+
+        model.reportImageSaved("cat.png")
+        model.reportImageFailed("the image could not be saved")
+
+        val results = model.state.value.imageResults
+        assertEquals(2, results.size, "a result was dropped")
+        assertEquals("cat.png", (results[0] as ImageResult.Saved).fileName)
+        assertEquals(
+            "the image could not be saved",
+            (results[1] as ImageResult.Failed).message,
+            "the failure did not follow the success"
+        )
+    }
+
+    /** Acknowledging the snackbar that was shown acknowledges only that one. */
+    @Test
+    fun acknowledgingTheFirstMessageLeavesTheSecond() = runBlocking {
+        val model = screenModel(ARTICLE_A, itemIndex = 0, QueryFilters())
+
+        model.reportImageSaved("cat.png")
+        model.reportImageFailed("the image could not be saved")
+
+        val shown = model.state.value.imageResults.first()
+        model.imageResultShown(shown.id)
+
+        val left = model.state.value.imageResults
+        assertEquals(1, left.size, "the message the reader never saw went with the one they did")
+        assertEquals(
+            "the image could not be saved",
+            (left.single() as ImageResult.Failed).message
+        )
+    }
+
+    /** Two images saved one after the other are two messages, not one. */
+    @Test
+    fun twoSavedImagesAreNotConflatedIntoOneMessage() = runBlocking {
+        val model = screenModel(ARTICLE_A, itemIndex = 0, QueryFilters())
+
+        model.reportImageSaved("cat.png")
+        model.reportImageSaved("cat.png")
+
+        val results = model.state.value.imageResults
+        assertEquals(2, results.size, "the second download said nothing")
+        assertTrue(
+            results[0].id != results[1].id,
+            "two results share an id, so acknowledging one acknowledges both"
         )
     }
 

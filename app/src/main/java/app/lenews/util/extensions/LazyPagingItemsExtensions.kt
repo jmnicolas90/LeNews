@@ -1,15 +1,34 @@
 package app.lenews.util.extensions
 
-import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
+import app.lenews.util.paging.PagedListState
+import app.lenews.util.paging.nextPageFailed as nextPageFailedIn
+import app.lenews.util.paging.pagedListState
+import app.lenews.util.paging.timelineRowCount
 
-fun <T : Any> LazyPagingItems<T>.isLoading(): Boolean {
-    return loadState.refresh is LoadState.Loading && itemCount == 0
-}
+/**
+ * What this list has to put on screen. The decision itself is in
+ * [pagedListState], where it can be tested without Compose.
+ */
+fun <T : Any> LazyPagingItems<T>.listState(): PagedListState =
+    pagedListState(loadState, itemCount)
 
-fun <T : Any> LazyPagingItems<T>.isError(): Boolean {
-    return loadState.append is LoadState.Error //|| loadState.refresh is LoadState.Error
-}
+/** Whether the next page failed to load, the articles already there being fine. */
+fun <T : Any> LazyPagingItems<T>.nextPageFailed(): Boolean = nextPageFailedIn(loadState)
+
+/**
+ * How many rows this timeline shows: every matching article while pages are
+ * still arriving, and only the articles actually loaded once the next page has
+ * failed. The reason is in [timelineRowCount].
+ */
+fun <T : Any> LazyPagingItems<T>.rowCount(): Int = timelineRowCount(
+    itemCount = itemCount,
+    placeholdersAfter = itemSnapshotList.placeholdersAfter,
+    nextPageFailed = nextPageFailed()
+)
+
+fun <T : Any> LazyPagingItems<T>.isLoading(): Boolean =
+    listState() == PagedListState.Loading
 
 fun <T : Any> LazyPagingItems<T>.isNotEmpty(): Boolean {
     return itemCount > 0

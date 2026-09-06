@@ -117,7 +117,6 @@
     <string name="report_error_github">Melden op GitHub</string>
     <string name="copy_error_clipboard">Foutmelding kopiëren naar klembord</string>
     <string name="copied">Gekopieerd!</string>
-    <string name="downloaded_file">Het bestand is gedownload!</string>
     <string name="provide_full_url">Voer de volledige api-url in</string>
     <string name="provide_root_url">Voer de volledige hoofd-url in</string>
     <string name="account_name">Accountnaam</string>

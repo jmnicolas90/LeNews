@@ -146,7 +146,6 @@
     <string name="no_article">Sem artigos</string>
     <string name="delete_feed_question">Você quer excluir o feed %1$s?</string>
     <string name="mark_all_articles_read_question">Você realmente quer marcar todos os itens como lido?</string>
-    <string name="downloaded_file">Arquivo baixado!</string>
     <string name="descending">Descendente</string>
     <string name="ascending">Ascendente</string>
     <string name="local_view">Vista local</string>

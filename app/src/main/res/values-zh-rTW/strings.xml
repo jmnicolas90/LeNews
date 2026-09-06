@@ -139,7 +139,6 @@
     <string name="background_sync_new_articles">背景同步完成後通知新文章</string>
     <string name="mark_all_articles_read_question">您真的想要將所有文章標記為已讀嗎？</string>
     <string name="mark_all_articles_read">將所有文章標記為已讀</string>
-    <string name="downloaded_file">檔案已下載！</string>
     <string name="invalid_feed">不可用的 feed</string>
     <string name="invalid_folder">不可用的資料夾</string>
     <string name="error_image_download">下載圖片時發生錯誤</string>

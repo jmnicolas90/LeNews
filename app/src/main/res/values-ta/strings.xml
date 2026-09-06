@@ -77,7 +77,6 @@
     <string name="no_rss_feed_found">ஆர்.எச்.எச் ஊட்டம் எதுவும் கிடைக்கவில்லை</string>
     <string name="not_valid_rss_feed">வழங்கப்பட்ட முகவரி சரியான RSS ஊட்டம் அல்ல</string>
     <string name="copied">நகலெடுக்கப்பட்டது!</string>
-    <string name="downloaded_file">பதிவிறக்கம் செய்யப்பட்ட கோப்பு!</string>
     <string name="provide_full_url">முழு பநிஇ முகவரி ஐ வழங்கவும்</string>
     <string name="provide_root_url">பணி ரூட் முகவரி ஐ வழங்கவும்</string>
     <string name="date">திகதி</string>
