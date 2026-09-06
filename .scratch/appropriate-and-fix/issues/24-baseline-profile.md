@@ -2,7 +2,7 @@
 
 Type: task
 Status: open
-Blocked by: 23
+Blocked by: 23, 25
 
 ## Question
 
@@ -51,6 +51,17 @@ Two constraints it must not break: the generator module goes through
 explicitly today — a fourth means a fourth line), and nothing about it may
 require Play Services or a Google-image emulator, which `bench-pixel6-aosp`
 deliberately is not.
+
+**Why ticket 25 comes first, and it is not a preference.** A baseline profile is
+a list of fully-qualified JVM descriptors — the merged one in the tree today
+reads `Lcoil3/compose/AsyncImageKt;`, `SPLcoil3/compose/AsyncImageKt;->AsyncImage-…`
+and so on. A profile generated for LeNews would therefore carry
+`Lapp/lenews/timelime/...` lines by the hundred. Rename the package afterwards
+and every one of those rules stops matching — **silently**. Nothing fails, no
+warning is printed, the profile is simply partly dead and the app is partly
+unoptimised, which is the worst possible outcome for a ticket whose entire
+deliverable is a before-and-after comparison. So the rename lands first and this
+ticket generates against the final package name, once.
 
 **Done when** this ticket's `Answer` holds before-and-after numbers from a
 release build on real hardware and a decision either way. Either the profile is

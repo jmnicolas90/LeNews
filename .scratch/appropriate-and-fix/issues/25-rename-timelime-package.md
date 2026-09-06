@@ -15,8 +15,23 @@ the user's Samsung on 2026-09-06.
 
 Nothing is broken by it. It is a spelling mistake in an identifier that appears
 in crash reports the user is asked to file on GitHub, and it will keep looking
-like a mistake for as long as it is there. Cheap now, cheaper than ever after a
-release ships with it in stack traces.
+like a mistake for as long as it is there.
+
+**Do it before anything else, for a reason beyond the spelling.** Ticket 24 may
+add a baseline profile, and a baseline profile is a list of fully-qualified JVM
+descriptors — every LeNews class it names would be written `Lapp/lenews/timelime/…`.
+Renaming the package after such a profile is committed makes each of those rules
+stop matching **silently**: no build failure, no warning, just an app that is
+quietly less optimised than its own profile claims. Ticket 24 is therefore marked
+blocked by this one. The same argument holds for a release, more weakly — nothing
+is released yet, so there is no crash-report history to split and no upgrade to
+break, which makes now the cheapest this will ever be.
+
+**The risk of the move itself is low, and that was checked** rather than assumed:
+`app/proguard-rules.pro` names neither this package nor `app.lenews` at all, and
+nothing under the directory persists a class name (no `@Parcelize`, no
+`Serializable`, no `javaClass.name` key). The `applicationId` and the module
+namespace are untouched by a rename below them, so no install breaks.
 
 Rename the directory and the package declaration:
 `app/src/main/java/app/lenews/timelime/` → `.../timeline/`, with `git mv` so the
