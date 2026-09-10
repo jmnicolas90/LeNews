@@ -40,8 +40,12 @@ import androidx.test.uiautomator.Until
  * not: the build types the baseline profile plugin adds are derived from
  * `release`, and what they end up called is the plugin's business, not this
  * file's. build.gradle.kts passes it in.
+ *
+ * Named after the instrumentation argument it reads rather than after
+ * macrobenchmark's `packageName` parameter, so that the Gradle side, the
+ * argument and this are one name for one thing.
  */
-val targetPackage: String
+val targetAppId: String
     get() = InstrumentationRegistry.getArguments().getString("targetAppId")
         ?: error(
             "targetAppId was not passed to the instrumentation. It is set in" +
@@ -78,7 +82,7 @@ private const val ARTICLE_TIMEOUT_MILLIS = 15_000L
  */
 fun MacrobenchmarkScope.grantTheNotificationPermission() {
     device.executeShellCommand(
-        "pm grant $targetPackage android.permission.POST_NOTIFICATIONS"
+        "pm grant $targetAppId android.permission.POST_NOTIFICATIONS"
     )
 }
 
@@ -91,27 +95,30 @@ fun MacrobenchmarkScope.grantTheNotificationPermission() {
  * start of a login form and calling it a timeline.
  */
 fun MacrobenchmarkScope.waitForTheTimeline(): UiObject2 =
-    device.wait(Until.findObject(By.pkg(targetPackage).scrollable(true)), TIMELINE_TIMEOUT_MILLIS)
+    device.wait(Until.findObject(By.pkg(targetAppId).scrollable(true)), TIMELINE_TIMEOUT_MILLIS)
         ?: error(
             "no scrollable list appeared within $TIMELINE_TIMEOUT_MILLIS ms. The store is" +
                     " probably empty, which puts the login screen in front of the" +
                     " timeline: seed one with scripts/seed-store.sh, or sign the app in."
         )
 
+/** How far down the timeline one measured scroll goes. */
+private const val FLINGS = 4
+
 /**
- * Flings the timeline down [flings] times, waiting for the frames of each fling
+ * Flings the timeline down [FLINGS] times, waiting for the frames of each fling
  * to be drawn before asking for the next. A fling rather than a slow drag,
  * because a fling is what makes Paging load the page below and what a reader
  * actually does to a list of a few hundred articles a day.
  */
-fun MacrobenchmarkScope.scrollTheTimeline(flings: Int = 4) {
+fun MacrobenchmarkScope.scrollTheTimeline() {
     val timeline = waitForTheTimeline()
 
     // Without a margin the gesture starts on the very edge of the display,
     // where the system's own back gesture takes it first.
     timeline.setGestureMargin(device.displayWidth / 5)
 
-    repeat(flings) {
+    repeat(FLINGS) {
         timeline.fling(Direction.DOWN)
         device.waitForIdle()
     }

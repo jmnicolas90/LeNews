@@ -64,7 +64,7 @@ class StartupBenchmark {
         measure(CompilationMode.Partial(BaselineProfileMode.Require))
 
     private fun measure(compilationMode: CompilationMode) = rule.measureRepeated(
-        packageName = targetPackage,
+        packageName = targetAppId,
         metrics = listOf(StartupTimingMetric()),
         compilationMode = compilationMode,
         startupMode = StartupMode.COLD,

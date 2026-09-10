@@ -59,7 +59,7 @@ class TimelineScrollBenchmark {
         measure(CompilationMode.Partial(BaselineProfileMode.Require))
 
     private fun measure(compilationMode: CompilationMode) = rule.measureRepeated(
-        packageName = targetPackage,
+        packageName = targetAppId,
         metrics = listOf(FrameTimingMetric()),
         compilationMode = compilationMode,
         iterations = BENCHMARK_ITERATIONS,

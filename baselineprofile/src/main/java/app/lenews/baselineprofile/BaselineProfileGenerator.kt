@@ -49,7 +49,7 @@ class BaselineProfileGenerator {
     /** Launching the app and getting as far as the first timeline. */
     @Test
     fun coldStart() = rule.collect(
-        packageName = targetPackage,
+        packageName = targetAppId,
         includeInStartupProfile = true
     ) {
         grantTheNotificationPermission()
@@ -65,7 +65,7 @@ class BaselineProfileGenerator {
      */
     @Test
     fun scrollingAndReading() = rule.collect(
-        packageName = targetPackage,
+        packageName = targetAppId,
         includeInStartupProfile = false
     ) {
         grantTheNotificationPermission()

@@ -84,7 +84,7 @@ Android 12 or later (`minSdk 31`).
 LeNews is Google-free: no Play Services, no Firebase, nothing from Google Mobile
 Services in the dependency graph. It runs on GrapheneOS and on plain AOSP. This
 is checked rather than promised: a Gradle task walks the full runtime classpath
-of every variant of all three modules and fails if such a dependency appears,
+of every variant of all four modules and fails if such a dependency appears,
 including one pulled in indirectly. It is wired to `check` and to every task
 whose name starts with `assemble`, `package`, `install` or `bundle`, so
 `./gradlew assembleDebug`, `assembleRelease`, `packageDebug`, `installDebug`,

@@ -89,7 +89,9 @@ header in the same commit.**
   *every* variant, `assembleDebug` also resolves the release runtime classpath,
   so a release-only offender fails a debug build.
 - **`minSdk 31`, `targetSdk 35`, `compileSdk 35`**, set once in the root
-  `build.gradle.kts` for all three modules. The floor is 31 since ticket 02,
+  `build.gradle.kts` for all four modules — `baselineprofile` included since
+  ticket 24, because a module that drives the app has to be built against the
+  platform the app is built against. The floor is 31 since ticket 02,
   which also deleted every compat shim the raise made dead (notification
   channel guards, the adaptive-icon painter branch, the battery-optimization
   guard, core library desugaring, the legacy storage permission). Raising to
@@ -275,7 +277,8 @@ Notes that save time:
   starts); later runs are much faster. A full run including G7 takes a few
   minutes more.
 - **Lint fails on errors only**; warnings print and stop nothing. `abortOnError`
-  is set once, in the root `build.gradle.kts`, for all three modules.
+  is set once, in the root `build.gradle.kts`, for `app`, `api` and `db` — the
+  three that have lint tasks; `baselineprofile` has none.
   `app/lint-baseline.xml` holds what was already red on the day the gate was
   built: **410 entries — 346 errors and 64 warnings**, and every error is
   translation debt (198 `MissingTranslation`, 135 `ExtraTranslation`, 47

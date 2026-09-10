@@ -47,7 +47,7 @@ subprojects {
     // Lint is a gate stage (G2), so it has to be able to fail the build. It was
     // turned off here and turned off again in each module's own build file,
     // which made every lint error in this repo advisory. It is on now, in this
-    // one place, for all three modules. Errors only: warnings still print and
+    // one place, for app, api and db. Errors only: warnings still print and
     // still stop nothing, and the errors that were already here on the day the
     // gate was built are held in app/lint-baseline.xml rather than fixed blind
     // — see app/build.gradle.kts for what is in that baseline and why.
@@ -187,11 +187,11 @@ tasks.register<JacocoReport>("jacocoFullReport") {
 val bannedDependencyGroups = setOf("com.google.android.gms", "com.google.firebase")
 val bannedDependencyModuleFragment = "play-services"
 
-// One task per module rather than one task at the root walking all three. A task
+// One task per module rather than one task at the root walking all four. A task
 // may only resolve its own project's configurations; a root task reaching into
 // :app's would be cross-project resolution, which Gradle is in the middle of
 // taking away. Running `./gradlew checkNoGoogleDependencies` unqualified still
-// runs all three, and scripts/check.sh names them one by one so the stage says
+// runs all four, and scripts/check.sh names them one by one so the stage says
 // which module failed.
 subprojects {
     // Collected from the variant API rather than hard-coded to debug and

@@ -4,9 +4,11 @@
 // this: they come in through the root build file's buildscript classpath.
 pluginManagement {
     repositories {
+        // The default this block replaces, and where ksp and the Compose
+        // compiler plugin come from — so it has to be named again, not because
+        // anything new needs it.
         gradlePluginPortal()
         google()
-        mavenCentral()
     }
 }
 

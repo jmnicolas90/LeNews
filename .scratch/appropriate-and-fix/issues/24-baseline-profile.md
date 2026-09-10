@@ -239,3 +239,66 @@ the uncompiled control is quoted beside it. And the emulator numbers were taken
 with `androidx.benchmark.suppressErrors=EMULATOR`, because androidx refuses
 emulators as untrustworthy and is right to; the emulator column is context for
 the phone column, never a substitute for it.
+
+### Review round (2026-09-10)
+
+Two review passes, standards and spec, against `main`. What they changed:
+
+- **Documentation the fourth module made false.** `README.md` and `CHANGELOG.md`
+  both stated the Google guard walks "all three modules" — the sentence
+  `CLAUDE.md` points at as the reason the constraint is a property of the build
+  rather than of one script. `CLAUDE.md` said the SDK levels are set for three,
+  and `scripts/check.sh`'s own header said every stage names three. All
+  corrected. Where "three" is still right it now says *which* three: lint really
+  does cover `app`, `api` and `db` only, and reading that as "every module" is
+  the mistake the next reader would make.
+- **The startup metric is time to initial display, and the ticket asked for
+  "cold start to first timeline frame".** Those are not quite the same thing.
+  `StartupTimingMetric` reports the frame the activity first draws; the timeline
+  is what `MainActivity` puts on screen when an account exists, and the splash
+  screen's keep-on-screen condition is commented out, so that frame is the
+  timeline's — but it may be the timeline before Paging has filled it. The
+  stricter number, `timeToFullDisplayMs`, needs the app to call
+  `reportFullyDrawn()`, which it does not and which is an app change this ticket
+  had no business making. Both APKs are measured the same way, so the
+  before-and-after difference is sound whichever frame it is; the label is the
+  looser one and this paragraph is the correction.
+- **How to build the "before" APK again**, since the whole comparison rests on
+  it and it existed only in prose: move `app/src/main/generated` out of the tree,
+  `./gradlew :app:assembleBenchmarkRelease`, and check that
+  `assets/dexopt/baseline.prof` is back to 5,381 bytes. Put the directory back
+  and it is 9,274 again. (The shipped `release` APK's copy is 9,277 — the same
+  rules through a different build type. The tables above are the
+  `benchmarkRelease` figures, because those are the APKs that were measured.)
+- **`androidx.profileinstaller` in the shipped APK was questioned as scope
+  creep, and it is kept.** Without it the profile in `assets/dexopt/` is only
+  honoured by an installer that knows to hand it to the platform, which means
+  Play — and LeNews is distributed as a GitHub release, installed by adb or by
+  whatever opens a downloaded APK. It is what makes the file do anything at all
+  for this app's actual distribution, and it is also what let
+  `BaselineProfileMode.Require` succeed rather than fail.
+- **The two benchmark classes stay, and nothing runs them.** That is a real
+  cost: the UI can drift and they will only say so the next time someone asks.
+  They are kept because regenerating the profile without being able to check it
+  still helps is how a profile quietly stops earning its place, and because the
+  ticket's own step 3 — "measure again the same way" — needs *a* same way to
+  exist. When they do break they break loudly and say what to do.
+- Smaller: `scrollTheTimeline` lost a `flings` parameter no caller varied;
+  `targetPackage` became `targetAppId`, one name for the Gradle side, the
+  instrumentation argument and the Kotlin that reads it; `mavenCentral()` came
+  back out of `settings.gradle.kts`'s `pluginManagement`, which needs only the
+  plugin portal it replaces and `google()`.
+
+**One thing found and deliberately not fixed here**, because it predates this
+ticket and is not about baseline profiles: the comment above the Google guard in
+`build.gradle.kts`, and the matching sentence in `CLAUDE.md`, say that "three
+`com.google.*` dependencies are deliberately allowed and are in the graph
+today", naming `com.google.android.material`, `com.google.accompanist` and
+`com.google.devtools.ksp`. The runtime classpath of `:app` actually carries
+seven `com.google.*` groups — `accompanist-drawablepainter`,
+`accompanist-permissions`, `android.material`, `code.gson`, `crypto.tink`,
+`errorprone` and `guava:listenablefuture` — and `devtools.ksp`, which the list
+names, is an annotation processor and is on none of them. The guard is
+unaffected: it matches the two banned groups and the `play-services` fragment by
+coordinate, so what the prose gets wrong is only its own example. Worth a ticket
+of its own.

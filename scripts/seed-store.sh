@@ -65,6 +65,13 @@ PACKAGE="${2:-app.lenews}"
 # Same shape as db/src/androidTest/.../benchmark/ArticleStoreSeeder.kt, which is
 # what the database tests measure against: ten folders, a hundred feeds, a year
 # of articles, the newest 2500 of them unread and a thousand starred.
+#
+# Two descriptions of one fixture in two languages, which will drift unless
+# somebody keeps them together. They are not merged because they cannot be: that
+# one builds its database through Room on a device, this one builds a file here
+# out of the committed schema, and neither can call the other. What has to stay
+# in step is these five numbers and the shape of an article row; the one place
+# they deliberately differ is open_in_ask, and the comment on Feed says why.
 FOLDERS=10
 FEEDS=100
 UNREAD=2500
