@@ -49,7 +49,7 @@ here is every file this fork created that is not Markdown. `git log
 produced; it follows a file through the ticket 05 rename, so a file added under
 `com/readrops/` and moved to `app/lenews/` still counts as created here.
 
-Carrying the header — sixty-six files:
+Carrying the header — seventy-two files:
 
 | File | Language |
 | --- | --- |
@@ -119,8 +119,14 @@ Carrying the header — sixty-six files:
 | `db/src/androidTest/java/app/lenews/db/StoreResetTest.kt` | Kotlin |
 | `app/src/test/java/app/lenews/account/credentials/StoreOwnershipTest.kt` | Kotlin |
 | `db/src/androidTest/java/app/lenews/db/ArticlePositionTest.kt` | Kotlin |
+| `scripts/seed-store.sh` | shell |
+| `baselineprofile/build.gradle.kts` | Gradle |
+| `baselineprofile/src/main/java/app/lenews/baselineprofile/ReaderJourney.kt` | Kotlin |
+| `baselineprofile/src/main/java/app/lenews/baselineprofile/BaselineProfileGenerator.kt` | Kotlin |
+| `baselineprofile/src/main/java/app/lenews/baselineprofile/StartupBenchmark.kt` | Kotlin |
+| `baselineprofile/src/main/java/app/lenews/baselineprofile/TimelineScrollBenchmark.kt` | Kotlin |
 
-Not carrying it, and why — ten files, each for a reason, not by oversight:
+Not carrying it, and why — twelve files, each for a reason, not by oversight:
 
 - `app/src/androidTest/resources/greader/items_1_item.json`,
   `items_empty.json`, `items_no_ids.json`, `items_unread_ids.json`,
@@ -128,6 +134,12 @@ Not carrying it, and why — ten files, each for a reason, not by oversight:
   `items_one_id_twice_read_and_starred.json` — **JSON has
   no comment syntax.** A header cannot go in without making the fixture invalid
   for the parser that reads it.
+- `app/src/main/generated/baselineProfiles/baseline-prof.txt` and
+  `startup-prof.txt` — the baseline profile of ticket 24. **The ART profile
+  format has no comment syntax**, so a header would be read as fourteen more
+  rules rather than skipped, and the files are regenerated wholesale by
+  `:app:generateBaselineProfile` anyway. They are also not writing: every line
+  is a JVM descriptor a tool read off a device.
 - `app/lint-baseline.xml` — XML, so it could carry one, but **lint regenerates
   this file** and would drop the comment the next time the baseline is updated.
   A rule that a tool undoes is not a rule.

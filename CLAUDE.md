@@ -1,9 +1,11 @@
 # LeNews — agent context
 
 A FreshRSS client for Android (Kotlin, Jetpack Compose, Room, WorkManager,
-OkHttp/Retrofit, Koin), in three Gradle modules: `api` speaks the Google Reader
+OkHttp/Retrofit, Koin), in four Gradle modules: `api` speaks the Google Reader
 API that FreshRSS exposes, `db` holds the Room database and its queries, `app`
-is the UI and the sync worker. One account, one service, and a lot of
+is the UI and the sync worker, and `baselineprofile` (ticket 24) drives the app
+on a device to measure it and to write the baseline profile it ships — the only
+one of the four that produces nothing a reader installs. One account, one service, and a lot of
 articles — a few hundred a day is the shape it is built for, so anything that
 gets slower as articles accumulate, stores an article twice, or loses the way
 back to an article that was swiped away is the most serious class of bug in
@@ -56,9 +58,15 @@ header in the same commit.**
 - **GrapheneOS / AOSP compatible, always.** No Google Play Services, GMS or
   Firebase dependency may ever enter the graph, transitively included. It is
   enforced, not documented: gate G4 below runs `checkNoGoogleDependencies`,
-  registered per module in the root `build.gradle.kts`, on **all three
+  registered per module in the root `build.gradle.kts`, on **all four
   modules** — `api` and `db` carry their own graphs and a library is exactly
-  where a transitive Play Services dependency would arrive unnoticed. It walks
+  where a transitive Play Services dependency would arrive unnoticed, and
+  `baselineprofile` installs an APK of its own on a device, which is the one
+  other way something could reach one. That last is why the guard understands
+  `com.android.test` modules and not only application and library ones: a module
+  the variant API hands nothing back for is a failure, so a fourth module the
+  guard did not know how to read would have turned G4 red rather than passing
+  quietly. It walks
   the full runtime classpath of every variant, collected from the variant API
   rather than from a hard-coded list of build types, and fails on the groups
   `com.google.android.gms` and `com.google.firebase` or on any module whose
@@ -183,14 +191,17 @@ Eight stages, fail-fast, in this order. The individual invocations:
 | G1 email guard | not Gradle — `scripts/check-no-personal-email.sh` |
 | G2 lint | `./gradlew -q :app:lintDebug :app:lintRelease :api:lintDebug :api:lintRelease :db:lintDebug :db:lintRelease` |
 | G3 unit tests | `./gradlew -q :app:testDebugUnitTest :api:testDebugUnitTest :db:testDebugUnitTest` |
-| G4 Google guard | `./gradlew -q :app:checkNoGoogleDependencies :api:checkNoGoogleDependencies :db:checkNoGoogleDependencies` |
+| G4 Google guard | `./gradlew -q :app:checkNoGoogleDependencies :api:checkNoGoogleDependencies :db:checkNoGoogleDependencies :baselineprofile:checkNoGoogleDependencies` |
 | G5 debug APK | `./gradlew -q :app:assembleDebug` |
 | G6 release APK | `./gradlew -q :app:assembleRelease` |
 | G7 instrumented tests | `ANDROID_SERIAL=emulator-5554 ./gradlew -q :db:connectedDebugAndroidTest :app:connectedDebugAndroidTest` — what G7 runs *after* its own boot wait and AVD-name check; see below before running it by hand |
 
-Every Gradle stage names all three modules explicitly rather than trusting an
-unqualified task name to reach them all: it costs a line and it means a red
-stage says which module failed.
+Every Gradle stage names the modules it covers explicitly rather than trusting
+an unqualified task name to reach them all: it costs a line and it means a red
+stage says which module failed. G4 is the only stage that names four —
+`baselineprofile` has no lint task of its own, no unit tests and no APK a reader
+installs, so it appears in the gate exactly once, in the one stage whose
+question applies to it.
 
 G4 stays a stage of its own even though G5 and G6 now pull the same guard in
 through their `assemble` dependency: a stage that names the offence is worth the
@@ -286,6 +297,13 @@ Notes that save time:
   in `check.sh` calls it, and its verdict is advice, not a pass mark.
   `scripts/create-release-keystore.sh` is run once by hand, by the user, to make
   the release signing key — see *Release signing* below.
+  `scripts/seed-store.sh` puts a hundred thousand articles under an installed
+  build on the emulator, in about two seconds, so that the app opens on a
+  timeline instead of a login screen; it builds the database out of
+  `db/schemas/app.lenews.db.Database/1.json` rather than out of DDL written down
+  in the script, so a schema change is picked up the next time it runs. It is
+  pinned to `emulator-5554` and checks the AVD name before writing, because it
+  overwrites an application's entire store and the phone is usually attached.
   `scripts/android-sdk-path.sh` just answers "where is the SDK" for the other
   two, in the order AGP 8.10 itself uses (its `SdkLocator`): `sdk.dir` in
   `local.properties` first, then `ANDROID_HOME`, then the deprecated
@@ -614,6 +632,32 @@ identity — `theStoreBelongsToAnotherAccount(...)` in
 addresses and the two user names, and it does not take a password at all. Do not
 write `accountDao().upsert` at the end of a login again; that is the call this
 replaced.
+
+**The app ships a baseline profile of its own, and generating it is a deliberate
+act** (ticket 24). The release APK always carried one — the rules Compose,
+Paging, Room and the rest embed in their AARs, which AGP merges — and ticket 24
+measured whether LeNews's own code was worth adding: on the user's Galaxy A06 it
+is worth **47 ms off every cold start** (687.4 → 640.6 ms median time to initial
+display) and **half the worst frame overrun of a timeline scroll** (P99 6.69 →
+3.49 ms past the deadline). The profile is
+`app/src/main/generated/baselineProfiles/`, two committed text files —
+`baseline-prof.txt` and its `startup-prof.txt` subset — read by
+`:app:assembleRelease` like any other source. **The gate never generates it**:
+`baselineProfile { automaticGenerationDuringBuild = false }` in
+`app/build.gradle.kts` is what keeps a device out of G6 and out of CI. To
+regenerate it, seed the emulator (`scripts/seed-store.sh`) and run
+`./gradlew :app:generateBaselineProfile`, then commit the files with the code
+they describe. Three things that cost a session each and should not again: the
+profile's rules are fully-qualified names, so **R8 rewriting is not optional** —
+`baselineProfileRulesRewrite` and `dexLayoutOptimization` both default to *off*
+and both are set on here, and left off the profile ships and matches almost
+nothing, silently; **`androidx.benchmark` may not go below 1.5.0**, because on
+API 36 `pm dump-profiles` prints two progress lines before the path and 1.3.4
+fails to parse them, which makes generating a profile on `bench-pixel6-aosp`
+impossible; and a **generator recording is not one journey but two**, a cold
+start with `includeInStartupProfile = true` and the reading afterwards without
+it, or the startup profile comes out as a copy of the whole thing and tells R8
+nothing about what to lay out first.
 
 ## Tickets and bookkeeping
 

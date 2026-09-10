@@ -321,13 +321,16 @@ gate G2 lint          "$GRADLE" -q \
 gate G3 "unit tests"  "$GRADLE" -q \
   :app:testDebugUnitTest :api:testDebugUnitTest :db:testDebugUnitTest
 
-# The GrapheneOS constraint, enforced rather than documented. All three modules,
+# The GrapheneOS constraint, enforced rather than documented. All four modules,
 # because api and db carry their own dependency graphs and a library module is
-# exactly where a transitive Play Services dependency would arrive unnoticed.
+# exactly where a transitive Play Services dependency would arrive unnoticed —
+# and because baselineprofile installs an APK of its own on a device, which is
+# the one other way something could reach one.
 gate G4 "Google guard" "$GRADLE" -q \
   :app:checkNoGoogleDependencies \
   :api:checkNoGoogleDependencies \
-  :db:checkNoGoogleDependencies
+  :db:checkNoGoogleDependencies \
+  :baselineprofile:checkNoGoogleDependencies
 
 gate G5 "debug APK"   "$GRADLE" -q :app:assembleDebug
 
