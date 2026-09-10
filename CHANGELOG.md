@@ -83,8 +83,8 @@ Nothing has been released yet. This is what the fork has changed so far.
   LeNews repository the only contact channel; the report button on the crash
   screen opens that tracker.
 - **Being usable without Google is now enforced, not just true.** A Play
-  Services, Firebase or other Google Mobile Services dependency reaching any of
-  the three modules, including indirectly, fails `./gradlew check`, fails every
+  Services, Firebase or other Google Mobile Services dependency reaching any
+  module, including indirectly, fails `./gradlew check`, fails every
   task that builds or installs an artifact — `assembleDebug`, `assembleRelease`,
   `packageDebug`, `installDebug`, `bundleRelease` — and fails both the quality
   gate and CI, so no APK or app bundle can be built with one in it and none

@@ -24,9 +24,10 @@
 # runners are noisier — no -q — but they run the same tasks in the same order).
 # If the two ever drift, one of them is lying about whether the tree is good.
 #
-# Every Gradle stage names all three modules explicitly rather than relying on
-# an unqualified task name reaching them all. It costs a line and it means a red
-# stage says which module failed.
+# Every Gradle stage names the modules it covers explicitly rather than relying
+# on an unqualified task name reaching them all. It costs a line and it means a
+# red stage says which module failed. G4 is the only stage naming four:
+# baselineprofile has no lint task, no unit tests and no APK a reader installs.
 #
 # Set SKIP_INSTRUMENTED to anything to leave G7 out. That is for quick
 # iterations only: the default run includes it, and CI always runs it.
@@ -321,13 +322,16 @@ gate G2 lint          "$GRADLE" -q \
 gate G3 "unit tests"  "$GRADLE" -q \
   :app:testDebugUnitTest :api:testDebugUnitTest :db:testDebugUnitTest
 
-# The GrapheneOS constraint, enforced rather than documented. All three modules,
+# The GrapheneOS constraint, enforced rather than documented. All four modules,
 # because api and db carry their own dependency graphs and a library module is
-# exactly where a transitive Play Services dependency would arrive unnoticed.
+# exactly where a transitive Play Services dependency would arrive unnoticed —
+# and because baselineprofile installs an APK of its own on a device, which is
+# the one other way something could reach one.
 gate G4 "Google guard" "$GRADLE" -q \
   :app:checkNoGoogleDependencies \
   :api:checkNoGoogleDependencies \
-  :db:checkNoGoogleDependencies
+  :db:checkNoGoogleDependencies \
+  :baselineprofile:checkNoGoogleDependencies
 
 gate G5 "debug APK"   "$GRADLE" -q :app:assembleDebug
 

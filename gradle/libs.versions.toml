@@ -15,10 +15,12 @@ okhttp = "4.12.0"
 retrofit = "3.0.0"
 about_libraries = "12.1.2"
 work-manager = "2.10.1"
+benchmark = "1.5.0"
 
 [plugins]
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+baselineprofile = { id = "androidx.baselineprofile", version.ref = "benchmark" }
 
 [libraries]
 android-agp = { module = "com.android.tools.build:gradle", version.ref = "android_agp" }
@@ -114,6 +116,12 @@ ext-rules = "androidx.test:rules:1.6.1"
 expressocore = "androidx.test.espresso:espresso-core:3.6.1"
 
 colorpicker = "com.github.skydoves:colorpicker-compose:1.1.2"
+
+# baseline profile: the app reads the committed profile at install time, the
+# :baselineprofile module measures the app and generates that profile
+profileinstaller = "androidx.profileinstaller:profileinstaller:1.4.1"
+benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "benchmark" }
+uiautomator = "androidx.test.uiautomator:uiautomator:2.3.0"
 
 [bundles]
 compose = ["compose-foundation", "compose-runtime", "compose-animation",

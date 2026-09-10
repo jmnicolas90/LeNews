@@ -116,13 +116,15 @@ jobs:
         run: ./gradlew :app:testDebugUnitTest :api:testDebugUnitTest :db:testDebugUnitTest
 
       # The GrapheneOS constraint, enforced rather than documented: nothing on a
-      # runtime classpath may pull in Play Services or Firebase.
+      # runtime classpath may pull in Play Services or Firebase. Four modules
+      # since ticket 24 added :baselineprofile.
       - name: G4 Google guard
         run: >
           ./gradlew
           :app:checkNoGoogleDependencies
           :api:checkNoGoogleDependencies
           :db:checkNoGoogleDependencies
+          :baselineprofile:checkNoGoogleDependencies
 
       - name: G5 debug APK
         run: ./gradlew :app:assembleDebug

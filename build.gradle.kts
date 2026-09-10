@@ -1,9 +1,11 @@
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
+import com.android.build.api.variant.TestAndroidComponentsExtension
 import com.android.build.gradle.AppPlugin
 import com.android.build.gradle.BaseExtension
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.LibraryPlugin
+import com.android.build.gradle.TestPlugin
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedComponentResult
 import org.gradle.api.artifacts.result.ResolvedDependencyResult
@@ -29,6 +31,7 @@ buildscript {
 plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.compose.compiler) apply false
+    alias(libs.plugins.baselineprofile) apply false
     jacoco
 }
 
@@ -44,7 +47,7 @@ subprojects {
     // Lint is a gate stage (G2), so it has to be able to fail the build. It was
     // turned off here and turned off again in each module's own build file,
     // which made every lint error in this repo advisory. It is on now, in this
-    // one place, for all three modules. Errors only: warnings still print and
+    // one place, for app, api and db. Errors only: warnings still print and
     // still stop nothing, and the errors that were already here on the day the
     // gate was built are held in app/lint-baseline.xml rather than fixed blind
     // — see app/build.gradle.kts for what is in that baseline and why.
@@ -72,6 +75,17 @@ subprojects {
             }
             the<com.android.build.api.dsl.LibraryExtension>().lint {
                 abortOnError = true
+            }
+        }
+        // :baselineprofile is a com.android.test module. It gets the same SDK
+        // levels and the same Java target as the other three — a module that
+        // drives the app has to be built against the platform the app is built
+        // against — but no lint configuration: it has no lintDebug or
+        // lintRelease task to run, because its variants are named after the
+        // app's, and it is not a gate stage.
+        plugins.withType<TestPlugin> {
+            configure<BaseExtension> {
+                configure(this)
             }
         }
     }
@@ -173,11 +187,11 @@ tasks.register<JacocoReport>("jacocoFullReport") {
 val bannedDependencyGroups = setOf("com.google.android.gms", "com.google.firebase")
 val bannedDependencyModuleFragment = "play-services"
 
-// One task per module rather than one task at the root walking all three. A task
+// One task per module rather than one task at the root walking all four. A task
 // may only resolve its own project's configurations; a root task reaching into
 // :app's would be cross-project resolution, which Gradle is in the middle of
 // taking away. Running `./gradlew checkNoGoogleDependencies` unqualified still
-// runs all three, and scripts/check.sh names them one by one so the stage says
+// runs all four, and scripts/check.sh names them one by one so the stage says
 // which module failed.
 subprojects {
     // Collected from the variant API rather than hard-coded to debug and
@@ -196,6 +210,16 @@ subprojects {
     }
     plugins.withType<LibraryPlugin> {
         extensions.getByType<LibraryAndroidComponentsExtension>().onVariants { variant ->
+            guardedConfigurations.add(variant.runtimeConfiguration.name)
+        }
+    }
+    // :baselineprofile installs an APK of its own on the device beside the app,
+    // so its runtime classpath reaches a device exactly as the other three do
+    // and is guarded exactly as they are. It is also where a Play Services
+    // dependency would be easiest to wave through, since nothing it contains
+    // ships to a user — which is the argument for guarding it, not against.
+    plugins.withType<TestPlugin> {
+        extensions.getByType<TestAndroidComponentsExtension>().onVariants { variant ->
             guardedConfigurations.add(variant.runtimeConfiguration.name)
         }
     }
