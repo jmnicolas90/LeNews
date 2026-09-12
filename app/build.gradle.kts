@@ -44,7 +44,7 @@ android {
         // applicationId changed, so every install is a fresh one — and upstream's
         // numbers carry no obligation here.
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "app.lenews.LeNewsTestRunner"
     }

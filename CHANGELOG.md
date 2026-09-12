@@ -3,7 +3,7 @@
 What LeNews has changed, newest first. Everything below the *Readrops history*
 heading is the original project's changelog, kept unedited.
 
-## 0.1.0 — unreleased
+## 1.0.0 — unreleased
 
 Nothing has been released yet. This is what the fork has changed so far.
 
@@ -18,7 +18,7 @@ Nothing has been released yet. This is what the fork has changed so far.
   the feeds and the folders all belonged to the account you left — and the next
   sync starts from scratch. Changing only the password keeps everything.
 - **The app is LeNews.** New name on screen, new application id (`app.lenews`),
-  new launcher icon, version 0.1.0. Android treats it as a different app, so it
+  new launcher icon, version 1.0.0. Android treats it as a different app, so it
   installs alongside Readrops rather than upgrading it: expect to log in again
   and to sync from scratch.
 - **A Readrops database is never carried over.** The database was rebuilt from
