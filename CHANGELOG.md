@@ -3,9 +3,9 @@
 What LeNews has changed, newest first. Everything below the *Readrops history*
 heading is the original project's changelog, kept unedited.
 
-## 1.0.0 — unreleased
+## 1.0.0 — 2026-09-12
 
-Nothing has been released yet. This is what the fork has changed so far.
+The first release. This is what the fork has changed since Readrops.
 
 - **It is a FreshRSS client and nothing else.** Local RSS parsing, Nextcloud
   News, the Fever API and OPML import/export are gone. FreshRSS is the only

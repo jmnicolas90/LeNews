@@ -104,6 +104,8 @@ Decided in conversation on 2026-09-05. Not tickets.
 
 - [Move `versionName` from `0.1.0` to `1.0.0`](issues/28-version-1-0-0.md) — **done, five lines in four files** (`app/build.gradle.kts`, two in `CHANGELOG.md`, `CLAUDE.md`, the `bug_report.md` example), `versionCode` still `1`, every other `0.1.0` in the tree left as the historical record it is. The About screen and the `User-Agent` followed on their own from `versionName`: the debug build installed by G7 reports `versionName=1.0.0` and `versionCode=1` to `dumpsys package`. `CHANGELOG.md` still says *unreleased*; the tag is the next ticket's, and that ticket exists now because the user chose, on 2026-09-12, to release and use the app on their own phone rather than keep testing it on the Samsung.
 
+- [Cut `v1.0.0`: the tag, the signed APK, the GitHub release, and the phone it goes on](issues/29-release-v1-0-0.md) — **released.** The release procedure 23 and 26 left open is now written down in `CLAUDE.md` under *Release signing*: the release ticket's `--no-ff` merge carries an annotated `v<versionName>` tag, `versionCode` goes up by one per release and follows no other rule, the APK is built from the main checkout at the tag (the only machine with the key) and renamed `LeNews-<versionName>.apk`, and it is attached only after `apksigner verify --print-certs` prints the README's fingerprint, `aapt2 dump badging` reads the expected version, and CI has run on the pushed commit; the notes are the changelog section, verbatim. `CHANGELOG.md` dates 1.0.0 to 2026-09-12. **The access boundary now names two phones**: the Samsung Galaxy A06 is the slow test device, touched only on request in that turn, and the Pixel 6 on GrapheneOS is the user's daily phone, never attached and never a target of adb, which LeNews reaches as a release APK the user installs themselves — with the rule for what a bug found there looks like (symptoms and the user's own logcat; reproduction on the emulator against `ledev`). Installing on the Pixel, with the Caddy root as a user certificate first, is the user's step and is recorded as pending in the answer.
+
 ## Not yet specified
 
 - ~~**What the history list looks like.**~~ Decided by [ticket 16](issues/16-history-list.md) taking the cheapest fit, as this entry allowed: a **fourth main filter** of the timeline beside All, New and Stars, reached from the drawer, showing the moment the article became read — with the hour — in place of its publication date, and composing with a feed or a folder like any other main filter.
@@ -116,9 +118,6 @@ Decided in conversation on 2026-09-05. Not tickets.
 ## Open tickets
 
 <!-- tickets not yet resolved; the Decisions log above covers the resolved ones -->
-
-- [29 — Cut `v1.0.0`: the tag, the signed APK, the GitHub release, and the phone it goes on](issues/29-release-v1-0-0.md) — `task`, unblocked. Opened by [28](issues/28-version-1-0-0.md) on 2026-09-12 when the user decided to release and use the app on their daily phone, a Pixel 6 on GrapheneOS, rather than keep testing on the Samsung. Settles what 23 and 26 left open — the merge commit is tagged, `versionCode` goes up by one per release, the artifact is `LeNews-<version>.apk`, the notes are the changelog section — and corrects `CLAUDE.md`, which calls the Samsung "the user's phone" when it is the slow test one.
-
 
 23, 24 and 25 all came out of installing the debug APK on the user's Samsung on 2026-09-06 and reading logcat while they used it — the first time LeNews has run on real hardware; 23 and 25 are resolved and logged above, 23 spawned 26 and 27, 27 spawned 28, and 28 opened 29.
 
