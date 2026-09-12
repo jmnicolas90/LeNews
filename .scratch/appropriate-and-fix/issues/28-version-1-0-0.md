@@ -1,7 +1,7 @@
 # 28 — Move `versionName` from `0.1.0` to `1.0.0`
 
 Type: task
-Status: open
+Status: resolved
 Blocked by: —
 
 ## Question
@@ -47,3 +47,39 @@ is still true and comes off in the release ticket, not this one. Its opening lin
 
 **Done when** the four files say `1.0.0`, `versionCode` is still `1`, the About
 screen shows `v1.0.0 (1)`, and the gate is green G0-G7.
+
+## Answer (2026-09-12)
+
+Done as written: the five lines in the four files now say `1.0.0`, and
+`versionCode` is still `1`.
+
+```
+app/build.gradle.kts:47                    versionName = "1.0.0"
+CHANGELOG.md:6                             ## 1.0.0 — unreleased
+CHANGELOG.md:21                            "...new launcher icon, version 1.0.0."
+CLAUDE.md:30                               "...the app on screen is "LeNews", v1.0.0."
+.github/ISSUE_TEMPLATE/bug_report.md:24    " - LeNews version: [e.g. 1.0.0]"
+```
+
+Every other `0.1.0` in the tree is in a resolved ticket or in the map's
+*Decisions so far* and was left alone, as the ticket asked.
+
+The About screen and the `User-Agent` followed on their own. Rather than a
+screenshot, the check was the package manager's word on the debug build G7 had
+just installed on `bench-pixel6-aosp`:
+
+```
+adb -s emulator-5554 shell dumpsys package app.lenews.debug | grep -E 'versionCode|versionName'
+    versionCode=1 minSdk=31 targetSdk=35
+    versionName=1.0.0
+```
+
+which is the same `BuildConfig` the About screen reads and the `User-Agent`
+string is built from.
+
+`CHANGELOG.md` keeps *unreleased*; that word comes off in
+[ticket 29](29-release-v1-0-0.md), which this ticket opens. It exists now,
+rather than "after 24" as ticket 27 foresaw, because the user decided on
+2026-09-12 to release and to use the app day to day on their own phone
+instead of spending more time on the Samsung, which is a slow test device.
+Gate green G0-G7.

@@ -27,7 +27,7 @@ is a legal obligation, not a leftover.
 **The rename is done** (ticket 05). `applicationId` and the app module's
 namespace are both `app.lenews`, the libraries are `app.lenews.db` and
 `app.lenews.api`, the source package is `app.lenews.*`, the launcher icon is
-this fork's own and the app on screen is "LeNews", v0.1.0. Nothing under
+this fork's own and the app on screen is "LeNews", v1.0.0. Nothing under
 `app/src/` says Readrops any more, and no *inherited* file carries a copyright
 header — upstream shipped none, so the attribution the GPL asks for lives in
 `LICENSE`, in `README.md` and in the header rule `CONTRIBUTING.md` states

@@ -21,7 +21,7 @@ A clear and concise description of what should have happened.
 
 **Versions**
  - FreshRSS version: [e.g. 1.26.0]
- - LeNews version: [e.g. 0.1.0]
+ - LeNews version: [e.g. 1.0.0]
  - Android version: [e.g. Android 15]
  - Device: [e.g. Pixel 6]
  - [ ] Stack trace copied from the crash screen and pasted below
