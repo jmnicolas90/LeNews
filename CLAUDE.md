@@ -140,7 +140,23 @@ header in the same commit.**
 - **Never commit a red gate.**
 - **The access boundary.** The user's personal FreshRSS account and the
   Readrops database on their phone are **never** accessed, read, copied or
-  synced against, by any ticket, for any reason. Testing against a real server
+  synced against, by any ticket, for any reason. **There are two phones, and
+  the rule is about one of them.** The user's daily phone is a **Pixel 6 on
+  GrapheneOS**: it holds their personal account and their Readrops install,
+  it is never attached to this machine for a ticket, it is never a target of
+  adb, and LeNews reaches it only as a release APK the user downloads from the
+  GitHub release page and installs themselves, with the Caddy root installed
+  by them as a user certificate (`~/caddy-root.crt` on this machine is the
+  file). Since ticket 29 (2026-09-12) the user runs LeNews there day to day,
+  which is the only test the sync, the horizon and the history had never had
+  — "debug in prod", their words. **What a bug found there looks like**: the
+  user reports the symptom, and logcat if they choose to pull it; an agent
+  reproduces it on the emulator against the debug account below, and nothing
+  reads that phone's store or syncs against that account. The other phone is
+  a **Samsung Galaxy A06 (Android 16)**, a slow *test* device the user finds
+  unrealistic; it is the one that was plugged in for tickets 23 to 25 and it is
+  touched only when the user asks in that turn. Every "the phone" below that
+  is about hardware means the Samsung. Testing against a real server
   uses a separate debug account on the user's own FreshRSS at `https://rss.lan`
   (LAN and VPN only), whose credentials live in the gitignored
   `local.properties` — ticket 22 set that up, and the account is `ledev`.
@@ -170,10 +186,11 @@ header in the same commit.**
   articles in the 1 h 47 min between two syncs on 2026-09-06, which is well over
   a few hundred a day. The
   instrumented gate stage needs no network at all: it uses MockWebServer on the
-  emulator. A real phone is often attached to this machine over adb and is out
-  of bounds; G7 pins the serial so nothing can reach it. When the user does ask
-  for something on the phone, pin `-s <serial>` on every adb call for the same
-  reason — the emulator is usually up at the same time. Note the Samsung has **no
+  emulator. The Samsung is often attached to this machine over adb and is out
+  of bounds by default; G7 pins the serial so nothing can reach it. When the
+  user does ask for something on the Samsung, pin `-s <serial>` on every adb
+  call for the same reason — the emulator is usually up at the same time. The
+  Pixel is never attached at all. Note the Samsung has **no
   `sqlite3` binary**, unlike the emulator, so reading a store off it means the
   pull-and-query pattern of ticket 14 rather than a shell query.
 
@@ -242,7 +259,7 @@ Notes that save time:
   that failed says why instead of timing out. `ANDROID_SERIAL` rather than a
   `--device` flag, because that is the one thing every tool in the chain
   honours — without it a `connectedAndroidTest` on this machine would install
-  a debug build on the phone that is usually plugged in.
+  a debug build on the Samsung that is usually plugged in.
 - **The G7 line in the table is not a command to paste as it stands.** It is
   what G7 runs *after* two steps of its own: waiting for `sys.boot_completed`
   on `emulator-5554`, and asking that emulator's console which AVD is behind
@@ -306,7 +323,7 @@ Notes that save time:
   `db/schemas/app.lenews.db.Database/1.json` rather than out of DDL written down
   in the script, so a schema change is picked up the next time it runs. It is
   pinned to `emulator-5554` and checks the AVD name before writing, because it
-  overwrites an application's entire store and the phone is usually attached.
+  overwrites an application's entire store and the Samsung is usually attached.
   `scripts/android-sdk-path.sh` just answers "where is the SDK" for the other
   two, in the order AGP 8.10 itself uses (its `SdkLocator`): `sdk.dir` in
   `local.properties` first, then `ANDROID_HOME`, then the deprecated
@@ -718,6 +735,21 @@ before anything is attached to a release; that fingerprint is public by
 construction, since it travels inside every APK. Note that `apksigner verify`
 reports v2 as `false` unless given `--min-sdk-version 24` or lower: with
 `minSdk 31` in the APK, v3 alone covers the range, and the v2 block is there.
+
+**Cutting a release** (ticket 29, which cut `v1.0.0` on 2026-09-12) is a
+ticket like any other, and its commit is the one that dates the version's
+section in `CHANGELOG.md` and moves `versionCode` up by one (it is `1` for
+1.0.0 and follows no other rule than increasing). The `--no-ff` merge of that
+ticket into `main` carries an **annotated tag `v<versionName>`**; the APK is
+built by `./gradlew :app:assembleRelease` from the **main checkout** at that
+tag with a clean tree, because only this machine has the key, and is renamed
+`LeNews-<versionName>.apk`. Before it is attached, three checks:
+`apksigner verify --print-certs` prints the fingerprint `README.md`
+publishes, `aapt2 dump badging` reads the expected `versionName` and
+`versionCode`, and `main` and the tag are pushed so CI has run on the commit
+the release names. Then `gh release create v<versionName> LeNews-<versionName>.apk`
+with the changelog section as the notes, verbatim, and nowhere else. The user
+installs it on the Pixel themselves from the release page.
 
 `local.properties` is gitignored and holds this machine's answers. Today that is
 the three keys the debug build reads to autofill the login screen —
